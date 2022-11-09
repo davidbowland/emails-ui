@@ -100,4 +100,36 @@ describe('Inbox component', () => {
     expect(mocked(emails).deleteReceivedEmail).toHaveBeenCalledWith(user.username, emailId)
     expect(mocked(emails).getAllReceivedEmails).toHaveBeenCalledWith(user.username)
   })
+
+  test('expect forward shows email', async () => {
+    render(<Inbox />)
+
+    const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
+      selector: 'button',
+    })) as HTMLButtonElement
+    act(() => {
+      forwardButton.click()
+    })
+
+    expect(await screen.findByText(/Email contents/i)).toBeVisible()
+  })
+
+  test('expect back button from email goes back', async () => {
+    render(<Inbox />)
+
+    const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
+      selector: 'button',
+    })) as HTMLButtonElement
+    act(() => {
+      forwardButton.click()
+    })
+    const backButton = (await screen.findByLabelText(/Back to email list/i, {
+      selector: 'button',
+    })) as HTMLButtonElement
+    act(() => {
+      backButton.click()
+    })
+
+    expect(await screen.findByText(/4\/13\/1975, 4:21:13 PM/i)).toBeVisible()
+  })
 })

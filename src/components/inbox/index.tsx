@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import Alert from '@mui/material/Alert'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { Auth } from 'aws-amplify'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import { AmplifyUser, EmailBatch, EmailContents } from '@types'
@@ -26,6 +30,7 @@ const Inbox = (): JSX.Element => {
   const [email, setEmail] = useState<EmailContents | undefined>(undefined)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [isEmailLoading, setIsEmailLoading] = useState(false)
+  const [isViewingEmail, setIsViewingEmail] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>(undefined)
   const [selectedEmail, setSelectedEmail] = useState<string | undefined>(undefined)
@@ -38,6 +43,7 @@ const Inbox = (): JSX.Element => {
   const emailSelectClick = async (accountId: string, emailId: string): Promise<void> => {
     setSelectedEmail(emailId)
     setIsEmailLoading(true)
+    setIsViewingEmail(true)
     try {
       const emailContents = await getReceivedEmailContents(accountId, emailId)
       setEmail(emailContents)
@@ -61,7 +67,7 @@ const Inbox = (): JSX.Element => {
   }
 
   const renderLoading = (): JSX.Element => (
-    <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
+    <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
       <Grid item>
         <CircularProgress />
       </Grid>
@@ -163,13 +169,32 @@ const Inbox = (): JSX.Element => {
   return (
     <>
       <Grid container spacing={1} sx={{ width: '100%' }}>
-        <Grid item lg={3} md={4} xs={12}>
+        <Grid item lg={3} md={4} sx={{ display: { md: 'initial', xs: isViewingEmail ? 'none' : 'initial' } }} xs={12}>
+          <Grid container>
+            <Grid item xs></Grid>
+            <Grid item xs="auto">
+              <Tooltip sx={{ display: { md: 'none', xs: 'initial' } }} title="Email">
+                <IconButton aria-label="Show selected email" onClick={() => setIsViewingEmail(true)}>
+                  <ArrowForwardIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          </Grid>
           <Card sx={{ height: '100%', maxHeight: '80vh', overflowY: 'scroll', width: '100%' }} variant="outlined">
             {receivedEmails === undefined ? renderLoading() : renderReceivedEmails(receivedEmails)}
           </Card>
         </Grid>
-        <Grid item xs>
-          <Card sx={{ minHeight: { md: '80vh', xs: 'auto' }, overflow: 'scroll', width: '100%' }} variant="outlined">
+        <Grid item sx={{ display: { md: 'initial', xs: isViewingEmail ? 'initial' : 'none' } }} xs>
+          <Grid container>
+            <Grid item xs="auto">
+              <Tooltip sx={{ display: { md: 'none', xs: 'initial' } }} title="Back">
+                <IconButton aria-label="Back to email list" onClick={() => setIsViewingEmail(false)}>
+                  <ArrowBackIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          </Grid>
+          <Card sx={{ minHeight: { md: '80vh', xs: '40vh' }, overflow: 'scroll', width: '100%' }} variant="outlined">
             {isEmailLoading || loggedInUser?.username === undefined
               ? renderLoading()
               : renderViewer(loggedInUser?.username, selectedEmail, email)}

@@ -17,16 +17,17 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import { AmplifyUser, EmailBatch, EmailContents } from '@types'
-import {
-  deleteReceivedEmail,
-  getAllReceivedEmails,
-  getReceivedAttachment,
-  getReceivedEmailContents,
-} from '@services/emails'
+import { AmplifyUser, Email, EmailBatch, EmailContents } from '@types'
 import EmailViewer from '@components/email-viewer'
 
-const Inbox = (): JSX.Element => {
+export interface MailboxProps {
+  deleteEmail: (accountId: string, emailId: string) => Promise<Email>
+  getAllEmails: (accountId: string) => Promise<EmailBatch[]>
+  getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<Blob>
+  getEmailContents: (accountId: string, emailId: string) => Promise<EmailContents>
+}
+
+const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailContents }: MailboxProps): JSX.Element => {
   const [email, setEmail] = useState<EmailContents | undefined>(undefined)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [isEmailLoading, setIsEmailLoading] = useState(false)
@@ -35,8 +36,8 @@ const Inbox = (): JSX.Element => {
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>(undefined)
   const [selectedEmail, setSelectedEmail] = useState<string | undefined>(undefined)
 
-  const deleteEmail = async (accountId: string, emailId: string): Promise<void> => {
-    await deleteReceivedEmail(accountId, emailId)
+  const deleteEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
+    await deleteEmail(accountId, emailId)
     await refreshEmails()
   }
 
@@ -45,7 +46,7 @@ const Inbox = (): JSX.Element => {
     setIsEmailLoading(true)
     setIsViewingEmail(true)
     try {
-      const emailContents = await getReceivedEmailContents(accountId, emailId)
+      const emailContents = await getEmailContents(accountId, emailId)
       setEmail(emailContents)
     } catch (error: any) {
       console.error('emailSelectClick', error)
@@ -57,7 +58,7 @@ const Inbox = (): JSX.Element => {
   const refreshEmails = async (): Promise<void> => {
     if (loggedInUser?.username) {
       try {
-        const emails = await getAllReceivedEmails(loggedInUser.username)
+        const emails = await getAllEmails(loggedInUser.username)
         setReceivedEmails(emails.sort((a, b) => Math.sign(b.data.timestamp - a.data.timestamp)))
       } catch (error: any) {
         console.error('refreshEmails', error)
@@ -130,10 +131,10 @@ const Inbox = (): JSX.Element => {
     return (
       <EmailViewer
         accountId={accountId}
-        deleteEmail={deleteEmail}
+        deleteEmail={deleteEmailCallback}
         email={email}
         emailId={emailId}
-        getAttachment={getReceivedAttachment}
+        getAttachment={getEmailAttachment}
       />
     )
   }
@@ -210,4 +211,4 @@ const Inbox = (): JSX.Element => {
   )
 }
 
-export default Inbox
+export default Mailbox

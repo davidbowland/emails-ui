@@ -3,15 +3,17 @@ import React from 'react'
 import { mocked } from 'jest-mock'
 import { render } from '@testing-library/react'
 
+import * as emails from '@services/emails'
 import Authenticated from '@components/auth'
-import Outbox from '@components/outbox'
+import Mailbox from '@components/mailbox'
 import OutboxPage from './outbox'
 import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
-jest.mock('@components/outbox')
+jest.mock('@components/mailbox')
 jest.mock('@components/privacy-link')
+jest.mock('@services/emails')
 
 describe('Outbox page', () => {
   beforeAll(() => {
@@ -24,9 +26,17 @@ describe('Outbox page', () => {
     expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering OutboxPage renders Inbox', () => {
+  test('expect rendering OutboxPage renders Mailbox', () => {
     render(<OutboxPage />)
-    expect(mocked(Outbox)).toHaveBeenCalledTimes(1)
+    expect(mocked(Mailbox)).toHaveBeenCalledWith(
+      {
+        deleteEmail: mocked(emails).deleteSentEmail,
+        getAllEmails: mocked(emails).getAllSentEmails,
+        getEmailAttachment: mocked(emails).getSentAttachment,
+        getEmailContents: mocked(emails).getSentEmailContents,
+      },
+      {}
+    )
   })
 
   test('expect rendering OutboxPage renders PrivacyLink', () => {

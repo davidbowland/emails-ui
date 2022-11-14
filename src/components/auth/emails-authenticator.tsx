@@ -3,11 +3,11 @@ import { AmplifyUser } from '@aws-amplify/ui'
 import React from 'react'
 import Stack from '@mui/material/Stack'
 
-export interface JokesAuthenticatorProps {
+export interface EmailsAuthenticatorProps {
   setLoggedInUser: (user: AmplifyUser | undefined) => void
 }
 
-const EmailsAuthenticator = ({ setLoggedInUser }: JokesAuthenticatorProps): JSX.Element => {
+const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): JSX.Element => {
   const theme = {
     name: 'dark-mode-theme',
     overrides: [defaultDarkModeOverride],

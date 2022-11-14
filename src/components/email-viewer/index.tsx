@@ -175,19 +175,15 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
         <Grid item padding={1} xs="auto">
           <Typography variant="body1">From:</Typography>
         </Grid>
-        <Grid item padding={1} sx={{ maxWidth: '100%' }} xs="auto">
-          <RoundedBox sx={{ border: 1 }}>
-            <Typography
-              component="div"
-              paddingLeft={1}
-              paddingRight={1}
-              sx={{ wordWrap: 'break-word' }}
-              variant="body1"
-            >
-              {email.fromAddress.text}
-            </Typography>
-          </RoundedBox>
-        </Grid>
+        {email.fromAddress.value.map((from, index) => (
+          <Grid item key={index} padding={1} xs="auto">
+            <RoundedBox sx={{ border: 1 }}>
+              <Typography paddingLeft={1} paddingRight={1} sx={{ wordWrap: 'break-word' }} variant="body1">
+                {from.name ? `${from.name} <${from.address}>` : from.address}
+              </Typography>
+            </RoundedBox>
+          </Grid>
+        ))}
       </Grid>
       {email.attachments?.length ? (
         <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>

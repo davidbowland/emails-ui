@@ -3,34 +3,34 @@ import React from 'react'
 import { mocked } from 'jest-mock'
 import { render } from '@testing-library/react'
 
-import * as gatsby from 'gatsby'
 import Authenticated from '@components/auth'
-import Index from './index'
+import Outbox from '@components/outbox'
+import OutboxPage from './outbox'
 import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
+jest.mock('@components/outbox')
 jest.mock('@components/privacy-link')
-jest.mock('gatsby')
 
-describe('Index page', () => {
+describe('Outbox page', () => {
   beforeAll(() => {
     mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
     mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
-  test('expect rendering Index renders Authenticated', () => {
-    render(<Index />)
+  test('expect rendering OutboxPage renders Authenticated', () => {
+    render(<OutboxPage />)
     expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering Index navigates', () => {
-    render(<Index />)
-    expect(mocked(gatsby).navigate).toHaveBeenCalledWith('/inbox')
+  test('expect rendering OutboxPage renders Inbox', () => {
+    render(<OutboxPage />)
+    expect(mocked(Outbox)).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering Index renders PrivacyLink', () => {
-    render(<Index />)
+  test('expect rendering OutboxPage renders PrivacyLink', () => {
+    render(<OutboxPage />)
     expect(mocked(PrivacyLink)).toHaveBeenCalledTimes(1)
   })
 })

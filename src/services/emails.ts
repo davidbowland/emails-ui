@@ -49,3 +49,23 @@ export const patchReceivedEmail = (
   API.patch(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}`, {
     body: patchOperations,
   })
+
+/* Sent emails */
+
+export const deleteSentEmail = (accountId: string, emailId: string): Promise<Email> =>
+  API.del(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(emailId)}`, {})
+
+export const getAllSentEmails = (accountId: string): Promise<EmailBatch[]> =>
+  API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent`, {})
+
+export const getSentAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<Blob> =>
+  API.get(
+    apiName,
+    `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(
+      emailId
+    )}/attachments/${encodeURIComponent(attachmentId)}`,
+    { responseType: 'blob' }
+  )
+
+export const getSentEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>
+  API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(emailId)}/contents`, {})

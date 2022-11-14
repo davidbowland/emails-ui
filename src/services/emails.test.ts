@@ -15,10 +15,14 @@ import {
 import {
   deleteAccount,
   deleteReceivedEmail,
+  deleteSentEmail,
   getAccount,
   getAllReceivedEmails,
+  getAllSentEmails,
   getReceivedAttachment,
   getReceivedEmailContents,
+  getSentAttachment,
+  getSentEmailContents,
   patchAccount,
   patchReceivedEmail,
   putAccount,
@@ -217,6 +221,88 @@ describe('Emails service', () => {
         const result = await patchReceivedEmail(accountId, emailId, jsonPatchOperations)
         expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
         expect(result).toEqual(email)
+      })
+    })
+  })
+
+  describe('sent emails', () => {
+    describe('deleteSentEmail', () => {
+      const deleteEndpoint = jest.fn().mockReturnValue(email)
+
+      beforeAll(() => {
+        server.use(
+          rest.delete(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async (req, res, ctx) => {
+            const { emailId, id } = req.params
+            const body = deleteEndpoint(id, emailId)
+            return res(body ? ctx.json(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect result from call returned', async () => {
+        const result = await deleteSentEmail(accountId, emailId)
+        expect(deleteEndpoint).toHaveBeenCalledTimes(1)
+        expect(result).toEqual(email)
+      })
+    })
+
+    describe('getAllSentEmails', () => {
+      const getEndpoint = jest.fn().mockReturnValue(emailBatch)
+
+      beforeAll(() => {
+        server.use(
+          rest.get(`${baseUrl}/accounts/:id/emails/sent`, async (req, res, ctx) => {
+            const { id } = req.params
+            const body = getEndpoint(id)
+            return res(body ? ctx.json(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect result from call returned', async () => {
+        const result = await getAllSentEmails(accountId)
+        expect(getEndpoint).toHaveBeenCalledWith(accountId)
+        expect(result).toEqual(emailBatch)
+      })
+    })
+
+    describe('getSentAttachment', () => {
+      const getEndpoint = jest.fn().mockReturnValue(attachmentContents)
+
+      beforeAll(() => {
+        server.use(
+          rest.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/attachments/:attachmentId`, async (req, res, ctx) => {
+            const { attachmentId, emailId, id } = req.params
+            const body = getEndpoint(id, emailId, attachmentId)
+            return res(body ? ctx.body(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect attachment returned', async () => {
+        const result = await getSentAttachment(accountId, emailId, attachmentId)
+        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
+        expect(result).toEqual(attachmentContents)
+      })
+    })
+
+    describe('getSentEmailContents', () => {
+      const getEndpoint = jest.fn().mockReturnValue(emailContents)
+
+      beforeAll(() => {
+        server.use(
+          rest.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/contents`, async (req, res, ctx) => {
+            const { emailId, id } = req.params
+            const body = getEndpoint(id, emailId)
+            return res(body ? ctx.json(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect result from call returned', async () => {
+        const result = await getSentEmailContents(accountId, emailId)
+        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
+        expect(result).toEqual(emailContents)
       })
     })
   })

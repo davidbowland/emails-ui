@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import * as gatsby from 'gatsby'
 import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
@@ -9,13 +10,12 @@ import Authenticated from './index'
 import { user } from '@test/__mocks__'
 
 jest.mock('aws-amplify')
+jest.mock('gatsby')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 
 describe('Authenticated component', () => {
-  const consoleError = console.error
   const mockLocationReload = jest.fn()
-  const windowLocationReload = window.location.reload
 
   beforeAll(() => {
     mocked(Auth).signOut.mockResolvedValue({})
@@ -25,16 +25,12 @@ describe('Authenticated component', () => {
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { reload: mockLocationReload },
+      value: { pathname: '', reload: mockLocationReload },
     })
   })
 
-  afterAll(() => {
-    console.error = consoleError
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { replace: windowLocationReload },
-    })
+  beforeEach(() => {
+    window.location.pathname = '/an-invalid-page'
   })
 
   describe('theme', () => {
@@ -138,7 +134,9 @@ describe('Authenticated component', () => {
           <p>Testing children</p>
         </Authenticated>
       )
-      const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
       await act(async () => {
         menuButton.click()
       })
@@ -153,7 +151,9 @@ describe('Authenticated component', () => {
           <p>Testing children</p>
         </Authenticated>
       )
-      const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
       await act(async () => {
         menuButton.click()
       })
@@ -168,6 +168,31 @@ describe('Authenticated component', () => {
       await waitFor(() => expect(mockLocationReload).toHaveBeenCalled())
     })
 
+    test.each([
+      [/inbox/i, '/inbox'],
+      [/sent/i, '/outbox'],
+      [/privacy policy/i, '/privacy-policy'],
+    ])('expect selecting %s navigates to %s', async (label, path) => {
+      window.location.pathname = path
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>
+      )
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+      await act(async () => {
+        menuButton.click()
+      })
+      const selectionButton = (await screen.findByText(label)) as HTMLButtonElement
+      await act(async () => {
+        selectionButton.click()
+      })
+
+      expect(mocked(gatsby).navigate).toHaveBeenCalledWith(path)
+    })
+
     describe('delete account', () => {
       test('expect selecting delete account and then back does not delete account', async () => {
         render(
@@ -175,7 +200,9 @@ describe('Authenticated component', () => {
             <p>Testing children</p>
           </Authenticated>
         )
-        const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
         await act(async () => {
           menuButton.click()
         })
@@ -201,7 +228,9 @@ describe('Authenticated component', () => {
             <p>Testing children</p>
           </Authenticated>
         )
-        const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
         act(() => {
           menuButton.click()
         })
@@ -228,7 +257,9 @@ describe('Authenticated component', () => {
             <p>Testing children</p>
           </Authenticated>
         )
-        const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
         act(() => {
           menuButton.click()
         })
@@ -255,7 +286,9 @@ describe('Authenticated component', () => {
             <p>Testing children</p>
           </Authenticated>
         )
-        const menuButton = (await screen.findByLabelText(/menu/i, { selector: 'button' })) as HTMLButtonElement
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
         act(() => {
           menuButton.click()
         })
@@ -267,7 +300,7 @@ describe('Authenticated component', () => {
         act(() => {
           continueButton.click()
         })
-        const closeSnackbarButton = (await screen.findByLabelText(/Close/i, {
+        const closeSnackbarButton = (await screen.findByLabelText(/Close$/i, {
           selector: 'button',
         })) as HTMLButtonElement
         act(() => {

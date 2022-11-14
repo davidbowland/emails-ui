@@ -35,6 +35,25 @@ describe('Email viewer component', () => {
     getReceivedAttachment.mockResolvedValue(attachmentContents)
   })
 
+  describe('general', () => {
+    test('expect from shows correctly', async () => {
+      const emailNoFromName = {
+        ...emailContents,
+        fromAddress: { value: [{ address: 'some@domain.com' }] },
+      } as unknown as EmailContents
+      render(
+        <EmailViewer
+          accountId={accountId}
+          email={emailNoFromName}
+          emailId={emailId}
+          getAttachment={getReceivedAttachment}
+        />
+      )
+
+      expect(await screen.findByText(/some@domain.com/i)).toBeVisible()
+    })
+  })
+
   describe('DOMPurify sanitizer', () => {
     test('expect email viewer shows html', async () => {
       render(

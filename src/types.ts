@@ -84,3 +84,18 @@ export interface EmailContents {
   subject?: string
   toAddress?: EmailAddressParsed
 }
+
+export interface EmailOutbound {
+  bcc?: EmailAddress[]
+  cc?: EmailAddress[]
+  from: EmailAddress
+  headers?: StringObject
+  html: string
+  inReplyTo?: string
+  references?: string[]
+  replyTo: EmailAddress
+  sender: EmailAddress
+  subject: string
+  text: string
+  to: EmailAddress[]
+}

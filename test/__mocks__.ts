@@ -7,11 +7,12 @@ import {
   EmailAddress,
   EmailBatch,
   EmailContents,
+  EmailOutbound,
   PatchOperation,
   Theme,
 } from '@types'
 
-export const accountId = 'account'
+export const accountId = 'dave'
 
 export const account: Account = {
   forwardTargets: ['any@domain.com'],
@@ -145,8 +146,22 @@ export const jsonPatchOperations: PatchOperation[] = [
   { op: 'replace', path: '/forwardTargets', value: ['another@domain.com'] },
 ]
 
+export const outboundEmail: EmailOutbound = {
+  bcc: [{ address: 'bcc@domain.com', name: 'BCC' }],
+  cc: [{ address: 'cc@domain.com', name: 'CC' }],
+  from: { address: 'account@domain.com', name: 'Any' },
+  html: '<p>Lorem ipsum</p>',
+  inReplyTo: '765rf-76trf-90oij-edfvb-nbfa2',
+  references: ['765rf-76trf-90oij-edfvb-nbfa2', '5tyha-0oigk-mnfdb-dfgsh-jhgfa'],
+  replyTo: { address: 'account@domain.com', name: 'Any' },
+  sender: { address: 'account@domain.com', name: 'Any' },
+  subject: 'Hello, world!',
+  text: 'Lorem ipsum',
+  to: [{ address: 'another@domain.com', name: 'Someone else' }],
+}
+
 export const user: AmplifyUser = {
-  username: 'dave',
+  username: accountId,
   pool: {
     userPoolId: 'us-east-2_xqxzyIOz4',
     clientId: '135qlssf7st66v1vl5dtopfeks',

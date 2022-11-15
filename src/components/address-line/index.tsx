@@ -44,7 +44,7 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): JSX.
   const renderDisplay = (address: EmailAddress, index: number): JSX.Element => (
     <Grid container>
       <Grid item xs>
-        <Typography padding={1} sx={{ wordWrap: 'break-word' }} variant="body1">
+        <Typography padding={1} sx={{ maxWidth: { sm: '100%', xs: '30vw' }, wordWrap: 'break-word' }} variant="body1">
           {address.name ? `${address.name} <${address.address}>` : address.address}
         </Typography>
       </Grid>

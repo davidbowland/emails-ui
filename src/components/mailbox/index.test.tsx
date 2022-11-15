@@ -20,6 +20,11 @@ describe('Mailbox component', () => {
   beforeAll(() => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
     mocked(EmailViewer).mockReturnValue(<>Email contents</>)
+
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { reload: jest.fn() },
+    })
   })
 
   test('expect error message when user not logged in', async () => {

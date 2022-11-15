@@ -11,6 +11,7 @@ import {
   emailContents,
   emailId,
   jsonPatchOperations,
+  outboundEmail,
 } from '@test/__mocks__'
 import {
   deleteAccount,
@@ -25,6 +26,7 @@ import {
   getSentEmailContents,
   patchAccount,
   patchReceivedEmail,
+  postSentEmail,
   putAccount,
 } from './emails'
 import { rest, server } from '@test/setup-server'
@@ -303,6 +305,26 @@ describe('Emails service', () => {
         const result = await getSentEmailContents(accountId, emailId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
         expect(result).toEqual(emailContents)
+      })
+    })
+
+    describe('postSentEmail', () => {
+      const postEndpoint = jest.fn().mockReturnValue(email)
+
+      beforeAll(() => {
+        server.use(
+          rest.post(`${baseUrl}/accounts/:id/emails/sent`, async (req, res, ctx) => {
+            const { id } = req.params
+            const body = postEndpoint(id, await req.json())
+            return res(body ? ctx.json(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect result from call returned', async () => {
+        const result = await postSentEmail(accountId, outboundEmail)
+        expect(postEndpoint).toHaveBeenCalledWith(accountId, outboundEmail)
+        expect(result).toEqual(email)
       })
     })
   })

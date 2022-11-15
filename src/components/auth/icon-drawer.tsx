@@ -7,6 +7,7 @@ import { Auth } from 'aws-amplify'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import CreateIcon from '@mui/icons-material/Create'
 import DeleteIcon from '@mui/icons-material/Delete'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -127,6 +128,28 @@ const IconDrawer = ({
         </DrawerHeader>
         <Divider />
         <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => navigate('/compose')}
+              selected={!!window.location.pathname.match(/\/compose\/?$/)}
+              sx={{
+                justifyContent: navMenuOpen ? 'initial' : 'center',
+                minHeight: 48,
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  justifyContent: 'center',
+                  minWidth: 0,
+                  mr: navMenuOpen ? 3 : 'auto',
+                }}
+              >
+                <CreateIcon />
+              </ListItemIcon>
+              <ListItemText primary="Compose" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={() => navigate('/inbox')}

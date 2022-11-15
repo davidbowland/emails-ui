@@ -164,6 +164,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
       .catch((error: any) => {
         console.error('currentAuthenticatedUser', error)
         setErrorMessage('Error authenticating user. Please reload the page to try again.')
+        window.location.reload()
       })
   }, [])
 

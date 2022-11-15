@@ -1,6 +1,6 @@
 import { API } from 'aws-amplify'
 
-import { Account, Email, EmailBatch, EmailContents, PatchOperation } from '@types'
+import { Account, Email, EmailBatch, EmailContents, EmailOutbound, PatchOperation } from '@types'
 import { apiName } from '@config/amplify'
 
 /* Accounts */
@@ -69,3 +69,6 @@ export const getSentAttachment = (accountId: string, emailId: string, attachment
 
 export const getSentEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>
   API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(emailId)}/contents`, {})
+
+export const postSentEmail = (accountId: string, email: EmailOutbound): Promise<Email> =>
+  API.post(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent`, { body: email })

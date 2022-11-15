@@ -169,6 +169,7 @@ describe('Authenticated component', () => {
     })
 
     test.each([
+      [/compose/i, '/compose'],
       [/inbox/i, '/inbox'],
       [/sent/i, '/outbox'],
       [/privacy policy/i, '/privacy-policy'],

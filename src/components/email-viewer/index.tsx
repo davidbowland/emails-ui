@@ -20,15 +20,11 @@ import ImageIcon from '@mui/icons-material/Image'
 import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import { styled } from '@mui/material/styles'
 
 import { EmailAttachment, EmailContents } from '@types'
+import AddressLine from '@components/address-line'
 
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
-
-const RoundedBox = styled(Box)(() => ({
-  borderRadius: '15px',
-}))
 
 type deleteEmailFn = (accountId: string, emailId: string) => Promise<any>
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<Blob>
@@ -141,50 +137,9 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
       <Typography padding={2} paddingBottom={1} variant="h4">
         {email.subject}
       </Typography>
-      <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-        <Grid item padding={1} xs="auto">
-          <Typography variant="body1">To:</Typography>
-        </Grid>
-        {email.toAddress?.value.map((to, index) => (
-          <Grid item key={index} xs="auto">
-            <RoundedBox sx={{ border: 1 }}>
-              <Typography paddingLeft={1} paddingRight={1} sx={{ wordWrap: 'break-word' }} variant="body1">
-                {to.name ? `${to.name} <${to.address}>` : to.address}
-              </Typography>
-            </RoundedBox>
-          </Grid>
-        ))}
-      </Grid>
-      {email.ccAddress && (
-        <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-          <Grid item padding={1} xs="auto">
-            <Typography variant="body1">CC:</Typography>
-          </Grid>
-          {email.ccAddress?.value.map((cc, index) => (
-            <Grid item key={index} padding={1} xs="auto">
-              <RoundedBox sx={{ border: 1 }}>
-                <Typography paddingLeft={1} paddingRight={1} sx={{ wordWrap: 'break-word' }} variant="body1">
-                  {cc.name ? `${cc.name} <${cc.address}>` : cc.address}
-                </Typography>
-              </RoundedBox>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-      <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-        <Grid item padding={1} xs="auto">
-          <Typography variant="body1">From:</Typography>
-        </Grid>
-        {email.fromAddress.value.map((from, index) => (
-          <Grid item key={index} padding={1} xs="auto">
-            <RoundedBox sx={{ border: 1 }}>
-              <Typography paddingLeft={1} paddingRight={1} sx={{ wordWrap: 'break-word' }} variant="body1">
-                {from.name ? `${from.name} <${from.address}>` : from.address}
-              </Typography>
-            </RoundedBox>
-          </Grid>
-        ))}
-      </Grid>
+      <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
+      {email.ccAddress && <AddressLine addresses={email.ccAddress.value} label="CC:" />}
+      <AddressLine addresses={email.fromAddress.value} label="From:" />
       {email.attachments?.length ? (
         <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
           <Grid item padding={1} xs="auto">

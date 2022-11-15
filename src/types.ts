@@ -50,22 +50,20 @@ export interface EmailBatch {
 }
 
 export interface EmailAddress {
+  address: string
+  group?: string[]
+  name: string
+}
+
+export interface EmailAddressParsed {
   html: string
   text: string
-  value: {
-    address: string
-    group?: string[]
-    name: string
-  }[]
+  value: EmailAddress[]
 }
 
 export interface EmailAddressReplyTo {
   display: string
-  value: {
-    address: string
-    group?: string[]
-    name: string
-  }[]
+  value: EmailAddress[]
 }
 
 export interface EmailHeaders {
@@ -76,13 +74,13 @@ export interface EmailContents {
   attachments?: EmailAttachment[]
   bodyHtml: string
   bodyText: string
-  ccAddress?: EmailAddress
-  fromAddress: EmailAddress
+  ccAddress?: EmailAddressParsed
+  fromAddress: EmailAddressParsed
   headers: EmailHeaders
   id: string
   inReplyTo?: string
   references: string[]
   replyToAddress: EmailAddressReplyTo
   subject?: string
-  toAddress?: EmailAddress
+  toAddress?: EmailAddressParsed
 }

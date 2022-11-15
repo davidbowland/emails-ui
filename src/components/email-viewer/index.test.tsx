@@ -5,11 +5,13 @@ import React from 'react'
 import { mocked } from 'jest-mock'
 
 import { accountId, attachmentContents, emailContents, emailId } from '@test/__mocks__'
+import AddressLine from '@components/address-line'
 import { EmailContents } from '@types'
 import EmailViewer from './index'
 
 jest.mock('aws-amplify')
 jest.mock('dompurify')
+jest.mock('@components/address-line')
 
 describe('Email viewer component', () => {
   const style = ['background-url', 'color'] as any
@@ -32,25 +34,82 @@ describe('Email viewer component', () => {
   beforeAll(() => {
     mocked(DOMPurify).addHook.mockImplementation((hook: string) => hookMock(hook))
     mocked(DOMPurify).sanitize.mockImplementation((source: string | Node) => source as any)
+    mocked(AddressLine).mockReturnValue(<></>)
     getReceivedAttachment.mockResolvedValue(attachmentContents)
   })
 
   describe('general', () => {
-    test('expect from shows correctly', async () => {
-      const emailNoFromName = {
-        ...emailContents,
-        fromAddress: { value: [{ address: 'some@domain.com' }] },
-      } as unknown as EmailContents
+    test('expect address lines shown', async () => {
       render(
         <EmailViewer
           accountId={accountId}
-          email={emailNoFromName}
+          email={emailContents}
           emailId={emailId}
           getAttachment={getReceivedAttachment}
         />
       )
 
-      expect(await screen.findByText(/some@domain.com/i)).toBeVisible()
+      expect(AddressLine).toHaveBeenCalledWith(
+        {
+          addresses: [
+            {
+              address: 'account@domain.com',
+              name: '',
+            },
+            {
+              address: 'admin@domain.com',
+              name: 'Admin',
+            },
+          ],
+          label: 'To:',
+        },
+        {}
+      )
+      expect(AddressLine).toHaveBeenCalledWith(
+        {
+          addresses: [
+            {
+              address: 'someone@domain.com',
+              name: '',
+            },
+            {
+              address: 'fred@domain.com',
+              name: 'Fred',
+            },
+          ],
+          label: 'CC:',
+        },
+        {}
+      )
+      expect(AddressLine).toHaveBeenCalledWith(
+        {
+          addresses: [
+            {
+              address: 'another@domain.com',
+              name: 'Another Person',
+            },
+          ],
+          label: 'From:',
+        },
+        {}
+      )
+    })
+
+    test('expect to line shown when no to addresses', async () => {
+      const emailNoToAddress = {
+        ...emailContents,
+        toAddress: undefined,
+      } as unknown as EmailContents
+      render(
+        <EmailViewer
+          accountId={accountId}
+          email={emailNoToAddress}
+          emailId={emailId}
+          getAttachment={getReceivedAttachment}
+        />
+      )
+
+      expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, {})
     })
   })
 

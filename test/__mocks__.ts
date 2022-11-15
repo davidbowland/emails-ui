@@ -1,5 +1,15 @@
 /* eslint-disable sort-keys */
-import { Account, AccountBatch, AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, Theme } from '@types'
+import {
+  Account,
+  AccountBatch,
+  AmplifyUser,
+  Email,
+  EmailAddress,
+  EmailBatch,
+  EmailContents,
+  PatchOperation,
+  Theme,
+} from '@types'
 
 export const accountId = 'account'
 
@@ -11,6 +21,17 @@ export const accountBatch: AccountBatch[] = [
   {
     data: account,
     id: accountId,
+  },
+]
+
+export const addresses: EmailAddress[] = [
+  {
+    address: 'a@domain.com',
+    name: 'A',
+  },
+  {
+    address: 'b@domain.com',
+    name: '',
   },
 ]
 

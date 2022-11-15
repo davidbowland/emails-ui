@@ -13,21 +13,34 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
+import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
 import Grid from '@mui/material/Grid'
 import HideImageIcon from '@mui/icons-material/HideImage'
 import IconButton from '@mui/material/IconButton'
 import ImageIcon from '@mui/icons-material/Image'
+import ReactDOMServer from 'react-dom/server'
+import ReplyAllIcon from '@mui/icons-material/ReplyAll'
+import ReplyIcon from '@mui/icons-material/Reply'
 import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import { EmailAttachment, EmailContents } from '@types'
+import { EmailAddress, EmailAttachment, EmailContents } from '@types'
 import AddressLine from '@components/address-line'
+import Compose from '@components/compose'
 
+const DOMAIN = process.env.GATSBY_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 
 type deleteEmailFn = (accountId: string, emailId: string) => Promise<any>
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<Blob>
+
+enum ComposeMode {
+  NONE = 0,
+  REPLY,
+  REPLY_ALL,
+  FORWARD,
+}
 
 export interface EmailViewerProps {
   accountId: string
@@ -40,6 +53,7 @@ export interface EmailViewerProps {
 const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: EmailViewerProps): JSX.Element => {
   const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>(undefined)
   const [backdropShown, setBackdropShown] = useState(false)
+  const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showImages, setShowImages] = useState(false)
@@ -62,6 +76,12 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
     setBackdropShown(false)
   }
 
+  const discardCallback = (): void => {
+    setComposeMode(ComposeMode.NONE)
+  }
+
+  const filterUsersEmail = (address: EmailAddress) => address.address.toLowerCase() !== `${accountId}@${DOMAIN}`
+
   const handleAttachmentClick = async (
     target: HTMLAnchorElement,
     accountId: string,
@@ -82,6 +102,149 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
       setErrorMessage('Error downloading the attachment. Please try again.')
     }
     setAttachmentDownloading(undefined)
+  }
+
+  const renderEmail = (): JSX.Element => {
+    const replyTo = email.replyToAddress.display ? email.replyToAddress.value : email.fromAddress.value
+    const subject = email.subject ?? 'no subject'
+    if (composeMode === ComposeMode.REPLY) {
+      return (
+        <Compose
+          discardCallback={discardCallback}
+          inReplyTo={email.id}
+          initialBody={renderReply(html)}
+          initialSubject={subject.replace(/^(RE:)?\s*/i, 'RE: ')}
+          initialToAddresses={replyTo}
+          references={email.references}
+        />
+      )
+    } else if (composeMode === ComposeMode.REPLY_ALL) {
+      return (
+        <Compose
+          discardCallback={discardCallback}
+          inReplyTo={email.id}
+          initialBody={renderReply(html)}
+          initialCcAddresses={email.ccAddress?.value.filter(filterUsersEmail)}
+          initialSubject={subject.replace(/^(RE:)?\s*/i, 'RE: ')}
+          initialToAddresses={
+            email.toAddress ? [...replyTo, ...email.toAddress?.value].filter(filterUsersEmail) : replyTo
+          }
+          references={email.references}
+        />
+      )
+    } else if (composeMode === ComposeMode.FORWARD) {
+      return (
+        <Compose
+          discardCallback={discardCallback}
+          inReplyTo={email.id}
+          initialBody={renderReply(html)}
+          initialSubject={subject.replace(/^(FWD?:)?\s*/i, 'FW: ')}
+          references={email.references}
+        />
+      )
+    }
+    return (
+      <>
+        <Typography padding={2} paddingBottom={1} variant="h4">
+          {subject}
+        </Typography>
+        <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
+        {email.ccAddress && <AddressLine addresses={email.ccAddress.value} label="CC:" />}
+        <AddressLine addresses={email.fromAddress.value} label="From:" />
+        {email.attachments?.length ? (
+          <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
+            <Grid item padding={1} xs="auto">
+              <Typography variant="body1">Attachments:</Typography>
+            </Grid>
+            {email.attachments.map((attachment, index) => (
+              <Grid item key={index} padding={1} xs="auto">
+                <Tooltip title={`${attachment.size.toLocaleString()} bytes`}>
+                  <Button
+                    disabled={attachmentDownloading !== undefined}
+                    onClick={() =>
+                      anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
+                    }
+                    startIcon={
+                      attachmentDownloading === attachment.id ? <CircularProgress size={14} /> : <AttachmentIcon />
+                    }
+                    variant="outlined"
+                  >
+                    {attachment.filename}
+                  </Button>
+                </Tooltip>
+              </Grid>
+            ))}
+          </Grid>
+        ) : null}
+        <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
+          <Grid item padding={1} xs="auto">
+            {showImages ? (
+              <Button onClick={() => setShowImages(false)} startIcon={<HideImageIcon />}>
+                Hide images
+              </Button>
+            ) : (
+              <Button onClick={() => setShowImages(true)} startIcon={<ImageIcon />}>
+                Show images
+              </Button>
+            )}
+          </Grid>
+          <Grid item xs></Grid>
+          <Grid item xs="auto">
+            <Tooltip title="Reply">
+              <IconButton onClick={() => setComposeMode(ComposeMode.REPLY)}>
+                <ReplyIcon />
+              </IconButton>
+            </Tooltip>
+          </Grid>
+          <Grid item xs="auto">
+            <Tooltip title="Reply all">
+              <IconButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)}>
+                <ReplyAllIcon />
+              </IconButton>
+            </Tooltip>
+          </Grid>
+          <Grid item xs="auto">
+            <Tooltip title="Forward">
+              <IconButton onClick={() => setComposeMode(ComposeMode.FORWARD)}>
+                <ForwardToInboxIcon />
+              </IconButton>
+            </Tooltip>
+          </Grid>
+          {deleteEmail && (
+            <Grid item xs="auto">
+              <Tooltip title="Delete email">
+                <IconButton onClick={() => setShowDeleteDialog(true)}>
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          )}
+        </Grid>
+        <Divider />
+        <a ref={anchorRef} style={{ display: 'none' }}></a>
+        <Box dangerouslySetInnerHTML={{ __html: html }} padding={1}></Box>
+      </>
+    )
+  }
+
+  const renderReply = (html: string): string => {
+    const date = email.date ? new Date(email.date) : undefined
+    const fromAddress = email.fromAddress.value[0]
+    const sender = fromAddress.name ? `${fromAddress.name} <${fromAddress.address}>` : fromAddress.address
+    return ReactDOMServer.renderToStaticMarkup(
+      <div>
+        <br />
+        <br />
+        <div>
+          On {date ? date.toLocaleDateString() : 'unknown'} at {date ? date.toLocaleTimeString() : 'unknown'} {sender}{' '}
+          wrote:
+        </div>
+        <blockquote
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{ borderLeft: '1px solid rgb(204,204,204)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
+        ></blockquote>
+      </div>
+    )
   }
 
   const removeExternalCss = (style: any): void => {
@@ -134,63 +297,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
 
   return (
     <>
-      <Typography padding={2} paddingBottom={1} variant="h4">
-        {email.subject}
-      </Typography>
-      <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
-      {email.ccAddress && <AddressLine addresses={email.ccAddress.value} label="CC:" />}
-      <AddressLine addresses={email.fromAddress.value} label="From:" />
-      {email.attachments?.length ? (
-        <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-          <Grid item padding={1} xs="auto">
-            <Typography variant="body1">Attachments:</Typography>
-          </Grid>
-          {email.attachments.map((attachment, index) => (
-            <Grid item key={index} padding={1} xs="auto">
-              <Tooltip title={`${attachment.size.toLocaleString()} bytes`}>
-                <Button
-                  disabled={attachmentDownloading !== undefined}
-                  onClick={() =>
-                    anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
-                  }
-                  startIcon={
-                    attachmentDownloading === attachment.id ? <CircularProgress size={14} /> : <AttachmentIcon />
-                  }
-                  variant="outlined"
-                >
-                  {attachment.filename}
-                </Button>
-              </Tooltip>
-            </Grid>
-          ))}
-        </Grid>
-      ) : null}
-      <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-        <Grid item padding={1} xs="auto">
-          {showImages ? (
-            <Button onClick={() => setShowImages(false)} startIcon={<HideImageIcon />}>
-              Hide images
-            </Button>
-          ) : (
-            <Button onClick={() => setShowImages(true)} startIcon={<ImageIcon />}>
-              Show images
-            </Button>
-          )}
-        </Grid>
-        <Grid item xs></Grid>
-        {deleteEmail && (
-          <Grid item xs="auto">
-            <Tooltip title="Delete email">
-              <IconButton onClick={() => setShowDeleteDialog(true)}>
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
-        )}
-      </Grid>
-      <Divider />
-      <a ref={anchorRef} style={{ display: 'none' }}></a>
-      <Box dangerouslySetInnerHTML={{ __html: html }} padding={1}></Box>
+      {renderEmail()}
       <Backdrop open={backdropShown} sx={{ zIndex: (theme: any) => theme.zIndex.drawer + 1 }}>
         <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
           <Grid item>

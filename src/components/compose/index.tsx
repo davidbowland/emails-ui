@@ -23,6 +23,8 @@ import { AmplifyUser, EmailAddress, EmailOutbound } from '@types'
 import AddressLine from '@components/address-line'
 import { postSentEmail } from '@services/emails'
 
+const DOMAIN = process.env.GATSBY_DOMAIN
+
 export interface ComposeProps {
   discardCallback?: () => void
   inReplyTo?: string
@@ -69,7 +71,7 @@ const Compose = ({
 
     setIsSubmitting(true)
     try {
-      const fromAddress = { address: accountId, name: '' }
+      const fromAddress = { address: `${accountId}@${DOMAIN}`, name: '' }
       const outboundEmail: EmailOutbound = {
         bcc: bccAddresses,
         cc: ccAddresses,

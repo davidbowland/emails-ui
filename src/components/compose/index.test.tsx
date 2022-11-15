@@ -126,18 +126,18 @@ describe('Compose component', () => {
       bcc: [],
       cc: [],
       from: {
-        address: 'dave',
+        address: 'dave@domain.com',
         name: '',
       },
       html: '',
       inReplyTo,
       references,
       replyTo: {
-        address: 'dave',
+        address: 'dave@domain.com',
         name: '',
       },
       sender: {
-        address: 'dave',
+        address: 'dave@domain.com',
         name: '',
       },
       subject: 'Hello, e-mail world!',

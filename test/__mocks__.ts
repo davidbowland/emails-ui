@@ -103,6 +103,7 @@ export const emailContents: EmailContents = {
     html: '<span class="mp_address_group"><a href="mailto:someone@domain.com" class="mp_address_email">someone@domain.com</a></span>,<span class="mp_address_group"><span class="mp_address_name">Another Person</span> &lt;<a href="mailto:fred@domain.com" class="mp_address_email">fred@domain.com</a>&gt;</span>',
     text: 'someone@domain.com,fred@domain.com',
   },
+  date: '2018-08-06T00:58:58.000Z',
   fromAddress: {
     value: [
       {
@@ -117,10 +118,10 @@ export const emailContents: EmailContents = {
   id: '<CAK3xQ71DdqxNzO90KnP6dq5ZU5hvehdQLY96bpaRiCeScOQ4Xg@mail.domain.com>',
   references: [],
   replyToAddress: {
-    display: '',
+    display: 'reply@domain.com',
     value: [
       {
-        address: '',
+        address: 'reply@domain.com',
         name: '',
       },
     ],

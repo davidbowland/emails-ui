@@ -118,6 +118,7 @@ const IconDrawer = ({
     setShowDeleteErrorSnackbar(false)
   }
 
+  const pathname = (typeof window !== 'undefined' && window.location.pathname) || ''
   return (
     <>
       <Drawer onClose={closeMenu} onOpen={openMenu} open={navMenuOpen} variant="permanent">
@@ -131,7 +132,7 @@ const IconDrawer = ({
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={() => navigate('/compose')}
-              selected={!!window.location.pathname.match(/\/compose\/?$/)}
+              selected={!!pathname.match(/\/compose\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
                 minHeight: 48,
@@ -153,7 +154,7 @@ const IconDrawer = ({
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={() => navigate('/inbox')}
-              selected={!!window.location.pathname.match(/\/inbox\/?$/)}
+              selected={!!pathname.match(/\/inbox\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
                 minHeight: 48,
@@ -175,7 +176,7 @@ const IconDrawer = ({
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={() => navigate('/outbox')}
-              selected={!!window.location.pathname.match(/\/outbox\/?$/)}
+              selected={!!pathname.match(/\/outbox\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
                 minHeight: 48,
@@ -199,7 +200,7 @@ const IconDrawer = ({
         <List>
           <ListItemButton
             onClick={() => navigate('/privacy-policy')}
-            selected={!!window.location.pathname.match(/\/privacy-policy\/?$/)}
+            selected={!!pathname.match(/\/privacy-policy\/?$/)}
             sx={{
               justifyContent: navMenuOpen ? 'initial' : 'center',
               minHeight: 48,

@@ -12,7 +12,7 @@ const Index = (): JSX.Element => {
         <title>Email | dbowland.com</title>
       </Helmet>
       <Authenticated>
-        <>{navigate('/inbox')}</>
+        <>{typeof window !== 'undefined' && navigate('/inbox')}</>
       </Authenticated>
       <PrivacyLink />
     </main>

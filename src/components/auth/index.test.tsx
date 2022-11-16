@@ -30,7 +30,7 @@ describe('Authenticated component', () => {
   })
 
   beforeEach(() => {
-    window.location.pathname = '/an-invalid-page'
+    window.location.pathname = ''
   })
 
   describe('theme', () => {

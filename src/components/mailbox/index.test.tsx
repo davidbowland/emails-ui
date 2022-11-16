@@ -184,6 +184,7 @@ describe('Mailbox component', () => {
   })
 
   test('expect back button from email goes back', async () => {
+    const targetDateString = new Date(166656073284).toLocaleString()
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -206,6 +207,6 @@ describe('Mailbox component', () => {
       backButton.click()
     })
 
-    expect(await screen.findByText(/4\/13\/1975, 4:21:13 PM/i)).toBeVisible()
+    expect(await screen.findByText(targetDateString)).toBeVisible()
   })
 })

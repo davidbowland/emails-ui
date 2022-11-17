@@ -150,6 +150,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
         </Typography>
         <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
         {email.ccAddress && <AddressLine addresses={email.ccAddress.value} label="CC:" />}
+        {email.bccAddress && <AddressLine addresses={email.bccAddress.value} label="BCC:" />}
         <AddressLine addresses={email.fromAddress.value} label="From:" />
         {email.attachments?.length ? (
           <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>

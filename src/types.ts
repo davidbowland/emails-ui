@@ -72,6 +72,7 @@ export interface EmailHeaders {
 
 export interface EmailContents {
   attachments?: EmailAttachment[]
+  bccAddress?: EmailAddressParsed
   bodyHtml: string
   bodyText: string
   ccAddress?: EmailAddressParsed

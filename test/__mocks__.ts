@@ -86,6 +86,16 @@ export const emailContents: EmailContents = {
       type: 'attachment',
     },
   ],
+  bccAddress: {
+    value: [
+      {
+        address: 'blind@domain.com',
+        name: '',
+      },
+    ],
+    html: '<span class="mp_address_group"><a href="mailto:blind@domain.com" class="mp_address_email">blind@domain.com</a></span>',
+    text: 'blind@domain.com',
+  },
   bodyHtml:
     '<div dir="auto">7:47</div>\n<a href="https://dbowland.com" style="background-image: url(https://dbowland.com); color: red;">dbowland.com</a><style type="text/css">a { background-image: url(https://dbowland.com); color: blue; }</style>',
   bodyText: '7:46\n',

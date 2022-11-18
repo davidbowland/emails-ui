@@ -10,6 +10,7 @@ import {
   EmailContents,
   EmailOutbound,
   PatchOperation,
+  PostSignedUrl,
   SignedUrl,
   Theme,
 } from '@types'
@@ -173,6 +174,20 @@ export const outboundEmail: EmailOutbound = {
   subject: 'Hello, world!',
   text: 'Lorem ipsum',
   to: [{ address: 'another@domain.com', name: 'Someone else' }],
+}
+
+export const postAttachmentResult: PostSignedUrl = {
+  fields: {
+    Policy: 'eyJleHBpcmF0aW9uIjoiMjAyMi0xMS',
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': 'ASIAXGOMQQ35UBADF3FP/20221117/us-east-1/s3/aws4_request',
+    'X-Amz-Date': '20221117T061759Z',
+    'X-Amz-Security-Token': 'IQoJb3JpZ2luX2VjEB4aCXVzLWVhc3QtMiJIMEYCIQCLh3B9MRsCAXTnu0',
+    'X-Amz-Signature': 'f6e87c8b350576d9a3ca56b70660',
+    bucket: 'emails-service-storage-test',
+    key: 'attachments/account/uuuuu-uuuuu-iiiii-ddddd',
+  },
+  url: 'http://localhost/emails-service-storage-test',
 }
 
 export const user: AmplifyUser = {

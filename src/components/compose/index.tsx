@@ -19,8 +19,9 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { navigate } from 'gatsby'
 
-import { AmplifyUser, EmailAddress, EmailOutbound } from '@types'
+import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 import AddressLine from '@components/address-line'
+import AttachmentUploader from '@components/attachment-uploader'
 import { postSentEmail } from '@services/emails'
 
 const DOMAIN = process.env.GATSBY_DOMAIN
@@ -44,6 +45,7 @@ const Compose = ({
   initialToAddresses,
   references,
 }: ComposeProps): JSX.Element => {
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([])
   const [bccAddresses, setBccAddresses] = useState<EmailAddress[]>([])
   const [ccAddresses, setCcAddresses] = useState<EmailAddress[]>(initialCcAddresses ?? [])
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
@@ -150,6 +152,13 @@ const Compose = ({
           <div contentEditable={true} ref={editor} style={{ minHeight: '20vh' }}></div>
         </Box>
         <Divider />
+        {loggedInUser?.username && (
+          <AttachmentUploader
+            accountId={loggedInUser?.username}
+            attachments={attachments}
+            setAttachments={setAttachments}
+          />
+        )}
         <Grid container>
           <Grid item order={{ md: 1, xs: 3 }} xs></Grid>
           <Grid item md={3} order={{ xs: 2 }} padding={2} xs={12}>

@@ -1,4 +1,4 @@
-export { AmplifyUser } from '@aws-amplify/ui'
+export { AmplifyUser } from '@aws-amplify/ui-react/node_modules/@aws-amplify/ui'
 export { Operation as PatchOperation } from 'fast-json-patch'
 export { Theme } from '@mui/material/styles'
 
@@ -100,6 +100,11 @@ export interface EmailOutbound {
   subject: string
   text: string
   to: EmailAddress[]
+}
+
+export interface PostSignedUrl {
+  fields: StringObject
+  url: string
 }
 
 export interface SignedUrl {

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import React from 'react'
 import { mocked } from 'jest-mock'
@@ -8,11 +8,13 @@ import * as emails from '@services/emails'
 import * as gatsby from 'gatsby'
 import { accountId, addresses, email, user } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
+import AttachmentUploader from '@components/attachment-uploader'
 import Compose from './index'
 
 jest.mock('aws-amplify')
 jest.mock('gatsby')
 jest.mock('@components/address-line')
+jest.mock('@components/attachment-uploader')
 jest.mock('@services/emails')
 
 describe('Compose component', () => {
@@ -20,7 +22,8 @@ describe('Compose component', () => {
 
   beforeAll(() => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
-    mocked(AddressLine).mockReturnValue(<>Addresses</>)
+    mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
     mocked(emails).postSentEmail.mockResolvedValue(email)
 
     Object.defineProperty(window, 'location', {
@@ -183,5 +186,34 @@ describe('Compose component', () => {
       accountId,
       expect.objectContaining({ html: body, text: 'Hello, world!' })
     )
+  })
+
+  test('expect components rendered', async () => {
+    render(<Compose initialToAddresses={addresses} />)
+
+    expect(mocked(AddressLine)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        addresses: [
+          {
+            address: 'a@domain.com',
+            name: 'A',
+          },
+          {
+            address: 'b@domain.com',
+            name: '',
+          },
+        ],
+        label: 'To:',
+      }),
+      {}
+    )
+    expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
+    expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
+    waitFor(() => {
+      expect(mocked(AttachmentUploader)).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId, attachments: [] }),
+        {}
+      )
+    })
   })
 })

@@ -1,12 +1,12 @@
 import '@aws-amplify/ui-react/styles.css'
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
 import React, { useEffect, useState } from 'react'
-import { AmplifyUser } from '@aws-amplify/ui'
 import { Auth } from 'aws-amplify'
 import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
 import { styled } from '@mui/material/styles'
 
+import { AmplifyUser } from '@types'
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
 import LoggedInBar from './logged-in-bar'

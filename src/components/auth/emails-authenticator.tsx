@@ -1,5 +1,5 @@
 import { Authenticator, ThemeProvider, defaultDarkModeOverride } from '@aws-amplify/ui-react'
-import { AmplifyUser } from '@aws-amplify/ui'
+import { AmplifyUser } from '@types'
 import React from 'react'
 import Stack from '@mui/material/Stack'
 

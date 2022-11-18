@@ -2,7 +2,6 @@ import '@aws-amplify/ui-react/styles.css'
 import { CSSObject, Theme, styled } from '@mui/material/styles'
 import React, { useState } from 'react'
 import Alert from '@mui/material/Alert'
-import { AmplifyUser } from '@aws-amplify/ui'
 import { Auth } from 'aws-amplify'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -28,6 +27,7 @@ import OutboxIcon from '@mui/icons-material/Outbox'
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip'
 import Snackbar from '@mui/material/Snackbar'
 
+import { AmplifyUser } from '@types'
 import { navigate } from 'gatsby'
 
 const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)

@@ -17,13 +17,13 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import { AmplifyUser, Email, EmailBatch, EmailContents } from '@types'
+import { AmplifyUser, Email, EmailBatch, EmailContents, SignedUrl } from '@types'
 import EmailViewer from '@components/email-viewer'
 
 export interface MailboxProps {
   deleteEmail: (accountId: string, emailId: string) => Promise<Email>
   getAllEmails: (accountId: string) => Promise<EmailBatch[]>
-  getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<Blob>
+  getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
   getEmailContents: (accountId: string, emailId: string) => Promise<EmailContents>
 }
 

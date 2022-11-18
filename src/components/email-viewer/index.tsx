@@ -1,6 +1,5 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import Alert from '@mui/material/Alert'
-import AttachmentIcon from '@mui/icons-material/Attachment'
 import Backdrop from '@mui/material/Backdrop'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -24,10 +23,10 @@ import ReplyIcon from '@mui/icons-material/Reply'
 import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import axios from 'axios'
 
-import { EmailAddress, EmailAttachment, EmailContents, SignedUrl } from '@types'
+import { EmailAddress, EmailContents, SignedUrl } from '@types'
 import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
 
 const DOMAIN = process.env.GATSBY_DOMAIN
@@ -52,14 +51,11 @@ export interface EmailViewerProps {
 }
 
 const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: EmailViewerProps): JSX.Element => {
-  const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>(undefined)
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showImages, setShowImages] = useState(false)
-
-  const anchorRef = useRef<HTMLAnchorElement>(null)
 
   const deleteDialogClose = (): void => {
     setShowDeleteDialog(false)
@@ -82,32 +78,6 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
   }
 
   const filterUsersEmail = (address: EmailAddress) => address.address.toLowerCase() !== `${accountId}@${DOMAIN}`
-
-  const handleAttachmentClick = async (
-    target: HTMLAnchorElement,
-    accountId: string,
-    emailId: string,
-    attachmentId: string
-  ): Promise<void> => {
-    setAttachmentDownloading(attachmentId)
-    try {
-      const metadata = email.attachments?.find((value) => value.id === attachmentId) as EmailAttachment
-      const { url } = await getAttachment(accountId, emailId, attachmentId)
-      const attachmentBlob = await axios.get(url, { responseType: 'blob' }).then((response) => response.data)
-      const typedBlob = new Blob([attachmentBlob], {
-        type: metadata.type,
-      })
-      const objectUrl = window.URL.createObjectURL(typedBlob)
-      target.download = metadata?.filename
-      target.href = objectUrl
-      target.click()
-      window.URL.revokeObjectURL(url)
-    } catch (error: any) {
-      console.error('handleAttachmentClick', error)
-      setErrorMessage('Error downloading the attachment. Please try again.')
-    }
-    setAttachmentDownloading(undefined)
-  }
 
   const renderEmail = (): JSX.Element => {
     const replyTo = email.replyToAddress.display ? email.replyToAddress.value : email.fromAddress.value
@@ -158,29 +128,12 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
         {email.bccAddress && <AddressLine addresses={email.bccAddress.value} label="BCC:" />}
         <AddressLine addresses={email.fromAddress.value} label="From:" />
         {email.attachments?.length ? (
-          <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-            <Grid item padding={1} xs="auto">
-              <Typography variant="body1">Attachments:</Typography>
-            </Grid>
-            {email.attachments.map((attachment, index) => (
-              <Grid item key={index} padding={1} xs="auto">
-                <Tooltip title={`${attachment.size.toLocaleString()} bytes`}>
-                  <Button
-                    disabled={attachmentDownloading !== undefined}
-                    onClick={() =>
-                      anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
-                    }
-                    startIcon={
-                      attachmentDownloading === attachment.id ? <CircularProgress size={14} /> : <AttachmentIcon />
-                    }
-                    variant="outlined"
-                  >
-                    {attachment.filename}
-                  </Button>
-                </Tooltip>
-              </Grid>
-            ))}
-          </Grid>
+          <AttachmentViewer
+            accountId={accountId}
+            attachments={email.attachments}
+            emailId={emailId}
+            getAttachment={getAttachment}
+          />
         ) : null}
         <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
           <Grid item padding={1} xs="auto">
@@ -227,7 +180,6 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           )}
         </Grid>
         <Divider />
-        <a ref={anchorRef} style={{ display: 'none' }}></a>
         <Box dangerouslySetInnerHTML={{ __html: html }} padding={1}></Box>
       </>
     )

@@ -4,22 +4,20 @@ import DOMPurify from 'dompurify'
 import React from 'react'
 import { mocked } from 'jest-mock'
 
-import { accountId, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
+import { accountId, attachmentUrl, attachments, emailContents, emailId } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
 import { EmailContents } from '@types'
 import EmailViewer from './index'
-import axios from 'axios'
 
 jest.mock('aws-amplify')
-jest.mock('axios')
 jest.mock('dompurify')
 jest.mock('@components/address-line')
+jest.mock('@components/attachment-viewer')
 jest.mock('@components/compose')
 
 describe('Email viewer component', () => {
-  const attachmentBlob = new Blob(['Hello, world'])
-
   const style = ['background-url', 'color'] as any
   style['background-url'] = 'url("https://dbowland.com/jest-email-viewer")'
   style['color'] = 'blue'
@@ -40,9 +38,9 @@ describe('Email viewer component', () => {
   beforeAll(() => {
     mocked(DOMPurify).addHook.mockImplementation((hook: string) => hookMock(hook))
     mocked(DOMPurify).sanitize.mockImplementation((source: string | Node) => source as any)
-    mocked(AddressLine).mockReturnValue(<></>)
-    mocked(Compose).mockReturnValue(<></>)
-    mocked(axios).get.mockResolvedValue({ data: attachmentBlob })
+    mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    mocked(AttachmentViewer).mockReturnValue(<>AttachmentViewer</>)
+    mocked(Compose).mockReturnValue(<>Compose</>)
     getAttachment.mockResolvedValue(attachmentUrl)
   })
 
@@ -85,6 +83,18 @@ describe('Email viewer component', () => {
       )
 
       expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, {})
+    })
+
+    test('expect attachments shown', async () => {
+      const emailNoToAddress = {
+        ...emailContents,
+        toAddress: undefined,
+      } as unknown as EmailContents
+      render(
+        <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />
+      )
+
+      expect(AttachmentViewer).toHaveBeenCalledWith(expect.objectContaining({ accountId, attachments, emailId }), {})
     })
   })
 
@@ -206,53 +216,6 @@ describe('Email viewer component', () => {
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
-    })
-  })
-
-  describe('attachments', () => {
-    test('expect attachment downloaded', async () => {
-      render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
-      )
-
-      const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-      await act(async () => {
-        await attachmentElement.click()
-      })
-
-      expect(getAttachment).toHaveBeenCalledWith(accountId, emailId, '18453696e0bac7e24cd1')
-    })
-
-    test('expect error message when attachment download error', async () => {
-      getAttachment.mockRejectedValueOnce(undefined)
-      render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
-      )
-
-      const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-      await act(async () => {
-        await attachmentElement.click()
-      })
-
-      expect(await screen.findByText(/Error downloading the attachment. Please try again./i)).toBeVisible()
-    })
-
-    test('expect closing error message removes it', async () => {
-      getAttachment.mockRejectedValueOnce(undefined)
-      render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
-      )
-
-      const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-      await act(async () => {
-        await attachmentElement.click()
-      })
-      await screen.findByText(/Error downloading the attachment. Please try again./i)
-      const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        closeSnackbarButton.click()
-      })
-      expect(screen.queryByText(/Error downloading the attachment. Please try again./i)).not.toBeInTheDocument()
     })
   })
 
@@ -510,6 +473,35 @@ describe('Email viewer component', () => {
       })
 
       expect(await screen.findByText(/Error deleting email. Please refresh and try again./i)).toBeVisible()
+    })
+
+    test('expect closing error message removes it', async () => {
+      deleteReceivedEmail.mockRejectedValueOnce(undefined)
+      render(
+        <EmailViewer
+          accountId={accountId}
+          deleteEmail={deleteReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />
+      )
+
+      const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
+      act(() => {
+        deleteIcon.click()
+      })
+      const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
+      await act(async () => {
+        await deleteButton.click()
+      })
+      await screen.findByText(/Error deleting email. Please refresh and try again./i)
+      const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
+      act(() => {
+        closeSnackbarButton.click()
+      })
+
+      expect(screen.queryByText(/Error deleting email. Please refresh and try again./i)).not.toBeInTheDocument()
     })
   })
 })

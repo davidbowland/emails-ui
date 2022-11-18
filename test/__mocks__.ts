@@ -9,6 +9,7 @@ import {
   EmailContents,
   EmailOutbound,
   PatchOperation,
+  SignedUrl,
   Theme,
 } from '@types'
 
@@ -36,11 +37,11 @@ export const addresses: EmailAddress[] = [
   },
 ]
 
-export const attachmentContents = new Blob(['Hello, world'], {
-  type: 'text/plain',
-})
-
 export const attachmentId = '9ijh-6tfg-dfsf3-sdfio-johac'
+
+export const attachmentUrl: SignedUrl = {
+  url: 'http://localhost/a/really/long/url#with-an-access-key',
+}
 
 export const emailId = '7yh8g-7ytguy-98ui8u-5efka-87y87y'
 
@@ -77,13 +78,13 @@ export const emailContents: EmailContents = {
       filename: '20221018_135343.jpg',
       id: '18453696e0bac7e24cd1',
       size: 1731238,
-      type: 'attachment',
+      type: 'image/jpeg',
     },
     {
       filename: '20221101_212453.jpg',
       id: '184536985e234b582b22',
       size: 1555850,
-      type: 'attachment',
+      type: 'image/jpeg',
     },
   ],
   bccAddress: {

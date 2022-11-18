@@ -1,6 +1,6 @@
 import { API } from 'aws-amplify'
 
-import { Account, Email, EmailBatch, EmailContents, EmailOutbound, PatchOperation } from '@types'
+import { Account, Email, EmailBatch, EmailContents, EmailOutbound, PatchOperation, SignedUrl } from '@types'
 import { apiName } from '@config/amplify'
 
 /* Accounts */
@@ -25,13 +25,13 @@ export const deleteReceivedEmail = (accountId: string, emailId: string): Promise
 export const getAllReceivedEmails = (accountId: string): Promise<EmailBatch[]> =>
   API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/received`, {})
 
-export const getReceivedAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<Blob> =>
+export const getReceivedAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<SignedUrl> =>
   API.get(
     apiName,
     `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(
       emailId
     )}/attachments/${encodeURIComponent(attachmentId)}`,
-    { responseType: 'blob' }
+    {}
   )
 
 export const getReceivedEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>
@@ -58,13 +58,13 @@ export const deleteSentEmail = (accountId: string, emailId: string): Promise<Ema
 export const getAllSentEmails = (accountId: string): Promise<EmailBatch[]> =>
   API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent`, {})
 
-export const getSentAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<Blob> =>
+export const getSentAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<SignedUrl> =>
   API.get(
     apiName,
     `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(
       emailId
     )}/attachments/${encodeURIComponent(attachmentId)}`,
-    { responseType: 'blob' }
+    {}
   )
 
 export const getSentEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>

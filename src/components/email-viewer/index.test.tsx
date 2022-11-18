@@ -4,18 +4,22 @@ import DOMPurify from 'dompurify'
 import React from 'react'
 import { mocked } from 'jest-mock'
 
-import { accountId, attachmentContents, emailContents, emailId } from '@test/__mocks__'
+import { accountId, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
 import Compose from '@components/compose'
 import { EmailContents } from '@types'
 import EmailViewer from './index'
+import axios from 'axios'
 
 jest.mock('aws-amplify')
+jest.mock('axios')
 jest.mock('dompurify')
 jest.mock('@components/address-line')
 jest.mock('@components/compose')
 
 describe('Email viewer component', () => {
+  const attachmentBlob = new Blob(['Hello, world'])
+
   const style = ['background-url', 'color'] as any
   style['background-url'] = 'url("https://dbowland.com/jest-email-viewer")'
   style['color'] = 'blue'
@@ -38,7 +42,8 @@ describe('Email viewer component', () => {
     mocked(DOMPurify).sanitize.mockImplementation((source: string | Node) => source as any)
     mocked(AddressLine).mockReturnValue(<></>)
     mocked(Compose).mockReturnValue(<></>)
-    getAttachment.mockResolvedValue(attachmentContents)
+    mocked(axios).get.mockResolvedValue({ data: attachmentBlob })
+    getAttachment.mockResolvedValue(attachmentUrl)
   })
 
   describe('general', () => {

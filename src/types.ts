@@ -101,3 +101,7 @@ export interface EmailOutbound {
   text: string
   to: EmailAddress[]
 }
+
+export interface SignedUrl {
+  url: string
+}

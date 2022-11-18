@@ -24,8 +24,9 @@ import ReplyIcon from '@mui/icons-material/Reply'
 import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import axios from 'axios'
 
-import { EmailAddress, EmailAttachment, EmailContents } from '@types'
+import { EmailAddress, EmailAttachment, EmailContents, SignedUrl } from '@types'
 import AddressLine from '@components/address-line'
 import Compose from '@components/compose'
 
@@ -33,7 +34,7 @@ const DOMAIN = process.env.GATSBY_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 
 type deleteEmailFn = (accountId: string, emailId: string) => Promise<any>
-type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<Blob>
+type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
 
 enum ComposeMode {
   NONE = 0,
@@ -90,11 +91,15 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
   ): Promise<void> => {
     setAttachmentDownloading(attachmentId)
     try {
-      const attachment = await getAttachment(accountId, emailId, attachmentId)
       const metadata = email.attachments?.find((value) => value.id === attachmentId) as EmailAttachment
-      const url = window.URL.createObjectURL(attachment)
+      const { url } = await getAttachment(accountId, emailId, attachmentId)
+      const attachmentBlob = await axios.get(url, { responseType: 'blob' }).then((response) => response.data)
+      const typedBlob = new Blob([attachmentBlob], {
+        type: metadata.type,
+      })
+      const objectUrl = window.URL.createObjectURL(typedBlob)
       target.download = metadata?.filename
-      target.href = url
+      target.href = objectUrl
       target.click()
       window.URL.revokeObjectURL(url)
     } catch (error: any) {

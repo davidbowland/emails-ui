@@ -4,8 +4,8 @@ import { CognitoUserSession } from 'amazon-cognito-identity-js'
 import {
   account,
   accountId,
-  attachmentContents,
   attachmentId,
+  attachmentUrl,
   email,
   emailBatch,
   emailContents,
@@ -164,7 +164,7 @@ describe('Emails service', () => {
     })
 
     describe('getReceivedAttachment', () => {
-      const getEndpoint = jest.fn().mockReturnValue(attachmentContents)
+      const getEndpoint = jest.fn().mockReturnValue(attachmentUrl)
 
       beforeAll(() => {
         server.use(
@@ -182,7 +182,7 @@ describe('Emails service', () => {
       test('expect attachment returned', async () => {
         const result = await getReceivedAttachment(accountId, emailId, attachmentId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
-        expect(result).toEqual(attachmentContents)
+        expect(result).toEqual(attachmentUrl)
       })
     })
 
@@ -269,7 +269,7 @@ describe('Emails service', () => {
     })
 
     describe('getSentAttachment', () => {
-      const getEndpoint = jest.fn().mockReturnValue(attachmentContents)
+      const getEndpoint = jest.fn().mockReturnValue(attachmentUrl)
 
       beforeAll(() => {
         server.use(
@@ -284,7 +284,7 @@ describe('Emails service', () => {
       test('expect attachment returned', async () => {
         const result = await getSentAttachment(accountId, emailId, attachmentId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
-        expect(result).toEqual(attachmentContents)
+        expect(result).toEqual(attachmentUrl)
       })
     })
 

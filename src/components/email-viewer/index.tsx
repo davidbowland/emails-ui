@@ -124,8 +124,8 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           {subject}
         </Typography>
         <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
-        {email.ccAddress && <AddressLine addresses={email.ccAddress.value} label="CC:" />}
-        {email.bccAddress && <AddressLine addresses={email.bccAddress.value} label="BCC:" />}
+        {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
+        {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}
         <AddressLine addresses={email.fromAddress.value} label="From:" />
         {email.attachments?.length ? (
           <AttachmentViewer

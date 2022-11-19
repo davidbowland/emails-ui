@@ -66,6 +66,13 @@ describe('Email viewer component', () => {
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
+          addresses: emailContents.bccAddress?.value,
+          label: 'BCC:',
+        },
+        {}
+      )
+      expect(AddressLine).toHaveBeenCalledWith(
+        {
           addresses: emailContents.fromAddress.value,
           label: 'From:',
         },
@@ -284,6 +291,7 @@ describe('Email viewer component', () => {
     test('expect Compose invoked for reply all with missing attributes', async () => {
       const contentsMissingFields = {
         ...emailContents,
+        bccAddress: undefined,
         ccAddress: undefined,
         date: undefined,
         fromAddress: {

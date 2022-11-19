@@ -43,12 +43,14 @@ export const attachments: EmailAttachment[] = [
   {
     filename: '20221018_135343.jpg',
     id: '18453696e0bac7e24cd1',
+    key: 'attachments/account/18453696e0bac7e24cd1',
     size: 1731238,
     type: 'image/jpeg',
   },
   {
     filename: '20221101_212453.jpg',
     id: '184536985e234b582b22',
+    key: 'attachments/account/184536985e234b582b22',
     size: 1555850,
     type: 'image/jpeg',
   },

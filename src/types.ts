@@ -6,6 +6,21 @@ export interface StringObject {
   [key: string]: string
 }
 
+export interface AttachmentCommon {
+  checksum?: string
+  cid?: string
+  content: any
+  contentDisposition: string
+  contentId?: string
+  contentType: string
+  filename?: string
+  headerLines: any
+  headers: StringObject
+  related?: boolean
+  size: number
+  type: 'attachment'
+}
+
 export interface AttachmentContents {
   body: Buffer | string
   metadata: StringObject
@@ -28,6 +43,7 @@ export interface DownloadedAttachment {
 export interface EmailAttachment {
   filename: string
   id: string
+  key?: string
   size: number
   type: string
 }
@@ -88,6 +104,7 @@ export interface EmailContents {
 }
 
 export interface EmailOutbound {
+  attachments?: AttachmentCommon[]
   bcc?: EmailAddress[]
   cc?: EmailAddress[]
   from: EmailAddress

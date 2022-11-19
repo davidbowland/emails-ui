@@ -107,6 +107,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
                     <Box>{new Date(email.data.timestamp).toLocaleString()}</Box>
                   </Stack>
                 }
+                secondaryTypographyProps={{ component: 'div' }}
               />
             </ListItemButton>
             <Divider component="li" />

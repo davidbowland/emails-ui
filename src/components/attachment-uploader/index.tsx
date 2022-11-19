@@ -41,12 +41,14 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
       formData.append('file', file)
       await axios.post(postSignedUrl.url, formData, {})
 
-      const id = postSignedUrl.fields.key.replace(/^.*\//, '')
+      const key = postSignedUrl.fields.key
+      const id = key.replace(/^.*\//, '')
       setAttachments([
         ...attachments,
         {
           filename: file.name,
           id,
+          key,
           size: file.size,
           type: file.type,
         },

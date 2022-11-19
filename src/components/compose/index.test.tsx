@@ -6,7 +6,7 @@ import { mocked } from 'jest-mock'
 
 import * as emails from '@services/emails'
 import * as gatsby from 'gatsby'
-import { accountId, addresses, email, user } from '@test/__mocks__'
+import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
 import Compose from './index'
@@ -111,10 +111,41 @@ describe('Compose component', () => {
     expect(await screen.findByText(/Error sending email. Please try again in a few moments./i)).toBeVisible()
   })
 
+  test('expect error message when too large of attachments', async () => {
+    render(
+      <Compose
+        initialAttachments={[
+          {
+            filename: '20221018_135343.jpg',
+            id: '18453696e0bac7e24cd1',
+            key: 'attachments/account/18453696e0bac7e24cd1',
+            size: 10_000_001,
+            type: 'image/jpeg',
+          },
+        ]}
+        initialToAddresses={addresses}
+      />
+    )
+
+    const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
+    await act(async () => {
+      await sendButton.click()
+    })
+
+    expect(await screen.findByText(/Attachments cannot exceed [\d,]+ bytes./i)).toBeVisible()
+  })
+
   test('expect postSentEmail and navigate called', async () => {
     const inReplyTo = 'umnbghjkk'
     const references = ['0pokm', 'erfgb']
-    render(<Compose inReplyTo={inReplyTo} initialToAddresses={addresses} references={references} />)
+    render(
+      <Compose
+        inReplyTo={inReplyTo}
+        initialAttachments={attachments}
+        initialToAddresses={addresses}
+        references={references}
+      />
+    )
 
     const subjectInput = (await screen.findByLabelText(/Subject/i)) as HTMLInputElement
     await act(async () => {
@@ -126,6 +157,30 @@ describe('Compose component', () => {
     })
 
     expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, {
+      attachments: [
+        {
+          cid: '18453696e0bac7e24cd1',
+          content: 'attachments/account/18453696e0bac7e24cd1',
+          contentDisposition: 'attachment',
+          contentType: 'image/jpeg',
+          filename: '20221018_135343.jpg',
+          headerLines: {},
+          headers: {},
+          size: 1731238,
+          type: 'attachment',
+        },
+        {
+          cid: '184536985e234b582b22',
+          content: 'attachments/account/184536985e234b582b22',
+          contentDisposition: 'attachment',
+          contentType: 'image/jpeg',
+          filename: '20221101_212453.jpg',
+          headerLines: {},
+          headers: {},
+          size: 1555850,
+          type: 'attachment',
+        },
+      ],
       bcc: [],
       cc: [],
       from: {

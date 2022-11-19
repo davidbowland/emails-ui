@@ -40,6 +40,7 @@ describe('Attachment viewer component', () => {
       {
         filename: '20221101_212453.jpg',
         id: '184536985e234b582b22',
+        key: 'attachments/account/184536985e234b582b22',
         size: 1555850,
         type: 'image/jpeg',
       },
@@ -98,6 +99,7 @@ describe('Attachment viewer component', () => {
       {
         filename: 'test.file',
         id: 'uuuuu-uuuuu-iiiii-ddddd',
+        key: 'attachments/account/uuuuu-uuuuu-iiiii-ddddd',
         size: 5,
         type: 'image/png',
       },

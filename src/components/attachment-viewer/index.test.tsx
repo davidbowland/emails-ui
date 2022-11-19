@@ -18,7 +18,7 @@ describe('Attachment viewer component', () => {
     getEndpoint.mockReturnValue(attachmentBlob)
 
     server.use(
-      rest.get(attachmentUrl.url, async (req, res, ctx) => {
+      rest.get('http://localhost/a/really/long/url', async (req, res, ctx) => {
         const body = getEndpoint()
         return res(body ? ctx.body(body) : ctx.status(400))
       })

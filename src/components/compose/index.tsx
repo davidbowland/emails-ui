@@ -25,10 +25,12 @@ import AttachmentUploader from '@components/attachment-uploader'
 import { postSentEmail } from '@services/emails'
 
 const DOMAIN = process.env.GATSBY_DOMAIN
+const MAX_UPLOAD_SIZE = parseInt(process.env.GATSBY_MAX_UPLOAD_SIZE, 10)
 
 export interface ComposeProps {
   discardCallback?: () => void
   inReplyTo?: string
+  initialAttachments?: EmailAttachment[]
   initialBody?: string
   initialCcAddresses?: EmailAddress[]
   initialSubject?: string
@@ -39,13 +41,15 @@ export interface ComposeProps {
 const Compose = ({
   discardCallback,
   inReplyTo,
+  initialAttachments,
   initialBody,
   initialCcAddresses,
   initialSubject,
   initialToAddresses,
   references,
 }: ComposeProps): JSX.Element => {
-  const [attachments, setAttachments] = useState<EmailAttachment[]>([])
+  const [attachmentMessage, setAttachmentMessage] = useState<string | undefined>(undefined)
+  const [attachments, setAttachments] = useState<EmailAttachment[]>(initialAttachments ?? [])
   const [bccAddresses, setBccAddresses] = useState<EmailAddress[]>([])
   const [ccAddresses, setCcAddresses] = useState<EmailAddress[]>(initialCcAddresses ?? [])
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
@@ -63,18 +67,38 @@ const Compose = ({
   }
 
   const handleSendClick = async (accountId: string, editor: HTMLDivElement): Promise<void> => {
+    setAttachmentMessage('')
+    setRecipientMessage('')
     if (bccAddresses.length + ccAddresses.length + toAddresses.length === 0) {
       setRecipientMessage('Please enter recipients.')
       window.scrollTo(0, 0)
       return
-    } else {
-      setRecipientMessage('')
+    }
+
+    const totalAttachmentSize = attachments.reduce((value, attachment) => attachment.size + value, 0)
+    if (totalAttachmentSize >= MAX_UPLOAD_SIZE) {
+      setAttachmentMessage(`Attachments cannot exceed ${MAX_UPLOAD_SIZE.toLocaleString()} bytes.`)
+      return
     }
 
     setIsSubmitting(true)
     try {
       const fromAddress = { address: `${accountId}@${DOMAIN}`, name: '' }
       const outboundEmail: EmailOutbound = {
+        attachments:
+          attachments.length === 0
+            ? undefined
+            : attachments.map((attachment) => ({
+              cid: attachment.id,
+              content: attachment.key,
+              contentDisposition: 'attachment',
+              contentType: attachment.type,
+              filename: attachment.filename,
+              headerLines: {},
+              headers: {},
+              size: attachment.size,
+              type: 'attachment',
+            })),
         bcc: bccAddresses,
         cc: ccAddresses,
         from: fromAddress,
@@ -158,6 +182,11 @@ const Compose = ({
             attachments={attachments}
             setAttachments={setAttachments}
           />
+        )}
+        {attachmentMessage && (
+          <Typography color="error" padding={2} variant="caption">
+            {attachmentMessage}
+          </Typography>
         )}
         <Grid container>
           <Grid item order={{ md: 1, xs: 3 }} xs></Grid>

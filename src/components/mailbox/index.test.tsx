@@ -100,7 +100,7 @@ describe('Mailbox component', () => {
       />
     )
 
-    expect(await screen.findByText(/Your inbox is empty/i)).toBeVisible()
+    expect(await screen.findByText(/This mailbox is empty/i)).toBeVisible()
   })
 
   test('expect clicking on an email renders it', async () => {

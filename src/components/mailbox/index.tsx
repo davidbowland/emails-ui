@@ -81,7 +81,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
         <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
           <Grid item>
             <Typography p={2} sx={{ textAlign: 'center' }} variant="h6">
-              Your inbox is empty
+              This mailbox is empty
             </Typography>
           </Grid>
         </Grid>

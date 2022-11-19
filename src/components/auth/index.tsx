@@ -54,9 +54,6 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): J
   }
 
   const renderChildren = (): JSX.Element[] | JSX.Element => {
-    if (showContent) {
-      return children
-    }
     if (loggedInUser) {
       return (
         <IconDrawer
@@ -69,6 +66,9 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): J
           {children}
         </IconDrawer>
       )
+    }
+    if (showContent) {
+      return children
     }
     return <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
   }

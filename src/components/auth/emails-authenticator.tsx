@@ -1,7 +1,7 @@
 import { Authenticator, ThemeProvider, defaultDarkModeOverride } from '@aws-amplify/ui-react'
 import { AmplifyUser } from '@types'
+import Grid from '@mui/material/Grid'
 import React from 'react'
-import Stack from '@mui/material/Stack'
 
 export interface EmailsAuthenticatorProps {
   setLoggedInUser: (user: AmplifyUser | undefined) => void
@@ -14,20 +14,18 @@ const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): JSX
   }
 
   return (
-    <main style={{ padding: '50px' }}>
-      <section>
+    <Grid alignContent="center" container paddingLeft={2} paddingRight={2} paddingTop={10} spacing={2} width="100%">
+      <Grid item margin="auto" xs="auto">
         <ThemeProvider colorMode="system" theme={theme}>
-          <Stack margin="auto" spacing={2}>
-            <Authenticator hideSignUp={true}>
-              {({ user }) => {
-                setLoggedInUser(user)
-                return <></>
-              }}
-            </Authenticator>
-          </Stack>
+          <Authenticator hideSignUp={true}>
+            {({ user }) => {
+              setLoggedInUser(user)
+              return <></>
+            }}
+          </Authenticator>
         </ThemeProvider>
-      </section>
-    </main>
+      </Grid>
+    </Grid>
   )
 }
 

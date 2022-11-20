@@ -2,7 +2,13 @@ import Grid from '@mui/material/Grid'
 import { Helmet } from 'react-helmet'
 import React from 'react'
 
-import { deleteSentEmail, getAllSentEmails, getSentAttachment, getSentEmailContents } from '@services/emails'
+import {
+  deleteSentEmail,
+  getAllSentEmails,
+  getSentAttachment,
+  getSentEmailContents,
+  patchSentEmail,
+} from '@services/emails'
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
 import PrivacyLink from '@components/privacy-link'
@@ -21,6 +27,7 @@ const OutboxPage = (): JSX.Element => {
               getAllEmails={getAllSentEmails}
               getEmailAttachment={getSentAttachment}
               getEmailContents={getSentEmailContents}
+              patchEmail={patchSentEmail}
             />
           </Grid>
         </Grid>

@@ -34,6 +34,7 @@ describe('Outbox page', () => {
         getAllEmails: mocked(emails).getAllSentEmails,
         getEmailAttachment: mocked(emails).getSentAttachment,
         getEmailContents: mocked(emails).getSentEmailContents,
+        patchEmail: mocked(emails).patchSentEmail,
       },
       {}
     )

@@ -7,6 +7,7 @@ import {
   getAllReceivedEmails,
   getReceivedAttachment,
   getReceivedEmailContents,
+  patchReceivedEmail,
 } from '@services/emails'
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
@@ -26,6 +27,7 @@ const InboxPage = (): JSX.Element => {
               getAllEmails={getAllReceivedEmails}
               getEmailAttachment={getReceivedAttachment}
               getEmailContents={getReceivedEmailContents}
+              patchEmail={patchReceivedEmail}
             />
           </Grid>
         </Grid>

@@ -17,7 +17,7 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import { AmplifyUser, Email, EmailBatch, EmailContents, SignedUrl } from '@types'
+import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
 import EmailViewer from '@components/email-viewer'
 
 export interface MailboxProps {
@@ -25,16 +25,23 @@ export interface MailboxProps {
   getAllEmails: (accountId: string) => Promise<EmailBatch[]>
   getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
   getEmailContents: (accountId: string, emailId: string) => Promise<EmailContents>
+  patchEmail: (accountId: string, emailId: string, patchOperations: PatchOperation[]) => Promise<Email>
 }
 
-const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailContents }: MailboxProps): JSX.Element => {
+const Mailbox = ({
+  deleteEmail,
+  getAllEmails,
+  getEmailAttachment,
+  getEmailContents,
+  patchEmail,
+}: MailboxProps): JSX.Element => {
   const [email, setEmail] = useState<EmailContents | undefined>(undefined)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [isEmailLoading, setIsEmailLoading] = useState(false)
   const [isViewingEmail, setIsViewingEmail] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>(undefined)
-  const [selectedEmail, setSelectedEmail] = useState<string | undefined>(undefined)
+  const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>(undefined)
 
   const deleteEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
     await deleteEmail(accountId, emailId)
@@ -42,7 +49,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
   }
 
   const emailSelectClick = async (accountId: string, emailId: string): Promise<void> => {
-    setSelectedEmail(emailId)
+    setSelectedEmailId(emailId)
     setIsEmailLoading(true)
     setIsViewingEmail(true)
     try {
@@ -93,7 +100,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
           <React.Fragment key={index}>
             <ListItemButton
               onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
-              selected={selectedEmail === email.id}
+              selected={selectedEmailId === email.id}
             >
               <ListItemText
                 primary={
@@ -145,6 +152,15 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
   }
 
   useEffect(() => {
+    const selectedEmail = receivedEmails?.find((email) => email.id === selectedEmailId)
+    if (selectedEmail?.data.viewed === false && selectedEmailId && loggedInUser?.username) {
+      patchEmail(loggedInUser?.username, selectedEmailId, [{ op: 'replace', path: '/viewed', value: true }]).then(
+        refreshEmails
+      )
+    }
+  }, [selectedEmailId])
+
+  useEffect(() => {
     refreshEmails()
   }, [loggedInUser])
 
@@ -153,7 +169,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
       loggedInUser?.username &&
       receivedEmails !== undefined &&
       receivedEmails.length > 0 &&
-      receivedEmails.find((email) => email.id === selectedEmail) === undefined
+      receivedEmails.find((email) => email.id === selectedEmailId) === undefined
     ) {
       emailSelectClick(loggedInUser?.username, receivedEmails[0].id)
     }
@@ -200,7 +216,7 @@ const Mailbox = ({ deleteEmail, getAllEmails, getEmailAttachment, getEmailConten
           <Card sx={{ minHeight: { md: '80vh', xs: '40vh' }, overflow: 'scroll', width: '100%' }} variant="outlined">
             {isEmailLoading || loggedInUser?.username === undefined
               ? renderLoading()
-              : renderViewer(loggedInUser?.username, selectedEmail, email)}
+              : renderViewer(loggedInUser?.username, selectedEmailId, email)}
           </Card>
         </Grid>
       </Grid>

@@ -16,6 +16,7 @@ describe('Mailbox component', () => {
   const getAllEmails = jest.fn().mockResolvedValue(emailBatch)
   const getEmailAttachment = jest.fn()
   const getEmailContents = jest.fn().mockResolvedValue(emailContents)
+  const patchEmail = jest.fn().mockResolvedValue(undefined)
 
   beforeAll(() => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
@@ -35,6 +36,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -49,6 +51,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -70,6 +73,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -83,6 +87,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -97,6 +102,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -110,6 +116,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -123,6 +130,7 @@ describe('Mailbox component', () => {
       expect.objectContaining({ accountId: user.username, email: emailContents, emailId }),
       {}
     )
+    expect(patchEmail).toHaveBeenCalledWith(user.username, emailId, [{ op: 'replace', path: '/viewed', value: true }])
   })
 
   test('expect error message when getReceivedEmailContents rejects', async () => {
@@ -133,6 +141,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -155,6 +164,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -170,6 +180,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 
@@ -191,6 +202,7 @@ describe('Mailbox component', () => {
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
       />
     )
 

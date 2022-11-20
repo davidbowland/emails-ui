@@ -27,6 +27,7 @@ import {
   getSentEmailContents,
   patchAccount,
   patchReceivedEmail,
+  patchSentEmail,
   postSentAttachment,
   postSentEmail,
   putAccount,
@@ -327,6 +328,26 @@ describe('Emails service', () => {
         const result = await postSentAttachment(accountId)
         expect(postEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(postAttachmentResult)
+      })
+    })
+
+    describe('patchSentEmail', () => {
+      const patchEndpoint = jest.fn().mockReturnValue(email)
+
+      beforeAll(() => {
+        server.use(
+          rest.patch(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async (req, res, ctx) => {
+            const { emailId, id } = req.params
+            const body = patchEndpoint(id, emailId, await req.json())
+            return res(body ? ctx.json(body) : ctx.status(400))
+          })
+        )
+      })
+
+      test('expect result from call returned', async () => {
+        const result = await patchSentEmail(accountId, emailId, jsonPatchOperations)
+        expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
+        expect(result).toEqual(email)
       })
     })
 

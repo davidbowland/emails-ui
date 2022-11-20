@@ -79,6 +79,11 @@ export const getSentAttachment = (accountId: string, emailId: string, attachment
 export const getSentEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>
   API.get(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(emailId)}/contents`, {})
 
+export const patchSentEmail = (accountId: string, emailId: string, patchOperations: PatchOperation[]): Promise<Email> =>
+  API.patch(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(emailId)}`, {
+    body: patchOperations,
+  })
+
 export const postSentAttachment = (accountId: string): Promise<PostSignedUrl> =>
   API.post(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/sent/attachments`, {})
 

@@ -99,7 +99,7 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
           </Grid>
         ))}
         <Grid item xs="auto">
-          <RoundedBox sx={{ border: 1, p: 1 }}>
+          <RoundedBox sx={{ border: 1, overflow: 'hidden', p: 1, width: { sm: 'initial', xs: '250px' } }}>
             {uploadingFilename === undefined ? (
               <input
                 aria-label="Attachment upload"

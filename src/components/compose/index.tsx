@@ -22,6 +22,7 @@ import { navigate } from 'gatsby'
 import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
+import HtmlEditor from '@components/html-editor'
 import { postSentEmail } from '@services/emails'
 
 const DOMAIN = process.env.GATSBY_DOMAIN
@@ -141,10 +142,6 @@ const Compose = ({
         setErrorMessage('Error authenticating user. Please reload the page to try again.')
         window.location.reload()
       })
-
-    if (initialBody && editor.current) {
-      editor.current.innerHTML = initialBody
-    }
   }, [])
 
   return (
@@ -173,7 +170,7 @@ const Compose = ({
         </Box>
         <Divider />
         <Box padding={2}>
-          <div contentEditable={true} ref={editor} style={{ minHeight: '20vh' }}></div>
+          <HtmlEditor initialBody={initialBody} inputRef={editor} />
         </Box>
         <Divider />
         {loggedInUser?.username && (
@@ -226,11 +223,9 @@ const Compose = ({
         onClose={discardDialogClose}
         open={isDiscardDialogOpen}
       >
-        <DialogTitle id="alert-dialog-title">Discard message?</DialogTitle>
+        <DialogTitle>Discard message?</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Are you sure you want to discard this message?
-          </DialogContentText>
+          <DialogContentText>Are you sure you want to discard this message?</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button autoFocus onClick={discardDialogClose}>

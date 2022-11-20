@@ -10,11 +10,13 @@ import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
 import Compose from './index'
+import HtmlEditor from '@components/html-editor'
 
 jest.mock('aws-amplify')
 jest.mock('gatsby')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
+jest.mock('@components/html-editor')
 jest.mock('@services/emails')
 
 describe('Compose component', () => {
@@ -24,6 +26,7 @@ describe('Compose component', () => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
     mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
+    mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
     mocked(emails).postSentEmail.mockResolvedValue(email)
 
     Object.defineProperty(window, 'location', {
@@ -228,23 +231,9 @@ describe('Compose component', () => {
     )
   })
 
-  test('expect initialBody sets message body', async () => {
+  test('expect components rendered', async () => {
     const body = '<p>Hello, world!</p>'
     render(<Compose initialBody={body} initialToAddresses={addresses} />)
-
-    const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
-
-    expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(
-      accountId,
-      expect.objectContaining({ html: body, text: 'Hello, world!' })
-    )
-  })
-
-  test('expect components rendered', async () => {
-    render(<Compose initialToAddresses={addresses} />)
 
     expect(mocked(AddressLine)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -264,6 +253,7 @@ describe('Compose component', () => {
     )
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
+    expect(mocked(HtmlEditor)).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), {})
     waitFor(() => {
       expect(mocked(AttachmentUploader)).toHaveBeenCalledWith(
         expect.objectContaining({ accountId, attachments: [] }),

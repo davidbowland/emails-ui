@@ -14,7 +14,7 @@ const OutboxPage = (): JSX.Element => {
         <title>Email | dbowland.com</title>
       </Helmet>
       <Authenticated>
-        <Grid container sx={{ padding: '25px 10px' }}>
+        <Grid container sx={{ padding: '0px 10px' }}>
           <Grid item xs>
             <Mailbox
               deleteEmail={deleteSentEmail}

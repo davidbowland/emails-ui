@@ -25,6 +25,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import MuiDrawer from '@mui/material/SwipeableDrawer'
 import OutboxIcon from '@mui/icons-material/Outbox'
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip'
+import SettingsIcon from '@mui/icons-material/Settings'
 import Snackbar from '@mui/material/Snackbar'
 
 import { AmplifyUser } from '@types'
@@ -198,71 +199,99 @@ const IconDrawer = ({
         </List>
         <Divider />
         <List>
-          <ListItemButton
-            onClick={() => navigate('/privacy-policy')}
-            selected={!!pathname.match(/\/privacy-policy\/?$/)}
-            sx={{
-              justifyContent: navMenuOpen ? 'initial' : 'center',
-              minHeight: 48,
-              px: 2.5,
-            }}
-          >
-            <ListItemIcon
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => navigate('/settings')}
+              selected={!!pathname.match(/\/settings\/?$/)}
               sx={{
-                justifyContent: 'center',
-                minWidth: 0,
-                mr: navMenuOpen ? 3 : 'auto',
+                justifyContent: navMenuOpen ? 'initial' : 'center',
+                minHeight: 48,
+                px: 2.5,
               }}
             >
-              <PrivacyTipIcon />
-            </ListItemIcon>
-            <ListItemText primary="Privacy policy" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-          </ListItemButton>
-          <ListItemButton
-            onClick={() => {
-              closeMenu()
-              setLoggedInUser(undefined)
-              Auth.signOut().then(() => window.location.reload())
-            }}
-            sx={{
-              justifyContent: navMenuOpen ? 'initial' : 'center',
-              minHeight: 48,
-              px: 2.5,
-            }}
-          >
-            <ListItemIcon
+              <ListItemIcon
+                sx={{
+                  justifyContent: 'center',
+                  minWidth: 0,
+                  mr: navMenuOpen ? 3 : 'auto',
+                }}
+              >
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Settings" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => navigate('/privacy-policy')}
+              selected={!!pathname.match(/\/privacy-policy\/?$/)}
               sx={{
-                justifyContent: 'center',
-                minWidth: 0,
-                mr: navMenuOpen ? 3 : 'auto',
+                justifyContent: navMenuOpen ? 'initial' : 'center',
+                minHeight: 48,
+                px: 2.5,
               }}
             >
-              <LogoutIcon />
-            </ListItemIcon>
-            <ListItemText primary="Sign out" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-          </ListItemButton>
+              <ListItemIcon
+                sx={{
+                  justifyContent: 'center',
+                  minWidth: 0,
+                  mr: navMenuOpen ? 3 : 'auto',
+                }}
+              >
+                <PrivacyTipIcon />
+              </ListItemIcon>
+              <ListItemText primary="Privacy policy" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => {
+                closeMenu()
+                setLoggedInUser(undefined)
+                Auth.signOut().then(() => window.location.reload())
+              }}
+              sx={{
+                justifyContent: navMenuOpen ? 'initial' : 'center',
+                minHeight: 48,
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  justifyContent: 'center',
+                  minWidth: 0,
+                  mr: navMenuOpen ? 3 : 'auto',
+                }}
+              >
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary="Sign out" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
         </List>
         <Divider />
         <List>
-          <ListItemButton
-            onClick={() => setShowDeleteDialog(true)}
-            sx={{
-              justifyContent: navMenuOpen ? 'initial' : 'center',
-              minHeight: 48,
-              px: 2.5,
-            }}
-          >
-            <ListItemIcon
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => setShowDeleteDialog(true)}
               sx={{
-                justifyContent: 'center',
-                minWidth: 0,
-                mr: navMenuOpen ? 3 : 'auto',
+                justifyContent: navMenuOpen ? 'initial' : 'center',
+                minHeight: 48,
+                px: 2.5,
               }}
             >
-              <DeleteIcon />
-            </ListItemIcon>
-            <ListItemText primary="Delete account" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-          </ListItemButton>
+              <ListItemIcon
+                sx={{
+                  justifyContent: 'center',
+                  minWidth: 0,
+                  mr: navMenuOpen ? 3 : 'auto',
+                }}
+              >
+                <DeleteIcon />
+              </ListItemIcon>
+              <ListItemText primary="Delete account" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>

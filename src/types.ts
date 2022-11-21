@@ -27,6 +27,8 @@ export interface AttachmentContents {
 }
 
 export interface Account {
+  name: string
+  id?: string
   forwardTargets: string[]
 }
 

@@ -19,6 +19,8 @@ export const accountId = 'dave'
 
 export const account: Account = {
   forwardTargets: ['any@domain.com'],
+  id: accountId,
+  name: 'Dave',
 }
 
 export const accountBatch: AccountBatch[] = [

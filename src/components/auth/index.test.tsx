@@ -172,6 +172,7 @@ describe('Authenticated component', () => {
       [/compose/i, '/compose'],
       [/inbox/i, '/inbox'],
       [/sent/i, '/outbox'],
+      [/settings/i, '/settings'],
       [/privacy policy/i, '/privacy-policy'],
     ])('expect selecting %s navigates to %s', async (label, path) => {
       window.location.pathname = path

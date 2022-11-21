@@ -21,6 +21,12 @@ jest.mock('@services/emails')
 
 describe('Compose component', () => {
   const discardCallback = jest.fn()
+  const getSelection = jest.fn()
+  const selection = {
+    removeAllRanges: jest.fn(),
+    selectAllChildren: jest.fn(),
+    toString: jest.fn(),
+  }
 
   beforeAll(() => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
@@ -28,7 +34,13 @@ describe('Compose component', () => {
     mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
     mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
     mocked(emails).postSentEmail.mockResolvedValue(email)
+    mocked(getSelection).mockReturnValue(selection)
+    mocked(selection).toString.mockReturnValue('textContent')
 
+    Object.defineProperty(window, 'getSelection', {
+      configurable: true,
+      value: getSelection,
+    })
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { reload: jest.fn() },
@@ -202,7 +214,7 @@ describe('Compose component', () => {
         name: '',
       },
       subject: 'Hello, e-mail world!',
-      text: '',
+      text: 'textContent',
       to: [
         {
           address: 'a@domain.com',
@@ -229,6 +241,18 @@ describe('Compose component', () => {
       accountId,
       expect.objectContaining({ subject: 'no subject' })
     )
+  })
+
+  test('expect postSentEmail called with textContent when no selection', async () => {
+    mocked(getSelection).mockReturnValueOnce(undefined)
+    render(<Compose initialToAddresses={addresses} />)
+
+    const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
+    await act(async () => {
+      await sendButton.click()
+    })
+
+    expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ text: '' }))
   })
 
   test('expect components rendered', async () => {

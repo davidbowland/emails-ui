@@ -67,6 +67,17 @@ const Compose = ({
     setIsDiscardDialogOpen(false)
   }
 
+  const getTextContent = (editor: HTMLDivElement): string => {
+    const selection = window.getSelection()
+    if (!selection) {
+      return editor.textContent || ''
+    }
+    selection.selectAllChildren(editor)
+    const textContent = selection.toString()
+    selection.removeAllRanges()
+    return textContent
+  }
+
   const handleSendClick = async (accountId: string, editor: HTMLDivElement): Promise<void> => {
     setAttachmentMessage('')
     setRecipientMessage('')
@@ -109,7 +120,7 @@ const Compose = ({
         replyTo: fromAddress,
         sender: fromAddress,
         subject: subject || 'no subject',
-        text: editor.textContent || '',
+        text: getTextContent(editor),
         to: toAddresses,
       }
       await postSentEmail(accountId, outboundEmail)

@@ -67,7 +67,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
 
     const a = document.createElement('a')
     a.href = linkTarget
-    a.innerText = linkText
+    a.textContent = linkText
     if (linkRange) {
       linkRange.deleteContents()
       linkRange.insertNode(a)

@@ -92,7 +92,9 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): JSX.
   return (
     <Grid alignItems="center" container padding={2} paddingBottom={1} paddingTop={1} spacing={1}>
       <Grid item padding={1} xs="auto">
-        <Typography variant="body1">{label}</Typography>
+        <Typography paddingTop={1} variant="body1">
+          {label}
+        </Typography>
       </Grid>
       {addresses.map((address, index) => (
         <Grid item key={index} xs="auto">

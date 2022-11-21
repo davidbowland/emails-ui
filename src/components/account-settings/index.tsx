@@ -21,6 +21,7 @@ const AccountSettings = (): JSX.Element => {
   const [account, setAccount] = useState<Account | undefined>(undefined)
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
   const [name, setName] = useState('')
@@ -42,6 +43,52 @@ const AccountSettings = (): JSX.Element => {
     setIsSaving(false)
   }
 
+  const renderLoading = (): JSX.Element => (
+    <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
+      <Grid item>
+        <CircularProgress />
+      </Grid>
+    </Grid>
+  )
+
+  const renderSettings = (): JSX.Element => (
+    <Stack padding={2} spacing={2}>
+      <Typography component="div" variant="h4">
+        Account Settings
+      </Typography>
+      <Divider />
+      <label>
+        <TextField
+          disabled={account === undefined || isSaving}
+          fullWidth
+          label="From name"
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+          value={name}
+        />
+      </label>
+      {account !== undefined && (
+        <AddressLine addresses={forwardAddresses} label="Forward targets:" setAddresses={setForwardAddresses} />
+      )}
+      <Grid container>
+        <Grid item order={{ md: 1, xs: 2 }} xs></Grid>
+        <Grid item md={3} order={{ md: 2, xs: 1 }} padding={2} xs={12}>
+          {loggedInUser?.username && account && (
+            <Button
+              disabled={isSaving}
+              fullWidth
+              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+              startIcon={isSaving ? <CircularProgress size={14} /> : <SaveIcon />}
+              variant="contained"
+            >
+              Save
+            </Button>
+          )}
+        </Grid>
+        <Grid item order={{ xs: 3 }} xs></Grid>
+      </Grid>
+    </Stack>
+  )
+
   const snackbarErrorClose = (): void => {
     setErrorMessage(undefined)
   }
@@ -51,6 +98,8 @@ const AccountSettings = (): JSX.Element => {
       const forwardTargets = account.forwardTargets.map((address) => ({ address, name: '' }))
       setForwardAddresses(forwardTargets)
       setName(account.name)
+
+      setIsLoading(false)
     }
   }, [account])
 
@@ -77,42 +126,8 @@ const AccountSettings = (): JSX.Element => {
 
   return (
     <>
-      <Card sx={{ height: '100%', maxHeight: '80vh', overflowY: 'scroll', width: '100%' }} variant="outlined">
-        <Stack padding={2} spacing={2}>
-          <Typography component="div" variant="h4">
-            Account Settings
-          </Typography>
-          <Divider />
-          <label>
-            <TextField
-              disabled={account === undefined || isSaving}
-              fullWidth
-              label="From name"
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-              value={name}
-            />
-          </label>
-          {account !== undefined && (
-            <AddressLine addresses={forwardAddresses} label="Forward targets:" setAddresses={setForwardAddresses} />
-          )}
-          <Grid container>
-            <Grid item order={{ md: 1, xs: 2 }} xs></Grid>
-            <Grid item md={3} order={{ md: 2, xs: 1 }} padding={2} xs={12}>
-              {loggedInUser?.username && account && (
-                <Button
-                  disabled={isSaving}
-                  fullWidth
-                  onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
-                  startIcon={isSaving ? <CircularProgress size={14} /> : <SaveIcon />}
-                  variant="contained"
-                >
-                  Save
-                </Button>
-              )}
-            </Grid>
-            <Grid item order={{ xs: 3 }} xs></Grid>
-          </Grid>
-        </Stack>
+      <Card sx={{ height: '100%', width: '100%' }} variant="outlined">
+        {isLoading ? renderLoading() : renderSettings()}
       </Card>
       <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
         <Alert onClose={snackbarErrorClose} severity="error" variant="filled">

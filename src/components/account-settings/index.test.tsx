@@ -60,6 +60,10 @@ describe('AccountSettings component', () => {
     mocked(emails).patchAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
+    const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
+    await act(async () => {
+      await fireEvent.change(linkTextInput, { target: { value: 'George' } })
+    })
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     await act(async () => {
       await saveButton.click()
@@ -73,7 +77,6 @@ describe('AccountSettings component', () => {
   test('expect patchAccount not called when no changes', async () => {
     render(<AccountSettings />)
 
-    await screen.findByDisplayValue(/Dave/i)
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     await act(async () => {
       await saveButton.click()
@@ -85,7 +88,6 @@ describe('AccountSettings component', () => {
   test('expect patch instructions passed to patchAccount', async () => {
     render(<AccountSettings />)
 
-    await screen.findByDisplayValue(/Dave/i)
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
     await act(async () => {
       await fireEvent.change(linkTextInput, { target: { value: 'George' } })

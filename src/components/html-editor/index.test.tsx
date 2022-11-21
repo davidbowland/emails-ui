@@ -58,6 +58,51 @@ describe('HtmlEditor component', () => {
     })
   })
 
+  describe('format color', () => {
+    test.each([
+      ['Font color', 'foreColor', 'font-color'],
+      ['Background color', 'backColor', 'background-color'],
+    ])('expect format %s invokes command %s', async (label, command, testId) => {
+      render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
+
+      const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
+      act(() => {
+        formatButton.click()
+      })
+      const colorInput = (await screen.findByTestId(testId)) as HTMLInputElement
+      act(() => {
+        fireEvent.change(colorInput, { target: { value: '#123456' } })
+      })
+
+      expect(execCommand).toHaveBeenCalledWith(command, false, '#123456')
+    })
+  })
+
+  describe('format size', () => {
+    test.each([
+      ['Extra small', '1'],
+      ['Small', '2'],
+      ['Normal', '3'],
+      ['Large', '4'],
+      ['Extra large', '5'],
+      ['XX Large', '6'],
+      ['Huge', '7'],
+    ])('expect font size %s invokes command with value %s', async (label, value) => {
+      render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
+
+      const formatButton = (await screen.findByLabelText(/Font size/i, { selector: 'button' })) as HTMLButtonElement
+      act(() => {
+        formatButton.click()
+      })
+      const sizeItem = (await screen.findByText(label)) as HTMLButtonElement
+      act(() => {
+        sizeItem.click()
+      })
+
+      expect(execCommand).toHaveBeenCalledWith('fontSize', false, value)
+    })
+  })
+
   describe('format other', () => {
     test.each([
       ['Unlink', 'unlink'],

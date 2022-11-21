@@ -76,6 +76,12 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
     }
   }
 
+  const handlePasteEvent = (event: React.ClipboardEvent<HTMLDivElement>): void => {
+    if (!event.clipboardData.getData('text')) {
+      event.preventDefault()
+    }
+  }
+
   const linkDialogClose = (): void => {
     setShowLinkDialog(false)
   }
@@ -142,7 +148,13 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
           </Tooltip>
         </Box>
       </Box>
-      <div contentEditable={true} ref={inputRef} style={{ minHeight: '20vh' }}></div>
+      <div
+        aria-label="Message contents"
+        contentEditable={true}
+        onPaste={handlePasteEvent}
+        ref={inputRef}
+        style={{ minHeight: '20vh' }}
+      ></div>
       <Dialog
         aria-describedby="What link should the selected text have?"
         aria-labelledby="Add link to email"

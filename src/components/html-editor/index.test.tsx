@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { mocked } from 'jest-mock'
 
@@ -182,11 +182,45 @@ describe('HtmlEditor component', () => {
   })
 
   describe('body', () => {
+    const pasteEvent = {
+      clipboardData: {
+        getData: jest.fn(),
+      },
+      preventDefault: jest.fn(),
+    }
+
+    beforeAll(() => {
+      mocked(pasteEvent).clipboardData.getData.mockReturnValue('pasted text')
+    })
+
     test('expect initialBody sets message body', async () => {
       const body = '<p>Hello, world!</p>'
       render(<HtmlEditor initialBody={body} inputRef={React.createRef<HTMLDivElement>()} />)
 
-      expect(await screen.findByText('Hello, world!')).toBeInTheDocument()
+      expect(await screen.findByText(/Hello, world!/i)).toBeInTheDocument()
+    })
+
+    test('expect pasting does not work with images', async () => {
+      render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
+
+      const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
+      act(() => {
+        fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
+      })
+
+      expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
+    })
+
+    test('expect pasting works with plain text', async () => {
+      mocked(pasteEvent).clipboardData.getData.mockReturnValueOnce('')
+      render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
+
+      const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
+      act(() => {
+        fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
+      })
+
+      expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
     })
   })
 })

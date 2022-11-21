@@ -27,6 +27,7 @@ import OutboxIcon from '@mui/icons-material/Outbox'
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip'
 import SettingsIcon from '@mui/icons-material/Settings'
 import Snackbar from '@mui/material/Snackbar'
+import Tooltip from '@mui/material/Tooltip'
 
 import { AmplifyUser } from '@types'
 import { navigate } from 'gatsby'
@@ -140,15 +141,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <CreateIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Compose">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <CreateIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Compose" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -162,15 +165,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <InboxIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Inbox">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <InboxIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Inbox" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -184,15 +189,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <OutboxIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Sent">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <OutboxIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Sent" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -209,15 +216,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <SettingsIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Settings">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <SettingsIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Settings" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -231,15 +240,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <PrivacyTipIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Privacy policy">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <PrivacyTipIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Privacy policy" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -256,15 +267,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <LogoutIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Sign out">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <LogoutIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Sign out" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
@@ -280,15 +293,17 @@ const IconDrawer = ({
                 px: 2.5,
               }}
             >
-              <ListItemIcon
-                sx={{
-                  justifyContent: 'center',
-                  minWidth: 0,
-                  mr: navMenuOpen ? 3 : 'auto',
-                }}
-              >
-                <DeleteIcon />
-              </ListItemIcon>
+              <Tooltip placement="right" title="Delete account">
+                <ListItemIcon
+                  sx={{
+                    justifyContent: 'center',
+                    minWidth: 0,
+                    mr: navMenuOpen ? 3 : 'auto',
+                  }}
+                >
+                  <DeleteIcon />
+                </ListItemIcon>
+              </Tooltip>
               <ListItemText primary="Delete account" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>

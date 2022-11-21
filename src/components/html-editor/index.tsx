@@ -153,7 +153,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
         contentEditable={true}
         onPaste={handlePasteEvent}
         ref={inputRef}
-        style={{ minHeight: '20vh' }}
+        style={{ border: '1px solid rgba(0, 0, 0, 0.1)', minHeight: '20vh' }}
       ></div>
       <Dialog
         aria-describedby="What link should the selected text have?"

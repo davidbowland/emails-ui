@@ -124,7 +124,15 @@ describe('Email viewer component', () => {
 
   describe('DOMPurify hooks', () => {
     test('expect style sheet sanitizied', async () => {
-      const styleNode = { innerText: '', sheet: { cssRules: [{ cssText: 'a { color: blue; }', style }] } }
+      const styleNode = {
+        innerText: '',
+        sheet: {
+          cssRules: [
+            { cssText: 'a { color: blue; }', style },
+            { cssText: 'li { color: red; }', style: undefined },
+          ],
+        },
+      }
       mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
         callback(styleNode as any, { tagName: 'a' } as any, {})
@@ -136,7 +144,7 @@ describe('Email viewer component', () => {
 
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
       expect(style.removeProperty).toHaveBeenCalledWith('background-url')
-      expect(styleNode.innerText).toEqual(' a { color: blue; }')
+      expect(styleNode.innerText).toEqual(' a { color: blue; } li { color: red; }')
     })
 
     test('expect HTTP leak attributes removed', async () => {

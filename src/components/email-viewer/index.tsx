@@ -222,7 +222,9 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
       // Remove external CSS from style tags
       if (data.tagName.toLowerCase() === 'style') {
         for (const rule of node.sheet.cssRules) {
-          removeExternalCss(rule.style)
+          if (rule.style) {
+            removeExternalCss(rule.style)
+          }
         }
         node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
       }

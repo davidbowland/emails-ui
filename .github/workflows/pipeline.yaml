@@ -35,8 +35,7 @@ jobs:
           node-version: 18.x
 
       - name: Install and audit packages
-        # run: npm ci --legacy-peer-deps && npm audit --audit-level=critical
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps && npm audit --audit-level=critical
         env:
           NODE_ENV: test
       - name: Run tests

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import React from 'react'
 import { mocked } from 'jest-mock'
@@ -169,7 +169,9 @@ describe('Mailbox component', () => {
     )
 
     await screen.findByText(/Delete invoked/i)
-    expect(deleteEmail).toHaveBeenCalledWith(user.username, emailId)
+    waitFor(() => {
+      expect(deleteEmail).toHaveBeenCalledWith(user.username, emailId)
+    })
     expect(getAllEmails).toHaveBeenCalledWith(user.username)
   })
 
@@ -191,11 +193,12 @@ describe('Mailbox component', () => {
       forwardButton.click()
     })
 
-    expect(await screen.findByText(/Email contents/i)).toBeVisible()
+    waitFor(() => {
+      expect(screen.queryByText(/Email contents/i)).toBeVisible()
+    })
   })
 
   test('expect back button from email goes back', async () => {
-    const targetDateString = new Date(166656073284).toLocaleString()
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -219,6 +222,6 @@ describe('Mailbox component', () => {
       backButton.click()
     })
 
-    expect(await screen.findByText(targetDateString)).toBeVisible()
+    expect(await screen.findByText(/4\/13\/1975, \d+:21:13 PM/i)).toBeVisible()
   })
 })

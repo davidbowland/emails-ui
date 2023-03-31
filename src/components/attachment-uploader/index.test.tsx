@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { rest, server } from '@test/setup-server'
-import React from 'react'
 import { mocked } from 'jest-mock'
+import React from 'react'
 
 import * as emails from '@services/emails'
 import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'

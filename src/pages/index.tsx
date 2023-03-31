@@ -2,8 +2,8 @@ import { Helmet } from 'react-helmet'
 import React from 'react'
 
 import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 import { navigate } from 'gatsby'
+import PrivacyLink from '@components/privacy-link'
 
 const Index = (): JSX.Element => {
   return (

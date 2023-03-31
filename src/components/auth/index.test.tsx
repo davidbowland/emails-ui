@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom'
 import * as gatsby from 'gatsby'
-import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
 import { act, render, screen, waitFor } from '@testing-library/react'
+import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
 import { Auth } from 'aws-amplify'
-import React from 'react'
 import { mocked } from 'jest-mock'
+import React from 'react'
 
 import Authenticated from './index'
 import { user } from '@test/__mocks__'

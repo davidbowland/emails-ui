@@ -22,8 +22,8 @@
     "quotes": ["error", "single", { "avoidEscape": true }],
     "react/jsx-sort-props": ["error"],
     "semi": ["error", "never"],
-    "sort-imports": ["error", { "allowSeparatedGroups": true }],
-    "sort-keys": ["error", "asc", { "caseSensitive": true, "natural": false }],
+    "sort-imports": ["error", { "allowSeparatedGroups": true, "ignoreCase": true }],
+    "sort-keys": ["error", "asc", { "caseSensitive": false, "natural": false }],
     "sort-vars": ["error"]
   },
   "globals": {

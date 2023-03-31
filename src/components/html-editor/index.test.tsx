@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
 import { mocked } from 'jest-mock'
+import React from 'react'
 
 import HtmlEditor from './index'
 

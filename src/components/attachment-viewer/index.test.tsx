@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react'
 import { rest, server } from '@test/setup-server'
 import React from 'react'
 
-import { accountId, attachmentUrl, attachments, emailId } from '@test/__mocks__'
+import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
 import AttachmentViewer from './index'
 
 jest.mock('aws-amplify')

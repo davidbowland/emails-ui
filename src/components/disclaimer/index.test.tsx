@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
-import { MockedObject, mocked } from 'jest-mock'
 import { act, render, screen } from '@testing-library/react'
+import { mocked, MockedObject } from 'jest-mock'
 import Cookies from 'universal-cookie'
 import React from 'react'
 

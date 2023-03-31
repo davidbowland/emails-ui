@@ -1,4 +1,4 @@
-import { Authenticator, ThemeProvider, defaultDarkModeOverride } from '@aws-amplify/ui-react'
+import { Authenticator, defaultDarkModeOverride, ThemeProvider } from '@aws-amplify/ui-react'
 import { AmplifyUser } from '@types'
 import Grid from '@mui/material/Grid'
 import React from 'react'

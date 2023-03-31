@@ -1,20 +1,20 @@
 import '@testing-library/jest-dom'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { render, screen } from '@testing-library/react'
 import CssBaseline from '@mui/material/CssBaseline'
-import React from 'react'
 import { mocked } from 'jest-mock'
+import React from 'react'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import Disclaimer from '@components/disclaimer'
-import Themed from './index'
 import { theme } from '@test/__mocks__'
+import Themed from './index'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@mui/material/CssBaseline')
 jest.mock('@mui/material/styles', () => ({
-  ThemeProvider: jest.fn(),
   createTheme: jest.fn(),
+  ThemeProvider: jest.fn(),
 }))
 jest.mock('@mui/material/useMediaQuery')
 jest.mock('@components/disclaimer')

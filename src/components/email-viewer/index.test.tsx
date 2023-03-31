@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom'
 import { act, render, screen } from '@testing-library/react'
 import DOMPurify from 'dompurify'
-import React from 'react'
 import { mocked } from 'jest-mock'
+import React from 'react'
 
-import { accountId, attachmentUrl, attachments, emailContents, emailId } from '@test/__mocks__'
+import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
 import AddressLine from '@components/address-line'
 import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
@@ -253,9 +253,9 @@ describe('Email viewer component', () => {
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
-          inReplyTo: emailContents.id,
           initialSubject: 'RE: Hello, world',
           initialToAddresses: [{ address: 'reply@domain.com', name: '' }],
+          inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
         {}
@@ -280,7 +280,6 @@ describe('Email viewer component', () => {
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
-          inReplyTo: emailContents.id,
           initialCcAddresses: [
             { address: 'someone@domain.com', name: '' },
             { address: 'fred@domain.com', name: 'Fred' },
@@ -291,6 +290,7 @@ describe('Email viewer component', () => {
             { address: 'account@domain.com', name: '' },
             { address: 'admin@domain.com', name: 'Admin' },
           ],
+          inReplyTo: emailContents.id,
         }),
         {}
       )
@@ -341,9 +341,9 @@ describe('Email viewer component', () => {
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
-          inReplyTo: emailContents.id,
           initialSubject: 'RE: no subject',
           initialToAddresses: [{ address: 'another@domain.com', name: '' }],
+          inReplyTo: emailContents.id,
         }),
         {}
       )
@@ -367,8 +367,8 @@ describe('Email viewer component', () => {
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
-          inReplyTo: emailContents.id,
           initialSubject: 'FW: Hello, world',
+          inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
         {}

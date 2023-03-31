@@ -1,5 +1,5 @@
 import '@aws-amplify/ui-react/styles.css'
-import { CSSObject, Theme, styled } from '@mui/material/styles'
+import { CSSObject, styled, Theme } from '@mui/material/styles'
 import React, { useState } from 'react'
 import Alert from '@mui/material/Alert'
 import { Auth } from 'aws-amplify'

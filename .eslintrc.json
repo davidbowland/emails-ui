@@ -4,6 +4,11 @@
     "es2021": true
   },
   "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+  "globals": {
+    "exports": "writable",
+    "module": "readonly",
+    "require": "readonly"
+  },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaFeatures": {
@@ -14,9 +19,9 @@
   },
   "plugins": ["react", "@typescript-eslint"],
   "rules": {
+    "@typescript-eslint/no-explicit-any": ["off"],
     "@typescript-eslint/no-non-null-assertion": ["off"],
     "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "_" }],
-    "@typescript-eslint/no-explicit-any": ["off"],
     "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
     "quotes": ["error", "single", { "avoidEscape": true }],
@@ -26,9 +31,9 @@
     "sort-keys": ["error", "asc", { "caseSensitive": false, "natural": false }],
     "sort-vars": ["error"]
   },
-  "globals": {
-    "exports": "writable",
-    "module": "readonly",
-    "require": "readonly"
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
   }
 }

@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Node 18
         uses: actions/setup-node@v3
         with:
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Node 18
         uses: actions/setup-node@v3
@@ -66,6 +66,7 @@ jobs:
           python-version: 3.8
       - name: Install AWS SAM
         uses: aws-actions/setup-sam@v2
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -97,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Node 18
         uses: actions/setup-node@v3
@@ -115,6 +116,7 @@ jobs:
           python-version: 3.8
       - name: Install AWS SAM
         uses: aws-actions/setup-sam@v2
+
       - name: Assume the testing pipeline user role
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -146,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Node 18
         uses: actions/setup-node@v3
@@ -163,6 +165,7 @@ jobs:
           python-version: 3.8
       - name: Install AWS SAM
         uses: aws-actions/setup-sam@v2
+
       - name: Assume the production pipeline user role
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -192,7 +195,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Node 18
         uses: actions/setup-node@v3
         with:

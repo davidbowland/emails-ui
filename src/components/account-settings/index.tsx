@@ -37,7 +37,7 @@ const AccountSettings = (): JSX.Element => {
         setAccount(updatedAccount)
       }
     } catch (error: any) {
-      console.error('handleSaveClick', error)
+      console.error('handleSaveClick', { account, accountId, error, forwardAddresses })
       setErrorMessage('Error saving account settings. Please refresh the page and try again.')
     }
     setIsSaving(false)
@@ -108,7 +108,7 @@ const AccountSettings = (): JSX.Element => {
       getAccount(loggedInUser?.username)
         .then(setAccount)
         .catch((error: any) => {
-          console.error('getAccount', error)
+          console.error('getAccount', { error, username: loggedInUser?.username })
           setErrorMessage('Error fetching account settings. Please reload the page to try again.')
         })
     }
@@ -118,7 +118,7 @@ const AccountSettings = (): JSX.Element => {
     Auth.currentAuthenticatedUser()
       .then(setLoggedInUser)
       .catch((error: any) => {
-        console.error('currentAuthenticatedUser', error)
+        console.error('currentAuthenticatedUser', { error })
         setErrorMessage('Error authenticating user. Please reload the page to try again.')
         window.location.reload()
       })

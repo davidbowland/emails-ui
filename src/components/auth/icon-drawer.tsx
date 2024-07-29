@@ -100,9 +100,9 @@ const IconDrawer = ({
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
-    loggedInUser.deleteUser((err: any) => {
-      if (err) {
-        console.error('deleteAccountClick', err)
+    loggedInUser.deleteUser((error: any) => {
+      if (error) {
+        console.error('deleteAccountClick', { error, username: loggedInUser.username })
         setShowDeleteErrorSnackbar(true)
       } else {
         closeMenu()

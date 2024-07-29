@@ -46,7 +46,7 @@ const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: At
       target.click()
       window.URL.revokeObjectURL(url)
     } catch (error: any) {
-      console.error('handleAttachmentClick', error)
+      console.error('handleAttachmentClick', { accountId, attachmentId, emailId, error })
       setErrorMessage('Error downloading the attachment. Please try again.')
     }
     setAttachmentDownloading(undefined)

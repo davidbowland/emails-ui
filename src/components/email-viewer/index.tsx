@@ -67,7 +67,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
     try {
       await deleteEmail(accountId, emailId)
     } catch (error: any) {
-      console.error('deleteEmailClick', error)
+      console.error('deleteEmailClick', { accountId, emailId, error })
       setErrorMessage('Error deleting email. Please refresh and try again.')
     }
     setBackdropShown(false)

@@ -127,7 +127,16 @@ const Compose = ({
       resetForm(editor)
       navigate('/outbox')
     } catch (error) {
-      console.error('handleSendClick', error)
+      console.error('handleSendClick', {
+        accountId,
+        attachments,
+        bccAddresses,
+        ccAddresses,
+        DOMAIN,
+        error,
+        toAddresses,
+        totalAttachmentSize,
+      })
       setErrorMessage('Error sending email. Please try again in a few moments.')
     }
     setIsSubmitting(false)
@@ -149,7 +158,7 @@ const Compose = ({
     Auth.currentAuthenticatedUser()
       .then(setLoggedInUser)
       .catch((error: any) => {
-        console.error('currentAuthenticatedUser', error)
+        console.error('currentAuthenticatedUser', { error })
         setErrorMessage('Error authenticating user. Please reload the page to try again.')
         window.location.reload()
       })

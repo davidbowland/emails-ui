@@ -35,13 +35,13 @@ const Mailbox = ({
   getEmailContents,
   patchEmail,
 }: MailboxProps): JSX.Element => {
-  const [email, setEmail] = useState<EmailContents | undefined>(undefined)
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
+  const [email, setEmail] = useState<EmailContents | undefined>()
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isEmailLoading, setIsEmailLoading] = useState(false)
   const [isViewingEmail, setIsViewingEmail] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
-  const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>(undefined)
-  const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>(undefined)
+  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>()
+  const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>()
 
   const deleteEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
     await deleteEmail(accountId, emailId)

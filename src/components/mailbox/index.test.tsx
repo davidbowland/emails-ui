@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import { mocked } from 'jest-mock'
 import React from 'react'
@@ -22,6 +22,7 @@ describe('Mailbox component', () => {
     mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
     mocked(EmailViewer).mockReturnValue(<>Email contents</>)
 
+    console.error = jest.fn()
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { reload: jest.fn() },
@@ -57,9 +58,8 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      closeSnackbarButton.click()
-    })
+    fireEvent.click(closeSnackbarButton)
+
     expect(
       screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
     ).not.toBeInTheDocument()
@@ -122,9 +122,8 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Select an email to view/i)
     const emailElement = (await screen.findByText(/Hello, world of email/i)) as HTMLBaseElement
-    await act(async () => {
-      await emailElement.click()
-    })
+    fireEvent.click(emailElement)
+
     expect(await screen.findByText(/Email contents/i)).toBeVisible()
     expect(EmailViewer).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: user.username, email: emailContents, emailId }),
@@ -147,9 +146,8 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Select an email to view/i)
     const emailElement = (await screen.findByText(/Hello, world of email/i)) as HTMLBaseElement
-    act(() => {
-      emailElement.click()
-    })
+    fireEvent.click(emailElement)
+
     expect(await screen.findByText(/Error fetching email. Please try again./i)).toBeVisible()
   })
 
@@ -169,7 +167,7 @@ describe('Mailbox component', () => {
     )
 
     await screen.findByText(/Delete invoked/i)
-    waitFor(() => {
+    await waitFor(() => {
       expect(deleteEmail).toHaveBeenCalledWith(user.username, emailId)
     })
     expect(getAllEmails).toHaveBeenCalledWith(user.username)
@@ -189,11 +187,9 @@ describe('Mailbox component', () => {
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    act(() => {
-      forwardButton.click()
-    })
+    fireEvent.click(forwardButton)
 
-    waitFor(() => {
+    await waitFor(() => {
       expect(screen.queryByText(/Email contents/i)).toBeVisible()
     })
   })
@@ -212,15 +208,11 @@ describe('Mailbox component', () => {
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    act(() => {
-      forwardButton.click()
-    })
+    fireEvent.click(forwardButton)
     const backButton = (await screen.findByLabelText(/Back to email list/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    act(() => {
-      backButton.click()
-    })
+    fireEvent.click(backButton)
 
     expect(await screen.findByText(/4\/13\/1975, \d+:21:13 PM/i)).toBeVisible()
   })

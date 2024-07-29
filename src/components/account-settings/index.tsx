@@ -18,12 +18,12 @@ import { getAccount, patchAccount } from '@services/emails'
 import AddressLine from '@components/address-line'
 
 const AccountSettings = (): JSX.Element => {
-  const [account, setAccount] = useState<Account | undefined>(undefined)
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
+  const [account, setAccount] = useState<Account | undefined>()
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
+  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
   const [name, setName] = useState('')
 
   const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {

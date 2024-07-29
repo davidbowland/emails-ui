@@ -15,8 +15,3 @@ process.env.GATSBY_PINPOINT_ID = '2345yugvbnmmnhgfert'
 
 window.URL.createObjectURL = jest.fn()
 window.URL.revokeObjectURL = jest.fn()
-
-// ReactDOMServer
-import { TextEncoder, TextDecoder } from 'util'
-global.TextEncoder = TextEncoder
-global.TextDecoder = TextDecoder

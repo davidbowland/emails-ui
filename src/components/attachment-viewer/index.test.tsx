@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
-import { act, render, screen } from '@testing-library/react'
-import { rest, server } from '@test/setup-server'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { http, HttpResponse, server } from '@test/setup-server'
 import React from 'react'
 
 import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
@@ -17,10 +17,11 @@ describe('Attachment viewer component', () => {
     getAttachment.mockResolvedValue(attachmentUrl)
     getEndpoint.mockReturnValue(attachmentBlob)
 
+    console.error = jest.fn()
     server.use(
-      rest.get('http://localhost/a/really/long/url', async (req, res, ctx) => {
+      http.get('http://localhost/a/really/long/url', async () => {
         const body = getEndpoint()
-        return res(body ? ctx.body(body) : ctx.status(400))
+        return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
       })
     )
   })
@@ -36,9 +37,7 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    await act(async () => {
-      await attachmentElement.click()
-    })
+    fireEvent.click(attachmentElement)
 
     expect(getAttachment).toHaveBeenCalledWith(accountId, emailId, '18453696e0bac7e24cd1')
   })
@@ -55,9 +54,7 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    await act(async () => {
-      await attachmentElement.click()
-    })
+    fireEvent.click(attachmentElement)
 
     expect(await screen.findByText(/Error downloading the attachment. Please try again./i)).toBeVisible()
   })
@@ -74,14 +71,11 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    await act(async () => {
-      await attachmentElement.click()
-    })
+    fireEvent.click(attachmentElement)
     await screen.findByText(/Error downloading the attachment. Please try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      closeSnackbarButton.click()
-    })
+    fireEvent.click(closeSnackbarButton)
+
     expect(screen.queryByText(/Error downloading the attachment. Please try again./i)).not.toBeInTheDocument()
   })
 })

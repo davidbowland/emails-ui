@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { addresses } from '@test/__mocks__'
 import React from 'react'
 
@@ -25,19 +25,13 @@ describe('Address line component', () => {
         selector: 'button',
       })
     )[0] as HTMLButtonElement
-    act(() => {
-      editButton.click()
-    })
+    fireEvent.click(editButton)
     const addressInput = (await screen.findByLabelText(/Email address/i)) as HTMLInputElement
-    await act(async () => {
-      fireEvent.change(addressInput, { target: { value: 'c@domain.com' } })
-    })
+    fireEvent.change(addressInput, { target: { value: 'c@domain.com' } })
     const saveButton = (await screen.findByLabelText(/Save changes/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    act(() => {
-      saveButton.click()
-    })
+    fireEvent.click(saveButton)
 
     expect(setAddresses).toHaveBeenCalledWith([
       { address: 'c@domain.com', name: '' },
@@ -62,15 +56,11 @@ describe('Address line component', () => {
         selector: 'button',
       })
     )[1] as HTMLButtonElement
-    act(() => {
-      editButton.click()
-    })
+    fireEvent.click(editButton)
     const saveButton = (await screen.findByLabelText(/Save changes/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    act(() => {
-      saveButton.click()
-    })
+    fireEvent.click(saveButton)
 
     expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: 'A' }])
   })
@@ -79,9 +69,7 @@ describe('Address line component', () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
     const addButton = (await screen.findByLabelText(/Add recipient/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      addButton.click()
-    })
+    fireEvent.click(addButton)
 
     expect(setAddresses).toHaveBeenCalledWith([
       { address: 'a@domain.com', name: 'A' },

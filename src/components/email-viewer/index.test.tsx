@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import DOMPurify from 'dompurify'
 import { mocked } from 'jest-mock'
 import React from 'react'
@@ -42,6 +42,7 @@ describe('Email viewer component', () => {
     mocked(AttachmentViewer).mockReturnValue(<>AttachmentViewer</>)
     mocked(Compose).mockReturnValue(<>Compose</>)
     getAttachment.mockResolvedValue(attachmentUrl)
+    console.error = jest.fn()
   })
 
   describe('general', () => {
@@ -206,9 +207,7 @@ describe('Email viewer component', () => {
 
       hookMock.mockClear()
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
-      act(() => {
-        showImagesButton.click()
-      })
+      fireEvent.click(showImagesButton)
 
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
     })
@@ -219,14 +218,10 @@ describe('Email viewer component', () => {
       )
 
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
-      act(() => {
-        showImagesButton.click()
-      })
+      fireEvent.click(showImagesButton)
       hookMock.mockClear()
       const hideImagesButton = (await screen.findByText(/Hide images/i)) as HTMLButtonElement
-      act(() => {
-        hideImagesButton.click()
-      })
+      fireEvent.click(hideImagesButton)
 
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
@@ -247,9 +242,7 @@ describe('Email viewer component', () => {
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        replyIcon.click()
-      })
+      fireEvent.click(replyIcon)
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -274,9 +267,7 @@ describe('Email viewer component', () => {
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        replyAllIcon.click()
-      })
+      fireEvent.click(replyAllIcon)
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -335,9 +326,7 @@ describe('Email viewer component', () => {
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        replyAllIcon.click()
-      })
+      fireEvent.click(replyAllIcon)
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -361,9 +350,7 @@ describe('Email viewer component', () => {
       )
 
       const forwardIcon = (await screen.findByLabelText(/Forward/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        forwardIcon.click()
-      })
+      fireEvent.click(forwardIcon)
 
       expect(mocked(Compose)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -391,9 +378,7 @@ describe('Email viewer component', () => {
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        replyIcon.click()
-      })
+      fireEvent.click(replyIcon)
 
       expect(await screen.findByLabelText(/Reply$/i)).toBeInTheDocument()
     })
@@ -412,9 +397,7 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        deleteIcon.click()
-      })
+      fireEvent.click(deleteIcon)
 
       expect(await screen.findByText(/Are you sure you want to delete this email/i)).toBeVisible()
     })
@@ -431,13 +414,9 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        deleteIcon.click()
-      })
+      fireEvent.click(deleteIcon)
       const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        cancelButton.click()
-      })
+      fireEvent.click(cancelButton)
 
       expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
       expect(deleteReceivedEmail).not.toHaveBeenCalled()
@@ -455,13 +434,9 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        deleteIcon.click()
-      })
+      fireEvent.click(deleteIcon)
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      await act(async () => {
-        await deleteButton.click()
-      })
+      fireEvent.click(deleteButton)
 
       expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
       expect(deleteReceivedEmail).toHaveBeenCalledWith(accountId, emailId)
@@ -480,13 +455,9 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        deleteIcon.click()
-      })
+      fireEvent.click(deleteIcon)
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      await act(async () => {
-        await deleteButton.click()
-      })
+      fireEvent.click(deleteButton)
 
       expect(await screen.findByText(/Error deleting email. Please refresh and try again./i)).toBeVisible()
     })
@@ -504,18 +475,12 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        deleteIcon.click()
-      })
+      fireEvent.click(deleteIcon)
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      await act(async () => {
-        await deleteButton.click()
-      })
+      fireEvent.click(deleteButton)
       await screen.findByText(/Error deleting email. Please refresh and try again./i)
       const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        closeSnackbarButton.click()
-      })
+      fireEvent.click(closeSnackbarButton)
 
       expect(screen.queryByText(/Error deleting email. Please refresh and try again./i)).not.toBeInTheDocument()
     })

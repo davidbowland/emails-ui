@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import { mocked } from 'jest-mock'
 import React from 'react'
@@ -37,6 +37,7 @@ describe('Compose component', () => {
     mocked(getSelection).mockReturnValue(selection)
     mocked(selection).toString.mockReturnValue('textContent')
 
+    console.error = jest.fn()
     Object.defineProperty(window, 'getSelection', {
       configurable: true,
       value: getSelection,
@@ -64,9 +65,8 @@ describe('Compose component', () => {
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      closeSnackbarButton.click()
-    })
+    fireEvent.click(closeSnackbarButton)
+
     expect(
       screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
     ).not.toBeInTheDocument()
@@ -76,13 +76,9 @@ describe('Compose component', () => {
     render(<Compose discardCallback={discardCallback} />)
 
     const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      discardButton.click()
-    })
+    fireEvent.click(discardButton)
     const discardDialogButton = (await screen.findAllByText(/Discard/i, { selector: 'button' }))[1] as HTMLButtonElement
-    act(() => {
-      discardDialogButton.click()
-    })
+    fireEvent.click(discardDialogButton)
 
     expect(discardCallback).toHaveBeenCalledTimes(1)
   })
@@ -91,13 +87,9 @@ describe('Compose component', () => {
     render(<Compose discardCallback={discardCallback} />)
 
     const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      discardButton.click()
-    })
+    fireEvent.click(discardButton)
     const keepEditingButton = (await screen.findByText(/Keep editing/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      keepEditingButton.click()
-    })
+    fireEvent.click(keepEditingButton)
 
     expect(discardCallback).not.toHaveBeenCalled()
   })
@@ -106,9 +98,7 @@ describe('Compose component', () => {
     render(<Compose />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
     expect(await screen.findByText(/Please enter recipients./i)).toBeVisible()
     expect(mocked(emails).postSentEmail).not.toHaveBeenCalled()
@@ -119,9 +109,7 @@ describe('Compose component', () => {
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
     expect(await screen.findByText(/Error sending email. Please try again in a few moments./i)).toBeVisible()
   })
@@ -143,9 +131,7 @@ describe('Compose component', () => {
     )
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
     expect(await screen.findByText(/Attachments cannot exceed [\d,]+ bytes./i)).toBeVisible()
   })
@@ -163,14 +149,13 @@ describe('Compose component', () => {
     )
 
     const subjectInput = (await screen.findByLabelText(/Subject/i)) as HTMLInputElement
-    await act(async () => {
-      fireEvent.change(subjectInput, { target: { value: 'Hello, e-mail world!' } })
-    })
+    fireEvent.change(subjectInput, { target: { value: 'Hello, e-mail world!' } })
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
+    await waitFor(() => {
+      expect(mocked(gatsby).navigate).toHaveBeenCalled()
+    })
     expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, {
       attachments: [
         {
@@ -233,9 +218,7 @@ describe('Compose component', () => {
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
     expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(
       accountId,
@@ -248,9 +231,7 @@ describe('Compose component', () => {
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await sendButton.click()
-    })
+    fireEvent.click(sendButton)
 
     expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ text: '' }))
   })
@@ -278,7 +259,7 @@ describe('Compose component', () => {
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
     expect(mocked(HtmlEditor)).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), {})
-    waitFor(() => {
+    await waitFor(() => {
       expect(mocked(AttachmentUploader)).toHaveBeenCalledWith(
         expect.objectContaining({ accountId, attachments: [] }),
         {}

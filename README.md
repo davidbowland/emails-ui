@@ -6,8 +6,8 @@ Gatsby and Amplify implementation of emails-email-api. Example: <https://email.d
 
 ### Prerequisites
 
-1. [Node 18](https://nodejs.org/en/)
-1. [NPM 8+](https://www.npmjs.com/)
+1. [Node](https://nodejs.org/en/)
+1. [NPM](https://www.npmjs.com/)
 
 ### Local Development
 

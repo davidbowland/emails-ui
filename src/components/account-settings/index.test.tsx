@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import { mocked } from 'jest-mock'
 import React from 'react'
@@ -20,6 +20,7 @@ describe('AccountSettings component', () => {
     mocked(emails).getAccount.mockResolvedValue(account)
     mocked(emails).patchAccount.mockResolvedValue(account)
 
+    console.error = jest.fn()
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { reload: jest.fn() },
@@ -39,9 +40,8 @@ describe('AccountSettings component', () => {
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      closeSnackbarButton.click()
-    })
+    fireEvent.click(closeSnackbarButton)
+
     expect(
       screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
     ).not.toBeInTheDocument()
@@ -61,13 +61,9 @@ describe('AccountSettings component', () => {
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
-    await act(async () => {
-      await fireEvent.change(linkTextInput, { target: { value: 'George' } })
-    })
+    fireEvent.change(linkTextInput, { target: { value: 'George' } })
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await saveButton.click()
-    })
+    fireEvent.click(saveButton)
 
     expect(
       await screen.findByText(/Error saving account settings. Please refresh the page and try again./i)
@@ -78,9 +74,7 @@ describe('AccountSettings component', () => {
     render(<AccountSettings />)
 
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await saveButton.click()
-    })
+    fireEvent.click(saveButton)
 
     expect(mocked(emails).patchAccount).not.toHaveBeenCalled()
   })
@@ -89,13 +83,9 @@ describe('AccountSettings component', () => {
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
-    await act(async () => {
-      await fireEvent.change(linkTextInput, { target: { value: 'George' } })
-    })
+    fireEvent.change(linkTextInput, { target: { value: 'George' } })
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
-    await act(async () => {
-      await saveButton.click()
-    })
+    fireEvent.click(saveButton)
 
     expect(mocked(emails).patchAccount).toHaveBeenCalledWith(user.username, [
       { op: 'test', path: '/name', value: 'Dave' },

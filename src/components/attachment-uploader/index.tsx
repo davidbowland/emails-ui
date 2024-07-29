@@ -27,8 +27,8 @@ export interface AttachmentUploaderProps {
 }
 
 const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): JSX.Element => {
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
-  const [uploadingFilename, setUploadingFilename] = useState<string | undefined>(undefined)
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
+  const [uploadingFilename, setUploadingFilename] = useState<string | undefined>()
 
   const inputRef = useRef<HTMLInputElement>(null)
 

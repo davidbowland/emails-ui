@@ -32,7 +32,7 @@ import {
   postSentEmail,
   putAccount,
 } from './emails'
-import { rest, server } from '@test/setup-server'
+import { http, HttpResponse, server } from '@test/setup-server'
 
 const baseUrl = process.env.GATSBY_EMAILS_API_BASE_URL
 jest.mock('@aws-amplify/analytics')
@@ -49,10 +49,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.delete(`${baseUrl}/accounts/:id`, async (req, res, ctx) => {
-            const { id } = req.params
+          http.delete(`${baseUrl}/accounts/:id`, async ({ params }) => {
+            const { id } = params
             const body = deleteEndpoint(id)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -69,10 +69,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id`, async (req, res, ctx) => {
-            const { id } = req.params
+          http.get(`${baseUrl}/accounts/:id`, async ({ params }) => {
+            const { id } = params
             const body = getEndpoint(id)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -89,10 +89,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.patch(`${baseUrl}/accounts/:id`, async (req, res, ctx) => {
-            const { id } = req.params
-            const body = patchEndpoint(id, await req.json())
-            return res(body ? ctx.json(body) : ctx.status(400))
+          http.patch(`${baseUrl}/accounts/:id`, async ({ params, request }) => {
+            const { id } = params
+            const body = patchEndpoint(id, await request.json())
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -109,10 +109,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.put(`${baseUrl}/accounts/:id`, async (req, res, ctx) => {
-            const { id } = req.params
-            const body = putEndpoint(id, await req.json())
-            return res(body ? ctx.json(body) : ctx.status(400))
+          http.put(`${baseUrl}/accounts/:id`, async ({ params, request }) => {
+            const { id } = params
+            const body = putEndpoint(id, await request.json())
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -131,10 +131,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.delete(`${baseUrl}/accounts/:id/emails/received/:emailId`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
+          http.delete(`${baseUrl}/accounts/:id/emails/received/:emailId`, async ({ params }) => {
+            const { emailId, id } = params
             const body = deleteEndpoint(id, emailId)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -151,10 +151,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id/emails/received`, async (req, res, ctx) => {
-            const { id } = req.params
+          http.get(`${baseUrl}/accounts/:id/emails/received`, async ({ params }) => {
+            const { id } = params
             const body = getEndpoint(id)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -171,14 +171,11 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(
-            `${baseUrl}/accounts/:id/emails/received/:emailId/attachments/:attachmentId`,
-            async (req, res, ctx) => {
-              const { attachmentId, emailId, id } = req.params
-              const body = getEndpoint(id, emailId, attachmentId)
-              return res(body ? ctx.body(body) : ctx.status(400))
-            }
-          )
+          http.get(`${baseUrl}/accounts/:id/emails/received/:emailId/attachments/:attachmentId`, async ({ params }) => {
+            const { attachmentId, emailId, id } = params
+            const body = getEndpoint(id, emailId, attachmentId)
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
+          })
         )
       })
 
@@ -194,10 +191,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id/emails/received/:emailId/contents`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
+          http.get(`${baseUrl}/accounts/:id/emails/received/:emailId/contents`, async ({ params }) => {
+            const { emailId, id } = params
             const body = getEndpoint(id, emailId)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -214,10 +211,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.patch(`${baseUrl}/accounts/:id/emails/received/:emailId`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
-            const body = patchEndpoint(id, emailId, await req.json())
-            return res(body ? ctx.json(body) : ctx.status(400))
+          http.patch(`${baseUrl}/accounts/:id/emails/received/:emailId`, async ({ params, request }) => {
+            const { emailId, id } = params
+            const body = patchEndpoint(id, emailId, await request.json())
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -236,10 +233,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.delete(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
+          http.delete(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async ({ params }) => {
+            const { emailId, id } = params
             const body = deleteEndpoint(id, emailId)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -256,10 +253,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id/emails/sent`, async (req, res, ctx) => {
-            const { id } = req.params
+          http.get(`${baseUrl}/accounts/:id/emails/sent`, async ({ params }) => {
+            const { id } = params
             const body = getEndpoint(id)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -276,10 +273,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/attachments/:attachmentId`, async (req, res, ctx) => {
-            const { attachmentId, emailId, id } = req.params
+          http.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/attachments/:attachmentId`, async ({ params }) => {
+            const { attachmentId, emailId, id } = params
             const body = getEndpoint(id, emailId, attachmentId)
-            return res(body ? ctx.body(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -296,10 +293,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/contents`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
+          http.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/contents`, async ({ params }) => {
+            const { emailId, id } = params
             const body = getEndpoint(id, emailId)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -316,10 +313,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.post(`${baseUrl}/accounts/:id/emails/sent/attachments`, async (req, res, ctx) => {
-            const { id } = req.params
+          http.post(`${baseUrl}/accounts/:id/emails/sent/attachments`, async ({ params }) => {
+            const { id } = params
             const body = postEndpoint(id)
-            return res(body ? ctx.json(body) : ctx.status(400))
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -336,10 +333,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.patch(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async (req, res, ctx) => {
-            const { emailId, id } = req.params
-            const body = patchEndpoint(id, emailId, await req.json())
-            return res(body ? ctx.json(body) : ctx.status(400))
+          http.patch(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async ({ params, request }) => {
+            const { emailId, id } = params
+            const body = patchEndpoint(id, emailId, await request.json())
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })
@@ -356,10 +353,10 @@ describe('Emails service', () => {
 
       beforeAll(() => {
         server.use(
-          rest.post(`${baseUrl}/accounts/:id/emails/sent`, async (req, res, ctx) => {
-            const { id } = req.params
-            const body = postEndpoint(id, await req.json())
-            return res(body ? ctx.json(body) : ctx.status(400))
+          http.post(`${baseUrl}/accounts/:id/emails/sent`, async ({ params, request }) => {
+            const { id } = params
+            const body = postEndpoint(id, await request.json())
+            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
           })
         )
       })

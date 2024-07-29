@@ -25,7 +25,7 @@ export interface AddressLineProps {
 }
 
 const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): JSX.Element => {
-  const [editing, setEditing] = useState<number | undefined>(undefined)
+  const [editing, setEditing] = useState<number | undefined>()
 
   const handleAddressAdd = (setAddresses: AddressSetter): void => {
     setEditing(addresses.length)

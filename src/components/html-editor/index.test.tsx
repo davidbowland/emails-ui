@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
+import { createEvent, fireEvent, render, screen } from '@testing-library/react'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
@@ -29,9 +29,7 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        formatButton.click()
-      })
+      fireEvent.click(formatButton)
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -50,9 +48,7 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        formatButton.click()
-      })
+      fireEvent.click(formatButton)
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -66,13 +62,9 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        formatButton.click()
-      })
+      fireEvent.click(formatButton)
       const colorInput = (await screen.findByTestId(testId)) as HTMLInputElement
-      act(() => {
-        fireEvent.change(colorInput, { target: { value: '#123456' } })
-      })
+      fireEvent.change(colorInput, { target: { value: '#123456' } })
 
       expect(execCommand).toHaveBeenCalledWith(command, false, '#123456')
     })
@@ -91,13 +83,9 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const formatButton = (await screen.findByLabelText(/Font size/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        formatButton.click()
-      })
+      fireEvent.click(formatButton)
       const sizeItem = (await screen.findByText(label)) as HTMLButtonElement
-      act(() => {
-        sizeItem.click()
-      })
+      fireEvent.click(sizeItem)
 
       expect(execCommand).toHaveBeenCalledWith('fontSize', false, value)
     })
@@ -111,9 +99,7 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        formatButton.click()
-      })
+      fireEvent.click(formatButton)
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -147,9 +133,7 @@ describe('HtmlEditor component', () => {
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
         selector: 'button',
       })) as HTMLButtonElement
-      act(() => {
-        createLinkButton.click()
-      })
+      fireEvent.click(createLinkButton)
 
       expect(await screen.findByText(/Add link to email/i)).toBeVisible()
     })
@@ -160,14 +144,10 @@ describe('HtmlEditor component', () => {
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
         selector: 'button',
       })) as HTMLButtonElement
-      act(() => {
-        createLinkButton.click()
-      })
+      fireEvent.click(createLinkButton)
       await screen.findByText(/Add link to email/i)
       const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        cancelButton.click()
-      })
+      fireEvent.click(cancelButton)
 
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
@@ -178,21 +158,13 @@ describe('HtmlEditor component', () => {
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
         selector: 'button',
       })) as HTMLButtonElement
-      act(() => {
-        createLinkButton.click()
-      })
+      fireEvent.click(createLinkButton)
       const linkTextInput = (await screen.findByLabelText(/Link text/i)) as HTMLInputElement
-      act(() => {
-        fireEvent.change(linkTextInput, { target: { value: 'Google' } })
-      })
+      fireEvent.change(linkTextInput, { target: { value: 'Google' } })
       const linkValueInput = (await screen.findByLabelText(/Link to add/i)) as HTMLInputElement
-      act(() => {
-        fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
-      })
+      fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
       const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        linkButton.click()
-      })
+      fireEvent.click(linkButton)
 
       expect(mocked(range).insertNode).toHaveBeenCalledTimes(1)
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
@@ -205,21 +177,13 @@ describe('HtmlEditor component', () => {
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
         selector: 'button',
       })) as HTMLButtonElement
-      act(() => {
-        createLinkButton.click()
-      })
+      fireEvent.click(createLinkButton)
       const linkTextInput = (await screen.findByLabelText(/Link text/i)) as HTMLInputElement
-      act(() => {
-        fireEvent.change(linkTextInput, { target: { value: 'Google' } })
-      })
+      fireEvent.change(linkTextInput, { target: { value: 'Google' } })
       const linkValueInput = (await screen.findByLabelText(/Link to add/i)) as HTMLInputElement
-      act(() => {
-        fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
-      })
+      fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
       const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
-      act(() => {
-        linkButton.click()
-      })
+      fireEvent.click(linkButton)
 
       expect(mocked(range).insertNode).not.toHaveBeenCalled()
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
@@ -249,9 +213,7 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
-      act(() => {
-        fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
-      })
+      fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
 
       expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
     })
@@ -261,9 +223,7 @@ describe('HtmlEditor component', () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
-      act(() => {
-        fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
-      })
+      fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
 
       expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
     })

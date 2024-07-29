@@ -49,15 +49,15 @@ const Compose = ({
   initialToAddresses,
   references,
 }: ComposeProps): JSX.Element => {
-  const [attachmentMessage, setAttachmentMessage] = useState<string | undefined>(undefined)
+  const [attachmentMessage, setAttachmentMessage] = useState<string | undefined>()
   const [attachments, setAttachments] = useState<EmailAttachment[]>(initialAttachments ?? [])
   const [bccAddresses, setBccAddresses] = useState<EmailAddress[]>([])
   const [ccAddresses, setCcAddresses] = useState<EmailAddress[]>(initialCcAddresses ?? [])
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
-  const [recipientMessage, setRecipientMessage] = useState<string | undefined>(undefined)
+  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [recipientMessage, setRecipientMessage] = useState<string | undefined>()
   const [subject, setSubject] = useState(initialSubject ?? '')
   const [toAddresses, setToAddresses] = useState<EmailAddress[]>(initialToAddresses ?? [])
 

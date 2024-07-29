@@ -53,7 +53,7 @@ export interface EmailViewerProps {
 const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: EmailViewerProps): JSX.Element => {
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showImages, setShowImages] = useState(false)
 
@@ -102,7 +102,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           initialCcAddresses={email.ccAddress?.value.filter(filterUsersEmail)}
           initialSubject={subject.replace(/^(RE:)?\s*/i, 'RE: ')}
           initialToAddresses={
-            email.toAddress ? [...replyTo, ...email.toAddress?.value].filter(filterUsersEmail) : replyTo
+            email.toAddress ? [...replyTo, ...email.toAddress.value].filter(filterUsersEmail) : replyTo
           }
           references={email.references}
         />

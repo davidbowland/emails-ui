@@ -72,8 +72,8 @@ export interface HtmlEditorProps {
 }
 
 const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => {
-  const [linkErrorMessage, setLinkErrorMessage] = useState<string | undefined>(undefined)
-  const [linkRange, setLinkRange] = useState<Range | undefined>(undefined)
+  const [linkErrorMessage, setLinkErrorMessage] = useState<string | undefined>()
+  const [linkRange, setLinkRange] = useState<Range | undefined>()
   const [linkTarget, setLinkTarget] = useState('')
   const [linkText, setLinkText] = useState('')
   const [sizeMenuEl, setSizeMenuEl] = useState<HTMLButtonElement | null>(null)

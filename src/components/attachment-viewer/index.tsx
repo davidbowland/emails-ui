@@ -21,8 +21,8 @@ export interface AttachmentViewerProps {
 }
 
 const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: AttachmentViewerProps): JSX.Element => {
-  const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>(undefined)
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
+  const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>()
+  const [errorMessage, setErrorMessage] = useState<string | undefined>()
 
   const anchorRef = useRef<HTMLAnchorElement>(null)
 

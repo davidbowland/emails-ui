@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { rest, server } from '@test/setup-server'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { http, HttpResponse, server } from '@test/setup-server'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
@@ -20,10 +20,11 @@ describe('Attachment viewer component', () => {
     mocked(emails).postSentAttachment.mockResolvedValue(postAttachmentResult)
     postEndpoint.mockReturnValue({})
 
+    console.error = jest.fn()
     server.use(
-      rest.post(postAttachmentResult.url, async (req, res, ctx) => {
+      http.post(postAttachmentResult.url, async () => {
         const body = postEndpoint()
-        return res(body ? ctx.body(body) : ctx.status(400))
+        return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
       })
     )
   })
@@ -32,9 +33,7 @@ describe('Attachment viewer component', () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const removeButton = (await screen.findAllByLabelText(/Remove attachment/i))[0] as HTMLButtonElement
-    act(() => {
-      removeButton.click()
-    })
+    fireEvent.click(removeButton)
 
     expect(setAttachments).toHaveBeenCalledWith([
       {
@@ -52,11 +51,7 @@ describe('Attachment viewer component', () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    await act(async () => {
-      await fireEvent.change(fileUpload, {
-        target: { files: [file] },
-      })
-    })
+    fireEvent.change(fileUpload, { target: { files: [file] } })
 
     expect(
       await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
@@ -68,16 +63,11 @@ describe('Attachment viewer component', () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    await act(async () => {
-      await fireEvent.change(fileUpload, {
-        target: { files: [file] },
-      })
-    })
+    fireEvent.change(fileUpload, { target: { files: [file] } })
     await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    act(() => {
-      closeSnackbarButton.click()
-    })
+    fireEvent.click(closeSnackbarButton)
+
     expect(
       screen.queryByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
     ).not.toBeInTheDocument()
@@ -87,13 +77,13 @@ describe('Attachment viewer component', () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    await act(async () => {
-      await fireEvent.change(fileUpload, {
-        target: { files: [file] },
-      })
+    fireEvent.change(fileUpload, {
+      target: { files: [file] },
     })
 
-    expect(postEndpoint).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(postEndpoint).toHaveBeenCalledTimes(1)
+    })
     expect(setAttachments).toHaveBeenCalledWith([
       ...attachments,
       {

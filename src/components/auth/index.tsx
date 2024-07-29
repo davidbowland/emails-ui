@@ -42,7 +42,7 @@ export interface AuthenticatedProps {
 }
 
 const Authenticated = ({ children, showContent = false }: AuthenticatedProps): JSX.Element => {
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>(undefined)
+  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
   const [navMenuOpen, setNavMenuOpen] = useState(false)
 
   const closeMenu = (): void => {

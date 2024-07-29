@@ -105,6 +105,9 @@ describe('Authenticated component', () => {
       )
       logInCallback()
 
+      await waitFor(() => {
+        expect(mocked(Authenticator)).toHaveBeenCalled()
+      })
       expect(mocked(Authenticator)).toHaveBeenCalledTimes(1)
       expect(await screen.findByText(/Dave/i)).toBeInTheDocument()
     })

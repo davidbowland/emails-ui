@@ -35,12 +35,6 @@ Manually run tests with:
 npm run test
 ```
 
-Snapshots can be updated with:
-
-```bash
-npm run test:update-snapshots
-```
-
 ### Prettier / Linter
 
 Both [Prettier](https://prettier.io/) and [ESLint](https://eslint.org/) are executed on commit. Manually prettify and lint code with:
@@ -108,7 +102,3 @@ npm run workflow
 - [actions/checkout](https://github.com/actions/checkout)
 
 - [ad-m/github-push-action](https://github.com/ad-m/github-push-action)
-
-### Deployment Documentation
-
-- [AWS SAM CLI](https://aws.amazon.com/serverless/sam/)

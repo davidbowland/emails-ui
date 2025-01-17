@@ -218,17 +218,20 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
   }
 
   if (showImages === false) {
-    DOMPurify.addHook('uponSanitizeElement', (node: Element | any, data: DOMPurify.SanitizeElementHookEvent): void => {
-      // Remove external CSS from style tags
-      if (data.tagName.toLowerCase() === 'style') {
-        for (const rule of node.sheet.cssRules) {
-          if (rule.style) {
-            removeExternalCss(rule.style)
+    DOMPurify.addHook(
+      'uponSanitizeElement',
+      (node: Element | any, data: DOMPurify.UponSanitizeElementHookEvent): void => {
+        // Remove external CSS from style tags
+        if (data.tagName.toLowerCase() === 'style') {
+          for (const rule of node.sheet.cssRules) {
+            if (rule.style) {
+              removeExternalCss(rule.style)
+            }
           }
+          node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
         }
-        node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
       }
-    })
+    )
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element | any): void => {
       // Remove any attributes that leak HTTP calls

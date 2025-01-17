@@ -136,8 +136,8 @@ describe('Email viewer component', () => {
       }
       mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
-        callback(styleNode as any, { tagName: 'a' } as any, {})
-        callback(styleNode as any, { tagName: 'style' } as any, {})
+        callback.call(DOMPurify, styleNode as any, { tagName: 'a' } as any, {})
+        callback.call(DOMPurify, styleNode as any, { tagName: 'style' } as any, {})
       })
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
@@ -156,7 +156,7 @@ describe('Email viewer component', () => {
       mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
       mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
-        callback(node as any, {} as any, {})
+        callback.call(DOMPurify, node as any, {} as any, {})
       })
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
@@ -173,7 +173,7 @@ describe('Email viewer component', () => {
       mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
       mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
-        callback(anchorNode as any, {} as any, {})
+        callback.call(DOMPurify, anchorNode as any, {} as any, {})
       })
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
@@ -188,7 +188,7 @@ describe('Email viewer component', () => {
       mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
       mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
-        callback(node as any, {} as any, {})
+        callback.call(DOMPurify, node as any, {} as any, {})
       })
       mocked(node).hasAttribute.mockReturnValueOnce(false)
       mocked(node).hasAttribute.mockReturnValueOnce(true)

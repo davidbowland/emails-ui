@@ -11,9 +11,7 @@ const Index = (): JSX.Element => {
       <Helmet>
         <title>Email | dbowland.com</title>
       </Helmet>
-      <Authenticated>
-        <>{typeof window !== 'undefined' && navigate('/inbox')}</>
-      </Authenticated>
+      <Authenticated>{(typeof window !== 'undefined' && navigate('/inbox')) || <></>}</Authenticated>
       <PrivacyLink />
     </main>
   )

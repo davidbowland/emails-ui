@@ -1,9 +1,9 @@
+import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
+import { http, HttpResponse, server } from '@test/setup-server'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { http, HttpResponse, server } from '@test/setup-server'
 import React from 'react'
 
-import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
 import AttachmentViewer from './index'
 
 jest.mock('aws-amplify')
@@ -22,7 +22,7 @@ describe('Attachment viewer component', () => {
       http.get('http://localhost/a/really/long/url', async () => {
         const body = getEndpoint()
         return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-      })
+      }),
     )
   })
 
@@ -33,7 +33,7 @@ describe('Attachment viewer component', () => {
         attachments={attachments}
         emailId={emailId}
         getAttachment={getAttachment}
-      />
+      />,
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
@@ -50,7 +50,7 @@ describe('Attachment viewer component', () => {
         attachments={attachments}
         emailId={emailId}
         getAttachment={getAttachment}
-      />
+      />,
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
@@ -67,7 +67,7 @@ describe('Attachment viewer component', () => {
         attachments={attachments}
         emailId={emailId}
         getAttachment={getAttachment}
-      />
+      />,
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement

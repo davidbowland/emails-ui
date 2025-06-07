@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom'
-import { mocked } from 'jest-mock'
-import React from 'react'
-import { render } from '@testing-library/react'
-
 import Authenticated from '@components/auth'
-import Forbidden from './403'
 import ServerErrorMessage from '@components/server-error-message'
 import Themed from '@components/themed'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
+import { mocked } from 'jest-mock'
+import React from 'react'
+
+import Forbidden from './403'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
@@ -30,7 +30,7 @@ describe('403 error page', () => {
     render(<Forbidden />)
     expect(mocked(ServerErrorMessage)).toHaveBeenCalledWith(
       expect.objectContaining({ title: expectedTitle }),
-      expect.anything()
+      expect.anything(),
     )
     expect(mocked(ServerErrorMessage)).toHaveBeenCalledTimes(1)
   })

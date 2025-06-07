@@ -1,10 +1,11 @@
-import { Helmet } from 'react-helmet'
-import Paper from '@mui/material/Paper'
-import React from 'react'
-
-import '@config/amplify'
 import Authenticated from '@components/auth'
 import PrivacyPolicy from '@components/privacy-policy'
+import React from 'react'
+import { Helmet } from 'react-helmet'
+
+import Paper from '@mui/material/Paper'
+
+import '@config/amplify'
 
 const PrivacyPage = (): JSX.Element => {
   return (

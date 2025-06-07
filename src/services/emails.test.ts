@@ -1,6 +1,3 @@
-import { Auth } from 'aws-amplify'
-import { CognitoUserSession } from 'amazon-cognito-identity-js'
-
 import {
   account,
   accountId,
@@ -14,6 +11,10 @@ import {
   outboundEmail,
   postAttachmentResult,
 } from '@test/__mocks__'
+import { http, HttpResponse, server } from '@test/setup-server'
+import { CognitoUserSession } from 'amazon-cognito-identity-js'
+import { Auth } from 'aws-amplify'
+
 import {
   deleteAccount,
   deleteReceivedEmail,
@@ -32,7 +33,6 @@ import {
   postSentEmail,
   putAccount,
 } from './emails'
-import { http, HttpResponse, server } from '@test/setup-server'
 
 const baseUrl = process.env.GATSBY_EMAILS_API_BASE_URL
 jest.mock('@aws-amplify/analytics')
@@ -53,11 +53,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = deleteEndpoint(id)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await deleteAccount(accountId)
         expect(deleteEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(account)
@@ -73,11 +73,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = getEndpoint(id)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await getAccount(accountId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(account)
@@ -93,11 +93,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = patchEndpoint(id, await request.json())
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await patchAccount(accountId, jsonPatchOperations)
         expect(patchEndpoint).toHaveBeenCalledWith(accountId, jsonPatchOperations)
         expect(result).toEqual(account)
@@ -113,11 +113,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = putEndpoint(id, await request.json())
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await putAccount(accountId, account)
         expect(putEndpoint).toHaveBeenCalledWith(accountId, account)
         expect(result).toEqual(account)
@@ -135,11 +135,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = deleteEndpoint(id, emailId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await deleteReceivedEmail(accountId, emailId)
         expect(deleteEndpoint).toHaveBeenCalledTimes(1)
         expect(result).toEqual(email)
@@ -155,11 +155,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = getEndpoint(id)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await getAllReceivedEmails(accountId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(emailBatch)
@@ -175,11 +175,11 @@ describe('Emails service', () => {
             const { attachmentId, emailId, id } = params
             const body = getEndpoint(id, emailId, attachmentId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect attachment returned', async () => {
+      it('should return the attachment URL', async () => {
         const result = await getReceivedAttachment(accountId, emailId, attachmentId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
         expect(result).toEqual(attachmentUrl)
@@ -195,11 +195,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = getEndpoint(id, emailId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the email contents', async () => {
         const result = await getReceivedEmailContents(accountId, emailId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
         expect(result).toEqual(emailContents)
@@ -215,11 +215,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = patchEndpoint(id, emailId, await request.json())
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await patchReceivedEmail(accountId, emailId, jsonPatchOperations)
         expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
         expect(result).toEqual(email)
@@ -237,11 +237,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = deleteEndpoint(id, emailId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await deleteSentEmail(accountId, emailId)
         expect(deleteEndpoint).toHaveBeenCalledTimes(1)
         expect(result).toEqual(email)
@@ -257,11 +257,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = getEndpoint(id)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await getAllSentEmails(accountId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(emailBatch)
@@ -277,11 +277,11 @@ describe('Emails service', () => {
             const { attachmentId, emailId, id } = params
             const body = getEndpoint(id, emailId, attachmentId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect attachment returned', async () => {
+      it('should return the attachment URL', async () => {
         const result = await getSentAttachment(accountId, emailId, attachmentId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
         expect(result).toEqual(attachmentUrl)
@@ -297,11 +297,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = getEndpoint(id, emailId)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the email contents', async () => {
         const result = await getSentEmailContents(accountId, emailId)
         expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
         expect(result).toEqual(emailContents)
@@ -317,11 +317,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = postEndpoint(id)
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await postSentAttachment(accountId)
         expect(postEndpoint).toHaveBeenCalledWith(accountId)
         expect(result).toEqual(postAttachmentResult)
@@ -337,11 +337,11 @@ describe('Emails service', () => {
             const { emailId, id } = params
             const body = patchEndpoint(id, emailId, await request.json())
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await patchSentEmail(accountId, emailId, jsonPatchOperations)
         expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
         expect(result).toEqual(email)
@@ -357,11 +357,11 @@ describe('Emails service', () => {
             const { id } = params
             const body = postEndpoint(id, await request.json())
             return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          })
+          }),
         )
       })
 
-      test('expect result from call returned', async () => {
+      it('should return the result from the API call', async () => {
         const result = await postSentEmail(accountId, outboundEmail)
         expect(postEndpoint).toHaveBeenCalledWith(accountId, outboundEmail)
         expect(result).toEqual(email)

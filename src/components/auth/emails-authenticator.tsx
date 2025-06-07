@@ -1,7 +1,9 @@
 import { Authenticator, defaultDarkModeOverride, ThemeProvider } from '@aws-amplify/ui-react'
-import { AmplifyUser } from '@types'
-import Grid from '@mui/material/Grid'
 import React from 'react'
+
+import Grid from '@mui/material/Grid'
+
+import { AmplifyUser } from '@types'
 
 export interface EmailsAuthenticatorProps {
   setLoggedInUser: (user: AmplifyUser | undefined) => void

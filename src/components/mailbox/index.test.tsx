@@ -1,11 +1,11 @@
+import EmailViewer from '@components/email-viewer'
+import { email, emailBatch, emailContents, emailId, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
-import { email, emailBatch, emailContents, emailId, user } from '@test/__mocks__'
-import EmailViewer from '@components/email-viewer'
 import Mailbox from './index'
 
 jest.mock('aws-amplify')
@@ -38,7 +38,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
@@ -53,7 +53,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
@@ -61,7 +61,7 @@ describe('Mailbox component', () => {
     fireEvent.click(closeSnackbarButton)
 
     expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
+      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
     ).not.toBeInTheDocument()
   })
 
@@ -74,7 +74,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     expect(await screen.findByText(/Error fetching emails. Please reload the page to try again./i)).toBeVisible()
@@ -88,7 +88,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     expect(await screen.findByText(/Hello, world of email/i)).toBeVisible()
@@ -103,7 +103,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     expect(await screen.findByText(/This mailbox is empty/i)).toBeVisible()
@@ -117,7 +117,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     await screen.findByText(/Select an email to view/i)
@@ -127,7 +127,7 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Email contents/i)).toBeVisible()
     expect(EmailViewer).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: user.username, email: emailContents, emailId }),
-      {}
+      {},
     )
     expect(patchEmail).toHaveBeenCalledWith(user.username, emailId, [{ op: 'replace', path: '/viewed', value: true }])
   })
@@ -141,7 +141,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     await screen.findByText(/Select an email to view/i)
@@ -163,7 +163,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     await screen.findByText(/Delete invoked/i)
@@ -181,7 +181,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
@@ -202,7 +202,7 @@ describe('Mailbox component', () => {
         getEmailAttachment={getEmailAttachment}
         getEmailContents={getEmailContents}
         patchEmail={patchEmail}
-      />
+      />,
     )
 
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {

@@ -1,7 +1,6 @@
-import React from 'react'
-
 import Authenticated from '@components/auth'
 import ServerErrorMessage from '@components/server-error-message'
+import React from 'react'
 
 const BadRequest = (): JSX.Element => {
   return (

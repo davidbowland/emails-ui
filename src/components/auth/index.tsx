@@ -1,16 +1,17 @@
 import '@aws-amplify/ui-react/styles.css'
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
-import React, { useEffect, useState } from 'react'
 import { Auth } from 'aws-amplify'
+import React, { useEffect, useState } from 'react'
+
+import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
 import Toolbar from '@mui/material/Toolbar'
 
-import { AmplifyUser } from '@types'
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
 import LoggedInBar from './logged-in-bar'
 import LoggedOutBar from './logged-out-bar'
+import { AmplifyUser } from '@types'
 
 const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)
 

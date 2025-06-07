@@ -1,6 +1,6 @@
+import { addresses } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { addresses } from '@test/__mocks__'
 import React from 'react'
 
 import AddressLine from './index'
@@ -10,14 +10,14 @@ jest.mock('aws-amplify')
 describe('Address line component', () => {
   const setAddresses = jest.fn()
 
-  test('expect addresses rendered with no edit capability', async () => {
+  it('should render addresses without edit capability when no setAddresses provided', async () => {
     render(<AddressLine addresses={addresses} label="To:" />)
     expect(await screen.findByText(/to:/i)).toBeVisible()
     expect(await screen.findByText(/a@domain.com/i)).toBeVisible()
     expect(screen.queryByLabelText(/Edit recipient/i)).not.toBeInTheDocument()
   })
 
-  test('expect ability to edit and save an address', async () => {
+  it('should allow editing and saving an address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
     const editButton = (
@@ -39,7 +39,7 @@ describe('Address line component', () => {
     ])
   })
 
-  test('expect ability to remove an address', async () => {
+  it('should allow removing an address', async () => {
     render(
       <AddressLine
         addresses={[
@@ -48,7 +48,7 @@ describe('Address line component', () => {
         ]}
         label="To:"
         setAddresses={setAddresses}
-      />
+      />,
     )
 
     const editButton = (
@@ -65,7 +65,7 @@ describe('Address line component', () => {
     expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: 'A' }])
   })
 
-  test('expect ability to add an address', async () => {
+  it('should allow adding a new address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
     const addButton = (await screen.findByLabelText(/Add recipient/i, { selector: 'button' })) as HTMLButtonElement

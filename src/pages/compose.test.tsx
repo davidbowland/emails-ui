@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom'
-import { mocked } from 'jest-mock'
-import React from 'react'
-import { render } from '@testing-library/react'
-
 import Authenticated from '@components/auth'
 import Compose from '@components/compose'
-import ComposePage from './compose'
 import PrivacyLink from '@components/privacy-link'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
+import { mocked } from 'jest-mock'
+import React from 'react'
+
+import ComposePage from './compose'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

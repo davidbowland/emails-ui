@@ -1,13 +1,13 @@
-import '@testing-library/jest-dom'
-import { mocked } from 'jest-mock'
-import React from 'react'
-import { render } from '@testing-library/react'
-
-import * as emails from '@services/emails'
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
-import OutboxPage from './outbox'
 import PrivacyLink from '@components/privacy-link'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
+import { mocked } from 'jest-mock'
+import React from 'react'
+
+import OutboxPage from './outbox'
+import * as emails from '@services/emails'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
@@ -36,7 +36,7 @@ describe('Outbox page', () => {
         getEmailContents: mocked(emails).getSentEmailContents,
         patchEmail: mocked(emails).patchSentEmail,
       },
-      {}
+      {},
     )
   })
 

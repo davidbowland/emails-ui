@@ -1,13 +1,13 @@
-import { createTheme, ThemeProvider } from '@mui/material/styles'
+import Disclaimer from '@components/disclaimer'
+import '@fontsource/roboto'
 import React, { useMemo } from 'react'
+
 import CssBaseline from '@mui/material/CssBaseline'
+import { createTheme, ThemeProvider } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
-import '@config/amplify'
-import Disclaimer from '@components/disclaimer'
-
 import '@assets/css/index.css'
-import '@fontsource/roboto'
+import '@config/amplify'
 
 export interface ThemedProps {
   children: JSX.Element | JSX.Element[]
@@ -26,7 +26,7 @@ const Themed = ({ children }: ThemedProps): JSX.Element => {
           mode: prefersDarkMode ? 'dark' : 'light',
         },
       }),
-    [prefersDarkMode]
+    [prefersDarkMode],
   )
 
   return (

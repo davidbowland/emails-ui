@@ -1,10 +1,10 @@
-import Grid from '@mui/material/Grid'
-import { Helmet } from 'react-helmet'
-import React from 'react'
-
 import Authenticated from '@components/auth'
 import Compose from '@components/compose'
 import PrivacyLink from '@components/privacy-link'
+import React from 'react'
+import { Helmet } from 'react-helmet'
+
+import Grid from '@mui/material/Grid'
 
 const ComposePage = (): JSX.Element => {
   return (

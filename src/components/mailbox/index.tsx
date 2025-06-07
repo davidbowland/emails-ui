@@ -1,8 +1,10 @@
+import EmailViewer from '@components/email-viewer'
+import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
-import Alert from '@mui/material/Alert'
+
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import { Auth } from 'aws-amplify'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -18,7 +20,6 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
-import EmailViewer from '@components/email-viewer'
 
 export interface MailboxProps {
   deleteEmail: (accountId: string, emailId: string) => Promise<Email>
@@ -155,7 +156,7 @@ const Mailbox = ({
     const selectedEmail = receivedEmails?.find((email) => email.id === selectedEmailId)
     if (selectedEmail?.data.viewed === false && selectedEmailId && loggedInUser?.username) {
       patchEmail(loggedInUser?.username, selectedEmailId, [{ op: 'replace', path: '/viewed', value: true }]).then(
-        refreshEmails
+        refreshEmails,
       )
     }
   }, [selectedEmailId])

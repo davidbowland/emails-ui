@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react'
-import Alert from '@mui/material/Alert'
 import axios from 'axios'
+import React, { useRef, useState } from 'react'
+
+import CloseIcon from '@mui/icons-material/Close'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
-import CloseIcon from '@mui/icons-material/Close'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import Snackbar from '@mui/material/Snackbar'
@@ -11,8 +12,8 @@ import { styled } from '@mui/material/styles'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import { EmailAttachment } from '@types'
 import { postSentAttachment } from '@services/emails'
+import { EmailAttachment } from '@types'
 
 const RoundedBox = styled(Box)(() => ({
   borderRadius: '15px',

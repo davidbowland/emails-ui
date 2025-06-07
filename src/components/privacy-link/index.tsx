@@ -1,5 +1,6 @@
 import { Link } from 'gatsby'
 import React from 'react'
+
 import Typography from '@mui/material/Typography'
 
 const PrivacyLink = (): JSX.Element => {

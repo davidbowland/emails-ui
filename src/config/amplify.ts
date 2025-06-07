@@ -1,5 +1,5 @@
-import { Amplify, Auth } from 'aws-amplify'
 import { Analytics } from '@aws-amplify/analytics'
+import { Amplify, Auth } from 'aws-amplify'
 
 const appClientId = process.env.GATSBY_COGNITO_APP_CLIENT_ID
 const userPoolId = process.env.GATSBY_COGNITO_USER_POOL_ID

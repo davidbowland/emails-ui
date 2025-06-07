@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { mocked, MockedObject } from 'jest-mock'
-import Cookies from 'universal-cookie'
 import React from 'react'
+import Cookies from 'universal-cookie'
 
 import Disclaimer from './index'
 
@@ -18,7 +18,7 @@ describe('Disclaimer component', () => {
         ({
           get: mockCookieGet,
           set: mockCookieSet,
-        } as unknown as MockedObject<Cookies>)
+        }) as unknown as MockedObject<Cookies>,
     )
   })
 

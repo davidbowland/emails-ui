@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react'
-import Alert from '@mui/material/Alert'
-import AttachmentIcon from '@mui/icons-material/Attachment'
 import axios from 'axios'
+import React, { useRef, useState } from 'react'
+
+import AttachmentIcon from '@mui/icons-material/Attachment'
+import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
@@ -30,7 +31,7 @@ const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: At
     target: HTMLAnchorElement,
     accountId: string,
     emailId: string,
-    attachmentId: string
+    attachmentId: string,
   ): Promise<void> => {
     setAttachmentDownloading(attachmentId)
     try {

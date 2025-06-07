@@ -11,7 +11,7 @@ module.exports = {
       React.createElement('a', {
         ...rest,
         href: to,
-      })
+      }),
   ),
   navigate: jest.fn(),
   StaticImage: jest.fn(),

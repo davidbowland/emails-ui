@@ -1,13 +1,13 @@
-import '@testing-library/jest-dom'
-import * as gatsby from 'gatsby'
 import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
+import { user } from '@test/__mocks__'
+import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
+import * as gatsby from 'gatsby'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
 import Authenticated from './index'
-import { user } from '@test/__mocks__'
 
 jest.mock('aws-amplify')
 jest.mock('gatsby')
@@ -42,12 +42,12 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       expect(mocked(ThemeProvider)).toHaveBeenCalledWith(
         expect.objectContaining({ colorMode: 'system' }),
-        expect.anything()
+        expect.anything(),
       )
     })
   })
@@ -61,7 +61,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated showContent={true}>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       expect(await screen.findByText(/Testing children/i)).toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       expect(await screen.findByText(/Email/i)).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       expect(mocked(Authenticator)).toHaveBeenCalledTimes(1)
@@ -101,7 +101,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
       logInCallback()
 
@@ -123,7 +123,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       expect(await screen.findByText(/Dave/i)).toBeInTheDocument()
@@ -133,7 +133,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -149,7 +149,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -176,7 +176,7 @@ describe('Authenticated component', () => {
       render(
         <Authenticated>
           <p>Testing children</p>
-        </Authenticated>
+        </Authenticated>,
       )
 
       const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -194,7 +194,7 @@ describe('Authenticated component', () => {
         render(
           <Authenticated>
             <p>Testing children</p>
-          </Authenticated>
+          </Authenticated>,
         )
 
         const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -217,7 +217,7 @@ describe('Authenticated component', () => {
         render(
           <Authenticated>
             <p>Testing children</p>
-          </Authenticated>
+          </Authenticated>,
         )
 
         const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -241,7 +241,7 @@ describe('Authenticated component', () => {
         render(
           <Authenticated>
             <p>Testing children</p>
-          </Authenticated>
+          </Authenticated>,
         )
 
         const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
@@ -264,7 +264,7 @@ describe('Authenticated component', () => {
         render(
           <Authenticated>
             <p>Testing children</p>
-          </Authenticated>
+          </Authenticated>,
         )
 
         const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {

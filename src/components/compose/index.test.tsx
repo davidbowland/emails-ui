@@ -1,16 +1,16 @@
+import AddressLine from '@components/address-line'
+import AttachmentUploader from '@components/attachment-uploader'
+import HtmlEditor from '@components/html-editor'
+import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
+import * as gatsby from 'gatsby'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
-import * as emails from '@services/emails'
-import * as gatsby from 'gatsby'
-import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
-import AddressLine from '@components/address-line'
-import AttachmentUploader from '@components/attachment-uploader'
 import Compose from './index'
-import HtmlEditor from '@components/html-editor'
+import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
 jest.mock('gatsby')
@@ -68,7 +68,7 @@ describe('Compose component', () => {
     fireEvent.click(closeSnackbarButton)
 
     expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
+      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
     ).not.toBeInTheDocument()
   })
 
@@ -127,7 +127,7 @@ describe('Compose component', () => {
           },
         ]}
         initialToAddresses={addresses}
-      />
+      />,
     )
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
@@ -145,7 +145,7 @@ describe('Compose component', () => {
         initialAttachments={attachments}
         initialToAddresses={addresses}
         references={references}
-      />
+      />,
     )
 
     const subjectInput = (await screen.findByLabelText(/Subject/i)) as HTMLInputElement
@@ -222,7 +222,7 @@ describe('Compose component', () => {
 
     expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(
       accountId,
-      expect.objectContaining({ subject: 'no subject' })
+      expect.objectContaining({ subject: 'no subject' }),
     )
   })
 
@@ -254,7 +254,7 @@ describe('Compose component', () => {
         ],
         label: 'To:',
       }),
-      {}
+      {},
     )
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
     expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
@@ -262,7 +262,7 @@ describe('Compose component', () => {
     await waitFor(() => {
       expect(mocked(AttachmentUploader)).toHaveBeenCalledWith(
         expect.objectContaining({ accountId, attachments: [] }),
-        {}
+        {},
       )
     })
   })

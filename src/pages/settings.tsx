@@ -1,10 +1,10 @@
-import Grid from '@mui/material/Grid'
-import { Helmet } from 'react-helmet'
-import React from 'react'
-
 import AccountSettings from '@components/account-settings'
 import Authenticated from '@components/auth'
 import PrivacyLink from '@components/privacy-link'
+import React from 'react'
+import { Helmet } from 'react-helmet'
+
+import Grid from '@mui/material/Grid'
 
 const SettingsPage = (): JSX.Element => {
   return (

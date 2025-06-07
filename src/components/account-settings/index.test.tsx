@@ -1,13 +1,13 @@
+import AddressLine from '@components/address-line'
+import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
-import * as emails from '@services/emails'
-import { account, user } from '@test/__mocks__'
 import AccountSettings from './index'
-import AddressLine from '@components/address-line'
+import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
@@ -43,7 +43,7 @@ describe('AccountSettings component', () => {
     fireEvent.click(closeSnackbarButton)
 
     expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i)
+      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
     ).not.toBeInTheDocument()
   })
 
@@ -52,7 +52,7 @@ describe('AccountSettings component', () => {
     render(<AccountSettings />)
 
     expect(
-      await screen.findByText(/Error fetching account settings. Please reload the page to try again./i)
+      await screen.findByText(/Error fetching account settings. Please reload the page to try again./i),
     ).toBeVisible()
   })
 
@@ -66,7 +66,7 @@ describe('AccountSettings component', () => {
     fireEvent.click(saveButton)
 
     expect(
-      await screen.findByText(/Error saving account settings. Please refresh the page and try again./i)
+      await screen.findByText(/Error saving account settings. Please refresh the page and try again./i),
     ).toBeVisible()
   })
 

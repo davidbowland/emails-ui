@@ -1,33 +1,34 @@
+import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
+import Compose from '@components/compose'
+import DOMPurify from 'dompurify'
 import React, { useState } from 'react'
+import ReactDOMServer from 'react-dom/server'
+
+import DeleteIcon from '@mui/icons-material/Delete'
+import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
+import HideImageIcon from '@mui/icons-material/HideImage'
+import ImageIcon from '@mui/icons-material/Image'
+import ReplyIcon from '@mui/icons-material/Reply'
+import ReplyAllIcon from '@mui/icons-material/ReplyAll'
 import Alert from '@mui/material/Alert'
 import Backdrop from '@mui/material/Backdrop'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
-import DeleteIcon from '@mui/icons-material/Delete'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
-import DOMPurify from 'dompurify'
-import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
 import Grid from '@mui/material/Grid'
-import HideImageIcon from '@mui/icons-material/HideImage'
 import IconButton from '@mui/material/IconButton'
-import ImageIcon from '@mui/icons-material/Image'
-import ReactDOMServer from 'react-dom/server'
-import ReplyAllIcon from '@mui/icons-material/ReplyAll'
-import ReplyIcon from '@mui/icons-material/Reply'
 import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import { EmailAddress, EmailContents, SignedUrl } from '@types'
-import AddressLine from '@components/address-line'
-import AttachmentViewer from '@components/attachment-viewer'
-import Compose from '@components/compose'
 
 const DOMAIN = process.env.GATSBY_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
@@ -201,7 +202,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           dangerouslySetInnerHTML={{ __html: html }}
           style={{ borderLeft: '1px solid rgb(204,204,204)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
         ></blockquote>
-      </div>
+      </div>,
     )
   }
 
@@ -230,7 +231,7 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           }
           node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
         }
-      }
+      },
     )
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element | any): void => {

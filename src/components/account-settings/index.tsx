@@ -1,21 +1,22 @@
-import React, { useEffect, useState } from 'react'
-import Alert from '@mui/material/Alert'
+import AddressLine from '@components/address-line'
 import { Auth } from 'aws-amplify'
+import jsonpatch from 'fast-json-patch'
+import React, { useEffect, useState } from 'react'
+
+import SaveIcon from '@mui/icons-material/Save'
+import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
-import jsonpatch from 'fast-json-patch'
-import SaveIcon from '@mui/icons-material/Save'
 import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { Account, AmplifyUser, EmailAddress } from '@types'
 import { getAccount, patchAccount } from '@services/emails'
-import AddressLine from '@components/address-line'
+import { Account, AmplifyUser, EmailAddress } from '@types'
 
 const AccountSettings = (): JSX.Element => {
   const [account, setAccount] = useState<Account | undefined>()

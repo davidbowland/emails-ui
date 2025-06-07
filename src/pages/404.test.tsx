@@ -1,12 +1,12 @@
-import '@testing-library/jest-dom'
-import { mocked } from 'jest-mock'
-import React from 'react'
-import { render } from '@testing-library/react'
-
 import Authenticated from '@components/auth'
-import NotFound from './404'
 import ServerErrorMessage from '@components/server-error-message'
 import Themed from '@components/themed'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
+import { mocked } from 'jest-mock'
+import React from 'react'
+
+import NotFound from './404'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
@@ -38,7 +38,7 @@ describe('404 error page', () => {
     render(<NotFound />)
     expect(mocked(ServerErrorMessage)).toHaveBeenCalledWith(
       expect.objectContaining({ title: expectedTitle }),
-      expect.anything()
+      expect.anything(),
     )
     expect(mocked(ServerErrorMessage)).toHaveBeenCalledTimes(1)
   })

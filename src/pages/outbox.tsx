@@ -1,6 +1,10 @@
-import Grid from '@mui/material/Grid'
-import { Helmet } from 'react-helmet'
+import Authenticated from '@components/auth'
+import Mailbox from '@components/mailbox'
+import PrivacyLink from '@components/privacy-link'
 import React from 'react'
+import { Helmet } from 'react-helmet'
+
+import Grid from '@mui/material/Grid'
 
 import {
   deleteSentEmail,
@@ -9,9 +13,6 @@ import {
   getSentEmailContents,
   patchSentEmail,
 } from '@services/emails'
-import Authenticated from '@components/auth'
-import Mailbox from '@components/mailbox'
-import PrivacyLink from '@components/privacy-link'
 
 const OutboxPage = (): JSX.Element => {
   return (

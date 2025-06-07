@@ -1,15 +1,15 @@
+import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
+import Compose from '@components/compose'
+import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import DOMPurify from 'dompurify'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
-import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
-import AddressLine from '@components/address-line'
-import AttachmentViewer from '@components/attachment-viewer'
-import Compose from '@components/compose'
-import { EmailContents } from '@types'
 import EmailViewer from './index'
+import { EmailContents } from '@types'
 
 jest.mock('aws-amplify')
 jest.mock('dompurify')
@@ -48,7 +48,7 @@ describe('Email viewer component', () => {
   describe('general', () => {
     test('expect address lines shown', async () => {
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(AddressLine).toHaveBeenCalledWith(
@@ -56,28 +56,28 @@ describe('Email viewer component', () => {
           addresses: emailContents.toAddress?.value,
           label: 'To:',
         },
-        {}
+        {},
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.ccAddress?.value,
           label: 'CC:',
         },
-        {}
+        {},
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.bccAddress?.value,
           label: 'BCC:',
         },
-        {}
+        {},
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.fromAddress.value,
           label: 'From:',
         },
-        {}
+        {},
       )
     })
 
@@ -87,7 +87,7 @@ describe('Email viewer component', () => {
         toAddress: undefined,
       } as unknown as EmailContents
       render(
-        <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, {})
@@ -99,7 +99,7 @@ describe('Email viewer component', () => {
         toAddress: undefined,
       } as unknown as EmailContents
       render(
-        <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(AttachmentViewer).toHaveBeenCalledWith(expect.objectContaining({ accountId, attachments, emailId }), {})
@@ -109,7 +109,7 @@ describe('Email viewer component', () => {
   describe('DOMPurify sanitizer', () => {
     test('expect email viewer shows html', async () => {
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(await screen.findByText(/7:47/i)).toBeVisible()
@@ -140,7 +140,7 @@ describe('Email viewer component', () => {
         callback.call(DOMPurify, styleNode as any, { tagName: 'style' } as any, {})
       })
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
@@ -159,7 +159,7 @@ describe('Email viewer component', () => {
         callback.call(DOMPurify, node as any, {} as any, {})
       })
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
@@ -176,7 +176,7 @@ describe('Email viewer component', () => {
         callback.call(DOMPurify, anchorNode as any, {} as any, {})
       })
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
@@ -193,7 +193,7 @@ describe('Email viewer component', () => {
       mocked(node).hasAttribute.mockReturnValueOnce(false)
       mocked(node).hasAttribute.mockReturnValueOnce(true)
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
@@ -202,7 +202,7 @@ describe('Email viewer component', () => {
 
     test('expect only afterSanitizeAttributes hook when images shown', async () => {
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       hookMock.mockClear()
@@ -214,7 +214,7 @@ describe('Email viewer component', () => {
 
     test('expect uponSanitizeElement, afterSanitizeAttributes, and another afterSanitizeAttributes hook when no images shown', async () => {
       render(
-        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
@@ -238,7 +238,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
@@ -251,7 +251,7 @@ describe('Email viewer component', () => {
           inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
-        {}
+        {},
       )
     })
 
@@ -263,7 +263,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
@@ -283,7 +283,7 @@ describe('Email viewer component', () => {
           ],
           inReplyTo: emailContents.id,
         }),
-        {}
+        {},
       )
     })
 
@@ -322,7 +322,7 @@ describe('Email viewer component', () => {
           email={contentsMissingFields}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
@@ -334,7 +334,7 @@ describe('Email viewer component', () => {
           initialToAddresses: [{ address: 'another@domain.com', name: '' }],
           inReplyTo: emailContents.id,
         }),
-        {}
+        {},
       )
     })
 
@@ -346,7 +346,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const forwardIcon = (await screen.findByLabelText(/Forward/i, { selector: 'button' })) as HTMLButtonElement
@@ -358,7 +358,7 @@ describe('Email viewer component', () => {
           inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
-        {}
+        {},
       )
     })
 
@@ -374,7 +374,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
@@ -393,7 +393,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
@@ -410,7 +410,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
@@ -430,7 +430,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
@@ -451,7 +451,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
@@ -471,7 +471,7 @@ describe('Email viewer component', () => {
           email={emailContents}
           emailId={emailId}
           getAttachment={getAttachment}
-        />
+        />,
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement

@@ -1,5 +1,6 @@
 import { API } from 'aws-amplify'
 
+import { apiName } from '@config/amplify'
 import {
   Account,
   Email,
@@ -10,7 +11,6 @@ import {
   PostSignedUrl,
   SignedUrl,
 } from '@types'
-import { apiName } from '@config/amplify'
 
 /* Accounts */
 
@@ -38,22 +38,22 @@ export const getReceivedAttachment = (accountId: string, emailId: string, attach
   API.get(
     apiName,
     `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(
-      emailId
+      emailId,
     )}/attachments/${encodeURIComponent(attachmentId)}`,
-    {}
+    {},
   )
 
 export const getReceivedEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>
   API.get(
     apiName,
     `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}/contents`,
-    {}
+    {},
   )
 
 export const patchReceivedEmail = (
   accountId: string,
   emailId: string,
-  patchOperations: PatchOperation[]
+  patchOperations: PatchOperation[],
 ): Promise<Email> =>
   API.patch(apiName, `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}`, {
     body: patchOperations,
@@ -71,9 +71,9 @@ export const getSentAttachment = (accountId: string, emailId: string, attachment
   API.get(
     apiName,
     `/accounts/${encodeURIComponent(accountId)}/emails/sent/${encodeURIComponent(
-      emailId
+      emailId,
     )}/attachments/${encodeURIComponent(attachmentId)}`,
-    {}
+    {},
   )
 
 export const getSentEmailContents = (accountId: string, emailId: string): Promise<EmailContents> =>

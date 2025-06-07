@@ -1,12 +1,12 @@
+import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'
+import { http, HttpResponse, server } from '@test/setup-server'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { http, HttpResponse, server } from '@test/setup-server'
 import { mocked } from 'jest-mock'
 import React from 'react'
 
-import * as emails from '@services/emails'
-import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'
 import AttachmentUploader from './index'
+import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
 jest.mock('@services/emails')
@@ -25,7 +25,7 @@ describe('Attachment viewer component', () => {
       http.post(postAttachmentResult.url, async () => {
         const body = postEndpoint()
         return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-      })
+      }),
     )
   })
 
@@ -54,7 +54,7 @@ describe('Attachment viewer component', () => {
     fireEvent.change(fileUpload, { target: { files: [file] } })
 
     expect(
-      await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
+      await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
     ).toBeVisible()
   })
 
@@ -69,7 +69,7 @@ describe('Attachment viewer component', () => {
     fireEvent.click(closeSnackbarButton)
 
     expect(
-      screen.queryByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
+      screen.queryByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
     ).not.toBeInTheDocument()
   })
 

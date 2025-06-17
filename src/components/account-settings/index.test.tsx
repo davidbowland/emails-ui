@@ -3,7 +3,6 @@ import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import AccountSettings from './index'
@@ -15,10 +14,10 @@ jest.mock('@services/emails')
 
 describe('AccountSettings component', () => {
   beforeAll(() => {
-    mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
-    mocked(AddressLine).mockReturnValue(<>AddressLine</>)
-    mocked(emails).getAccount.mockResolvedValue(account)
-    mocked(emails).patchAccount.mockResolvedValue(account)
+    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    jest.mocked(emails).getAccount.mockResolvedValue(account)
+    jest.mocked(emails).patchAccount.mockResolvedValue(account)
 
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
@@ -28,14 +27,14 @@ describe('AccountSettings component', () => {
   })
 
   test('expect error message when user not logged in', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
   })
 
   test('expect closing snackbar removes error', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
@@ -48,7 +47,7 @@ describe('AccountSettings component', () => {
   })
 
   test('expect error message when getAccount rejects', async () => {
-    mocked(emails).getAccount.mockRejectedValueOnce(undefined)
+    jest.mocked(emails).getAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     expect(
@@ -57,7 +56,7 @@ describe('AccountSettings component', () => {
   })
 
   test('expect error message when patchAccount rejects', async () => {
-    mocked(emails).patchAccount.mockRejectedValueOnce(undefined)
+    jest.mocked(emails).patchAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
@@ -76,7 +75,7 @@ describe('AccountSettings component', () => {
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(saveButton)
 
-    expect(mocked(emails).patchAccount).not.toHaveBeenCalled()
+    expect(emails.patchAccount).not.toHaveBeenCalled()
   })
 
   test('expect patch instructions passed to patchAccount', async () => {
@@ -87,7 +86,7 @@ describe('AccountSettings component', () => {
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(saveButton)
 
-    expect(mocked(emails).patchAccount).toHaveBeenCalledWith(user.username, [
+    expect(emails.patchAccount).toHaveBeenCalledWith(user.username, [
       { op: 'test', path: '/name', value: 'Dave' },
       { op: 'replace', path: '/name', value: 'George' },
     ])

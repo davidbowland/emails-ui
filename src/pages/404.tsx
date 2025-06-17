@@ -1,5 +1,6 @@
 import Authenticated from '@components/auth'
 import ServerErrorMessage from '@components/server-error-message'
+import { HeadFC } from 'gatsby'
 import React from 'react'
 
 const NotFound = (): JSX.Element => {
@@ -14,5 +15,7 @@ const NotFound = (): JSX.Element => {
     </Authenticated>
   )
 }
+
+export const Head: HeadFC = () => <title>404: Not Found -- dbowland.com</title>
 
 export default NotFound

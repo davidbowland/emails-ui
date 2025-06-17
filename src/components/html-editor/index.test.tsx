@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom'
 import { createEvent, fireEvent, render, screen } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import HtmlEditor from './index'
@@ -117,9 +116,9 @@ describe('HtmlEditor component', () => {
     }
 
     beforeAll(() => {
-      mocked(getSelection).mockReturnValue(selection)
-      mocked(selection).getRangeAt.mockReturnValue(range)
-      mocked(range).toString.mockReturnValue('range text')
+      jest.mocked(getSelection).mockReturnValue(selection)
+      jest.mocked(selection).getRangeAt.mockReturnValue(range)
+      jest.mocked(range).toString.mockReturnValue('range text')
 
       Object.defineProperty(window, 'getSelection', {
         configurable: true,
@@ -166,7 +165,7 @@ describe('HtmlEditor component', () => {
       const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
       fireEvent.click(linkButton)
 
-      expect(mocked(range).insertNode).toHaveBeenCalledTimes(1)
+      expect(range.insertNode).toHaveBeenCalledTimes(1)
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
 
@@ -185,7 +184,7 @@ describe('HtmlEditor component', () => {
       const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
       fireEvent.click(linkButton)
 
-      expect(mocked(range).insertNode).not.toHaveBeenCalled()
+      expect(range.insertNode).not.toHaveBeenCalled()
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
   })
@@ -199,7 +198,7 @@ describe('HtmlEditor component', () => {
     }
 
     beforeAll(() => {
-      mocked(pasteEvent).clipboardData.getData.mockReturnValue('pasted text')
+      jest.mocked(pasteEvent).clipboardData.getData.mockReturnValue('pasted text')
     })
 
     test('expect initialBody sets message body', async () => {
@@ -215,17 +214,17 @@ describe('HtmlEditor component', () => {
       const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
       fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
 
-      expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
+      expect(pasteEvent.preventDefault).not.toHaveBeenCalled()
     })
 
     test('expect pasting works with plain text', async () => {
-      mocked(pasteEvent).clipboardData.getData.mockReturnValueOnce('')
+      jest.mocked(pasteEvent).clipboardData.getData.mockReturnValueOnce('')
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
       fireEvent(inputDiv, createEvent.paste(inputDiv, pasteEvent))
 
-      expect(mocked(pasteEvent).preventDefault).not.toHaveBeenCalled()
+      expect(pasteEvent.preventDefault).not.toHaveBeenCalled()
     })
   })
 })

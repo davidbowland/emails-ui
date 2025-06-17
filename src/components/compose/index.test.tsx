@@ -6,7 +6,6 @@ import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Auth } from 'aws-amplify'
 import * as gatsby from 'gatsby'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import Compose from './index'
@@ -29,13 +28,13 @@ describe('Compose component', () => {
   }
 
   beforeAll(() => {
-    mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
-    mocked(AddressLine).mockReturnValue(<>AddressLine</>)
-    mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
-    mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
-    mocked(emails).postSentEmail.mockResolvedValue(email)
-    mocked(getSelection).mockReturnValue(selection)
-    mocked(selection).toString.mockReturnValue('textContent')
+    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    jest.mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
+    jest.mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
+    jest.mocked(emails).postSentEmail.mockResolvedValue(email)
+    jest.mocked(getSelection).mockReturnValue(selection)
+    jest.mocked(selection).toString.mockReturnValue('textContent')
 
     console.error = jest.fn()
     Object.defineProperty(window, 'getSelection', {
@@ -53,14 +52,14 @@ describe('Compose component', () => {
   })
 
   test('expect error message when user not logged in', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<Compose />)
 
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
   })
 
   test('expect closing snackbar removes error', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<Compose />)
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
@@ -101,11 +100,11 @@ describe('Compose component', () => {
     fireEvent.click(sendButton)
 
     expect(await screen.findByText(/Please enter recipients./i)).toBeVisible()
-    expect(mocked(emails).postSentEmail).not.toHaveBeenCalled()
+    expect(emails.postSentEmail).not.toHaveBeenCalled()
   })
 
   test('expect error message when postSentEmail rejects', async () => {
-    mocked(emails).postSentEmail.mockRejectedValueOnce(undefined)
+    jest.mocked(emails).postSentEmail.mockRejectedValueOnce(undefined)
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
@@ -154,9 +153,9 @@ describe('Compose component', () => {
     fireEvent.click(sendButton)
 
     await waitFor(() => {
-      expect(mocked(gatsby).navigate).toHaveBeenCalled()
+      expect(gatsby.navigate).toHaveBeenCalled()
     })
-    expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, {
+    expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, {
       attachments: [
         {
           cid: '18453696e0bac7e24cd1',
@@ -211,7 +210,7 @@ describe('Compose component', () => {
         },
       ],
     })
-    expect(mocked(gatsby).navigate).toHaveBeenCalledWith('/outbox')
+    expect(gatsby.navigate).toHaveBeenCalledWith('/outbox')
   })
 
   test('expect postSentEmail called with no subject', async () => {
@@ -220,27 +219,24 @@ describe('Compose component', () => {
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(sendButton)
 
-    expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(
-      accountId,
-      expect.objectContaining({ subject: 'no subject' }),
-    )
+    expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ subject: 'no subject' }))
   })
 
   test('expect postSentEmail called with textContent when no selection', async () => {
-    mocked(getSelection).mockReturnValueOnce(undefined)
+    jest.mocked(getSelection).mockReturnValueOnce(undefined)
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(sendButton)
 
-    expect(mocked(emails).postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ text: '' }))
+    expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ text: '' }))
   })
 
   test('expect components rendered', async () => {
     const body = '<p>Hello, world!</p>'
     render(<Compose initialBody={body} initialToAddresses={addresses} />)
 
-    expect(mocked(AddressLine)).toHaveBeenCalledWith(
+    expect(AddressLine).toHaveBeenCalledWith(
       expect.objectContaining({
         addresses: [
           {
@@ -256,14 +252,11 @@ describe('Compose component', () => {
       }),
       {},
     )
-    expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
-    expect(mocked(AddressLine)).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
-    expect(mocked(HtmlEditor)).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), {})
+    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
+    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
+    expect(HtmlEditor).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), {})
     await waitFor(() => {
-      expect(mocked(AttachmentUploader)).toHaveBeenCalledWith(
-        expect.objectContaining({ accountId, attachments: [] }),
-        {},
-      )
+      expect(AttachmentUploader).toHaveBeenCalledWith(expect.objectContaining({ accountId, attachments: [] }), {})
     })
   })
 })

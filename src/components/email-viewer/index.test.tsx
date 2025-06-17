@@ -3,9 +3,9 @@ import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
 import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import DOMPurify from 'dompurify'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import EmailViewer from './index'
@@ -36,17 +36,17 @@ describe('Email viewer component', () => {
   const hookMock = jest.fn()
 
   beforeAll(() => {
-    mocked(DOMPurify).addHook.mockImplementation((hook: string) => hookMock(hook))
-    mocked(DOMPurify).sanitize.mockImplementation((source: string | Node) => source as any)
-    mocked(AddressLine).mockReturnValue(<>AddressLine</>)
-    mocked(AttachmentViewer).mockReturnValue(<>AttachmentViewer</>)
-    mocked(Compose).mockReturnValue(<>Compose</>)
+    jest.mocked(DOMPurify).addHook.mockImplementation((hook: string) => hookMock(hook))
+    jest.mocked(DOMPurify).sanitize.mockImplementation((source: string | Node) => source as any)
+    jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    jest.mocked(AttachmentViewer).mockReturnValue(<>AttachmentViewer</>)
+    jest.mocked(Compose).mockReturnValue(<>Compose</>)
     getAttachment.mockResolvedValue(attachmentUrl)
     console.error = jest.fn()
   })
 
   describe('general', () => {
-    test('expect address lines shown', async () => {
+    it('should display all address lines', async () => {
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
@@ -81,7 +81,7 @@ describe('Email viewer component', () => {
       )
     })
 
-    test('expect to line shown when no to addresses', async () => {
+    it('should display empty To line when no recipients', async () => {
       const emailNoToAddress = {
         ...emailContents,
         toAddress: undefined,
@@ -93,7 +93,7 @@ describe('Email viewer component', () => {
       expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, {})
     })
 
-    test('expect attachments shown', async () => {
+    it('should display attachments when present', async () => {
       const emailNoToAddress = {
         ...emailContents,
         toAddress: undefined,
@@ -107,7 +107,7 @@ describe('Email viewer component', () => {
   })
 
   describe('DOMPurify sanitizer', () => {
-    test('expect email viewer shows html', async () => {
+    it('should display HTML content when available', async () => {
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
@@ -115,7 +115,7 @@ describe('Email viewer component', () => {
       expect(await screen.findByText(/7:47/i)).toBeVisible()
     })
 
-    test('expect email viewer shows text when no html', async () => {
+    it('should display text content when HTML is not available', async () => {
       const emailNoHtml = { ...emailContents, attachments: undefined, bodyHtml: undefined } as unknown as EmailContents
       render(<EmailViewer accountId={accountId} email={emailNoHtml} emailId={emailId} getAttachment={getAttachment} />)
 
@@ -124,7 +124,7 @@ describe('Email viewer component', () => {
   })
 
   describe('DOMPurify hooks', () => {
-    test('expect style sheet sanitizied', async () => {
+    it('should sanitize style sheets', async () => {
       const styleNode = {
         innerText: '',
         sheet: {
@@ -134,7 +134,7 @@ describe('Email viewer component', () => {
           ],
         },
       }
-      mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
         callback.call(DOMPurify, styleNode as any, { tagName: 'a' } as any, {})
         callback.call(DOMPurify, styleNode as any, { tagName: 'style' } as any, {})
@@ -148,13 +148,13 @@ describe('Email viewer component', () => {
       expect(styleNode.innerText).toEqual(' a { color: blue; } li { color: red; }')
     })
 
-    test('expect HTTP leak attributes removed', async () => {
-      mocked(node).getAttribute.mockReturnValueOnce('data:image/iytfvbuytgh')
-      mocked(node).getAttribute.mockReturnValueOnce('https://dbowland.com/jest-email-viewer-http-leaks')
-      mocked(node).getAttribute.mockReturnValueOnce('data:image/oiuyfjkmnbg')
-      mocked(node).getAttribute.mockReturnValueOnce('')
-      mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
-      mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
+    it('should remove HTTP leak attributes', async () => {
+      jest.mocked(node).getAttribute.mockReturnValueOnce('data:image/iytfvbuytgh')
+      jest.mocked(node).getAttribute.mockReturnValueOnce('https://dbowland.com/jest-email-viewer-http-leaks')
+      jest.mocked(node).getAttribute.mockReturnValueOnce('data:image/oiuyfjkmnbg')
+      jest.mocked(node).getAttribute.mockReturnValueOnce('')
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
         callback.call(DOMPurify, node as any, {} as any, {})
       })
@@ -167,11 +167,11 @@ describe('Email viewer component', () => {
       expect(node.removeAttribute).toHaveBeenCalledWith('src')
     })
 
-    test('expect target added to anchor', async () => {
+    it('should add target="_blank" to anchor elements', async () => {
       const anchorNode = { ...node, target: 'self' }
-      mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
-      mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
-      mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
         callback.call(DOMPurify, anchorNode as any, {} as any, {})
       })
@@ -183,15 +183,15 @@ describe('Email viewer component', () => {
       expect(node.setAttribute).toHaveBeenCalledWith('target', '_blank')
     })
 
-    test('expect target added to href', async () => {
-      mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
-      mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
-      mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
+    it('should add xlink:show="new" to elements with href attributes', async () => {
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce(() => undefined)
+      jest.mocked(DOMPurify).addHook.mockImplementationOnce((hook, callback) => {
         hookMock(hook)
         callback.call(DOMPurify, node as any, {} as any, {})
       })
-      mocked(node).hasAttribute.mockReturnValueOnce(false)
-      mocked(node).hasAttribute.mockReturnValueOnce(true)
+      jest.mocked(node).hasAttribute.mockReturnValueOnce(false)
+      jest.mocked(node).hasAttribute.mockReturnValueOnce(true)
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
@@ -200,28 +200,38 @@ describe('Email viewer component', () => {
       expect(node.setAttribute).toHaveBeenCalledWith('xlink:show', 'new')
     })
 
-    test('expect only afterSanitizeAttributes hook when images shown', async () => {
+    it('should only use afterSanitizeAttributes hook when images are shown', async () => {
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       hookMock.mockClear()
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
-      fireEvent.click(showImagesButton)
+
+      await act(async () => {
+        await userEvent.click(showImagesButton)
+      })
 
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
     })
 
-    test('expect uponSanitizeElement, afterSanitizeAttributes, and another afterSanitizeAttributes hook when no images shown', async () => {
+    it('should use multiple hooks when hiding images', async () => {
       render(
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
-      fireEvent.click(showImagesButton)
+
+      await act(async () => {
+        await userEvent.click(showImagesButton)
+      })
+
       hookMock.mockClear()
       const hideImagesButton = (await screen.findByText(/Hide images/i)) as HTMLButtonElement
-      fireEvent.click(hideImagesButton)
+
+      await act(async () => {
+        await userEvent.click(hideImagesButton)
+      })
 
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
@@ -230,7 +240,7 @@ describe('Email viewer component', () => {
   })
 
   describe('compose', () => {
-    test('expect Compose invoked for reply', async () => {
+    it('should invoke Compose component when replying to an email', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -242,9 +252,12 @@ describe('Email viewer component', () => {
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(replyIcon)
 
-      expect(mocked(Compose)).toHaveBeenCalledWith(
+      await act(async () => {
+        await userEvent.click(replyIcon)
+      })
+
+      expect(Compose).toHaveBeenCalledWith(
         expect.objectContaining({
           initialSubject: 'RE: Hello, world',
           initialToAddresses: [{ address: 'reply@domain.com', name: '' }],
@@ -255,7 +268,7 @@ describe('Email viewer component', () => {
       )
     })
 
-    test('expect Compose invoked for reply all', async () => {
+    it('should invoke Compose component when replying to all recipients', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -267,9 +280,12 @@ describe('Email viewer component', () => {
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(replyAllIcon)
 
-      expect(mocked(Compose)).toHaveBeenCalledWith(
+      await act(async () => {
+        await userEvent.click(replyAllIcon)
+      })
+
+      expect(Compose).toHaveBeenCalledWith(
         expect.objectContaining({
           initialCcAddresses: [
             { address: 'someone@domain.com', name: '' },
@@ -287,7 +303,7 @@ describe('Email viewer component', () => {
       )
     })
 
-    test('expect Compose invoked for reply all with missing attributes', async () => {
+    it('should handle reply all with missing email attributes', async () => {
       const contentsMissingFields = {
         ...emailContents,
         bccAddress: undefined,
@@ -326,9 +342,12 @@ describe('Email viewer component', () => {
       )
 
       const replyAllIcon = (await screen.findByLabelText(/Reply all/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(replyAllIcon)
 
-      expect(mocked(Compose)).toHaveBeenCalledWith(
+      await act(async () => {
+        await userEvent.click(replyAllIcon)
+      })
+
+      expect(Compose).toHaveBeenCalledWith(
         expect.objectContaining({
           initialSubject: 'RE: no subject',
           initialToAddresses: [{ address: 'another@domain.com', name: '' }],
@@ -338,7 +357,7 @@ describe('Email viewer component', () => {
       )
     })
 
-    test('expect Compose invoked for forward', async () => {
+    it('should invoke Compose component when forwarding an email', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -350,9 +369,12 @@ describe('Email viewer component', () => {
       )
 
       const forwardIcon = (await screen.findByLabelText(/Forward/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(forwardIcon)
 
-      expect(mocked(Compose)).toHaveBeenCalledWith(
+      await act(async () => {
+        await userEvent.click(forwardIcon)
+      })
+
+      expect(Compose).toHaveBeenCalledWith(
         expect.objectContaining({
           initialSubject: 'FW: Hello, world',
           inReplyTo: emailContents.id,
@@ -362,8 +384,8 @@ describe('Email viewer component', () => {
       )
     })
 
-    test('expect discard removes Compose', async () => {
-      mocked(Compose).mockImplementationOnce(({ discardCallback }): JSX.Element => {
+    it('should remove Compose component when discarding', async () => {
+      jest.mocked(Compose).mockImplementationOnce(({ discardCallback }): JSX.Element => {
         discardCallback && discardCallback()
         return <>Compose</>
       })
@@ -378,14 +400,17 @@ describe('Email viewer component', () => {
       )
 
       const replyIcon = (await screen.findByLabelText(/Reply$/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(replyIcon)
+
+      await act(async () => {
+        await userEvent.click(replyIcon)
+      })
 
       expect(await screen.findByLabelText(/Reply$/i)).toBeInTheDocument()
     })
   })
 
   describe('delete', () => {
-    test('expect clicking delete opens dialog', async () => {
+    it('should open confirmation dialog when clicking delete', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -397,12 +422,15 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteIcon)
+
+      await act(async () => {
+        await userEvent.click(deleteIcon)
+      })
 
       expect(await screen.findByText(/Are you sure you want to delete this email/i)).toBeVisible()
     })
 
-    test('expect clicking cancel on delete dialog closes it', async () => {
+    it('should close dialog when clicking cancel', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -414,15 +442,22 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteIcon)
+
+      await act(async () => {
+        await userEvent.click(deleteIcon)
+      })
+
       const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(cancelButton)
+
+      await act(async () => {
+        await userEvent.click(cancelButton)
+      })
 
       expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
       expect(deleteReceivedEmail).not.toHaveBeenCalled()
     })
 
-    test('expect clicking delete on delete dialog deletes email', async () => {
+    it('should delete email when confirming deletion', async () => {
       render(
         <EmailViewer
           accountId={accountId}
@@ -434,15 +469,22 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteIcon)
+
+      await act(async () => {
+        await userEvent.click(deleteIcon)
+      })
+
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteButton)
+
+      await act(async () => {
+        await userEvent.click(deleteButton)
+      })
 
       expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
       expect(deleteReceivedEmail).toHaveBeenCalledWith(accountId, emailId)
     })
 
-    test('expect clicking error on delete shows error message', async () => {
+    it('should show error message when delete operation fails', async () => {
       deleteReceivedEmail.mockRejectedValueOnce(undefined)
       render(
         <EmailViewer
@@ -455,14 +497,21 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteIcon)
+
+      await act(async () => {
+        await userEvent.click(deleteIcon)
+      })
+
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteButton)
+
+      await act(async () => {
+        await userEvent.click(deleteButton)
+      })
 
       expect(await screen.findByText(/Error deleting email. Please refresh and try again./i)).toBeVisible()
     })
 
-    test('expect closing error message removes it', async () => {
+    it('should remove error message when closing the snackbar', async () => {
       deleteReceivedEmail.mockRejectedValueOnce(undefined)
       render(
         <EmailViewer
@@ -475,12 +524,23 @@ describe('Email viewer component', () => {
       )
 
       const deleteIcon = (await screen.findByLabelText(/Delete email/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteIcon)
+
+      await act(async () => {
+        await userEvent.click(deleteIcon)
+      })
+
       const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(deleteButton)
+
+      await act(async () => {
+        await userEvent.click(deleteButton)
+      })
+
       await screen.findByText(/Error deleting email. Please refresh and try again./i)
       const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(closeSnackbarButton)
+
+      await act(async () => {
+        await userEvent.click(closeSnackbarButton)
+      })
 
       expect(screen.queryByText(/Error deleting email. Please refresh and try again./i)).not.toBeInTheDocument()
     })

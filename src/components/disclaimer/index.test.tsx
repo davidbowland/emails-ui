@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { mocked, MockedObject } from 'jest-mock'
 import React from 'react'
 import Cookies from 'universal-cookie'
 
@@ -13,12 +12,12 @@ describe('Disclaimer component', () => {
   const mockCookieSet = jest.fn()
 
   beforeAll(() => {
-    mocked(Cookies).mockImplementation(
+    jest.mocked(Cookies).mockImplementation(
       () =>
         ({
           get: mockCookieGet,
           set: mockCookieSet,
-        }) as unknown as MockedObject<Cookies>,
+        }) as unknown as Cookies,
     )
   })
 

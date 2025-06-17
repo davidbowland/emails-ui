@@ -3,10 +3,9 @@ import Compose from '@components/compose'
 import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
-import ComposePage from './compose'
+import ComposePage, { Head } from './compose'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
@@ -15,22 +14,33 @@ jest.mock('@components/privacy-link')
 
 describe('Compose page', () => {
   beforeAll(() => {
-    mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
-    mocked(PrivacyLink).mockReturnValue(<></>)
+    jest.mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
+    jest.mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
-  test('expect rendering ComposePage renders Authenticated', () => {
+  it('should render Authenticated component', () => {
     render(<ComposePage />)
-    expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
+    expect(Authenticated).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering ComposePage renders Compose', () => {
+  it('should render Compose component', () => {
     render(<ComposePage />)
-    expect(mocked(Compose)).toHaveBeenCalledTimes(1)
+    expect(Compose).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering ComposePage renders PrivacyLink', () => {
+  it('should render PrivacyLink component', () => {
     render(<ComposePage />)
-    expect(mocked(PrivacyLink)).toHaveBeenCalledTimes(1)
+    expect(PrivacyLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns title in Head component', () => {
+    const { container } = render(<Head {...({} as any)} />)
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <title>
+          Email | dbowland.com
+        </title>
+      </div>
+    `)
   })
 })

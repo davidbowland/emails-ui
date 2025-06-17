@@ -3,10 +3,9 @@ import ServerErrorMessage from '@components/server-error-message'
 import Themed from '@components/themed'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
-import NotFound from './404'
+import NotFound, { Head } from './404'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
@@ -15,9 +14,9 @@ jest.mock('@components/themed')
 
 describe('404 error page', () => {
   beforeAll(() => {
-    mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
-    mocked(ServerErrorMessage).mockReturnValue(<></>)
-    mocked(Themed).mockImplementation(({ children }) => <>{children}</>)
+    jest.mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
+    jest.mocked(ServerErrorMessage).mockReturnValue(<></>)
+    jest.mocked(Themed).mockImplementation(({ children }) => <>{children}</>)
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { pathname: '' },
@@ -28,18 +27,29 @@ describe('404 error page', () => {
     window.location.pathname = '/an-invalid-page'
   })
 
-  test('expect rendering NotFound renders Authenticated', () => {
+  it('should render Authenticated component', () => {
     render(<NotFound />)
-    expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
+    expect(Authenticated).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering NotFound renders ServerErrorMessage', () => {
+  it('should render ServerErrorMessage with correct title', () => {
     const expectedTitle = '404: Not Found'
     render(<NotFound />)
-    expect(mocked(ServerErrorMessage)).toHaveBeenCalledWith(
+    expect(ServerErrorMessage).toHaveBeenCalledWith(
       expect.objectContaining({ title: expectedTitle }),
       expect.anything(),
     )
-    expect(mocked(ServerErrorMessage)).toHaveBeenCalledTimes(1)
+    expect(ServerErrorMessage).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns title in Head component', () => {
+    const { container } = render(<Head {...({} as any)} />)
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <title>
+          404: Not Found -- dbowland.com
+        </title>
+      </div>
+    `)
   })
 })

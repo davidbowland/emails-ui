@@ -2,7 +2,6 @@ import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'
 import { http, HttpResponse, server } from '@test/setup-server'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import AttachmentUploader from './index'
@@ -17,7 +16,7 @@ describe('Attachment viewer component', () => {
   const setAttachments = jest.fn()
 
   beforeAll(() => {
-    mocked(emails).postSentAttachment.mockResolvedValue(postAttachmentResult)
+    jest.mocked(emails).postSentAttachment.mockResolvedValue(postAttachmentResult)
     postEndpoint.mockReturnValue({})
 
     console.error = jest.fn()
@@ -47,7 +46,7 @@ describe('Attachment viewer component', () => {
   })
 
   test('expect error message when attachment upload', async () => {
-    mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
+    jest.mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
@@ -59,7 +58,7 @@ describe('Attachment viewer component', () => {
   })
 
   test('expect closing error message removes it', async () => {
-    mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
+    jest.mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement

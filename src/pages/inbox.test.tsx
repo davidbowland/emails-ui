@@ -3,10 +3,9 @@ import Mailbox from '@components/mailbox'
 import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
-import InboxPage from './inbox'
+import InboxPage, { Head } from './inbox'
 import * as emails from '@services/emails'
 
 jest.mock('@aws-amplify/analytics')
@@ -17,31 +16,42 @@ jest.mock('@services/emails')
 
 describe('Inbox page', () => {
   beforeAll(() => {
-    mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
-    mocked(PrivacyLink).mockReturnValue(<></>)
+    jest.mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
+    jest.mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
-  test('expect rendering InboxPage renders Authenticated', () => {
+  it('should render Authenticated component', () => {
     render(<InboxPage />)
-    expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
+    expect(Authenticated).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering InboxPage renders Mailbox', () => {
+  it('should render Mailbox with correct props', () => {
     render(<InboxPage />)
-    expect(mocked(Mailbox)).toHaveBeenCalledWith(
+    expect(Mailbox).toHaveBeenCalledWith(
       {
-        deleteEmail: mocked(emails).deleteReceivedEmail,
-        getAllEmails: mocked(emails).getAllReceivedEmails,
-        getEmailAttachment: mocked(emails).getReceivedAttachment,
-        getEmailContents: mocked(emails).getReceivedEmailContents,
-        patchEmail: mocked(emails).patchReceivedEmail,
+        deleteEmail: jest.mocked(emails).deleteReceivedEmail,
+        getAllEmails: jest.mocked(emails).getAllReceivedEmails,
+        getEmailAttachment: jest.mocked(emails).getReceivedAttachment,
+        getEmailContents: jest.mocked(emails).getReceivedEmailContents,
+        patchEmail: jest.mocked(emails).patchReceivedEmail,
       },
       {},
     )
   })
 
-  test('expect rendering InboxPage renders PrivacyLink', () => {
+  it('should render PrivacyLink component', () => {
     render(<InboxPage />)
-    expect(mocked(PrivacyLink)).toHaveBeenCalledTimes(1)
+    expect(PrivacyLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns title in Head component', () => {
+    const { container } = render(<Head {...({} as any)} />)
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <title>
+          Email | dbowland.com
+        </title>
+      </div>
+    `)
   })
 })

@@ -1,7 +1,6 @@
 import PrivacyLink from '@components/privacy-link'
 import { Link } from 'gatsby'
 import React from 'react'
-import { Helmet } from 'react-helmet'
 
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
@@ -14,9 +13,6 @@ export interface ServerErrorProps {
 const ServerErrorMessage = ({ children, title }: ServerErrorProps): JSX.Element => {
   return (
     <>
-      <Helmet>
-        <title>{title} -- dbowland.com</title>
-      </Helmet>
       <Grid container justifyContent="center">
         <Grid container direction="column" item padding={4} spacing={2} sx={{ maxWidth: '900px' }}>
           <Grid item xs>

@@ -3,10 +3,9 @@ import Mailbox from '@components/mailbox'
 import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
-import OutboxPage from './outbox'
+import OutboxPage, { Head } from './outbox'
 import * as emails from '@services/emails'
 
 jest.mock('@aws-amplify/analytics')
@@ -17,31 +16,42 @@ jest.mock('@services/emails')
 
 describe('Outbox page', () => {
   beforeAll(() => {
-    mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
-    mocked(PrivacyLink).mockReturnValue(<></>)
+    jest.mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
+    jest.mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
-  test('expect rendering OutboxPage renders Authenticated', () => {
+  it('should render Authenticated component', () => {
     render(<OutboxPage />)
-    expect(mocked(Authenticated)).toHaveBeenCalledTimes(1)
+    expect(Authenticated).toHaveBeenCalledTimes(1)
   })
 
-  test('expect rendering OutboxPage renders Mailbox', () => {
+  it('should render Mailbox with correct props', () => {
     render(<OutboxPage />)
-    expect(mocked(Mailbox)).toHaveBeenCalledWith(
+    expect(Mailbox).toHaveBeenCalledWith(
       {
-        deleteEmail: mocked(emails).deleteSentEmail,
-        getAllEmails: mocked(emails).getAllSentEmails,
-        getEmailAttachment: mocked(emails).getSentAttachment,
-        getEmailContents: mocked(emails).getSentEmailContents,
-        patchEmail: mocked(emails).patchSentEmail,
+        deleteEmail: jest.mocked(emails).deleteSentEmail,
+        getAllEmails: jest.mocked(emails).getAllSentEmails,
+        getEmailAttachment: jest.mocked(emails).getSentAttachment,
+        getEmailContents: jest.mocked(emails).getSentEmailContents,
+        patchEmail: jest.mocked(emails).patchSentEmail,
       },
       {},
     )
   })
 
-  test('expect rendering OutboxPage renders PrivacyLink', () => {
+  it('should render PrivacyLink component', () => {
     render(<OutboxPage />)
-    expect(mocked(PrivacyLink)).toHaveBeenCalledTimes(1)
+    expect(PrivacyLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns title in Head component', () => {
+    const { container } = render(<Head {...({} as any)} />)
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <title>
+          Email | dbowland.com
+        </title>
+      </div>
+    `)
   })
 })

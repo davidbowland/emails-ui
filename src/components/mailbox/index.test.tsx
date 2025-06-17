@@ -1,9 +1,9 @@
 import EmailViewer from '@components/email-viewer'
 import { email, emailBatch, emailContents, emailId, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
-import { mocked } from 'jest-mock'
 import React from 'react'
 
 import Mailbox from './index'
@@ -19,8 +19,8 @@ describe('Mailbox component', () => {
   const patchEmail = jest.fn().mockResolvedValue(undefined)
 
   beforeAll(() => {
-    mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
-    mocked(EmailViewer).mockReturnValue(<>Email contents</>)
+    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(EmailViewer).mockReturnValue(<>Email contents</>)
 
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
@@ -29,8 +29,8 @@ describe('Mailbox component', () => {
     })
   })
 
-  test('expect error message when user not logged in', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+  it('should show error message when user is not logged in', async () => {
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -44,8 +44,8 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
   })
 
-  test('expect closing snackbar removes error', async () => {
-    mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+  it('should remove error when closing snackbar', async () => {
+    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -58,14 +58,17 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(closeSnackbarButton)
+
+    await act(async () => {
+      await userEvent.click(closeSnackbarButton)
+    })
 
     expect(
       screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
     ).not.toBeInTheDocument()
   })
 
-  test('expect error message when getAllReceivedEmails rejects', async () => {
+  it('should show error message when getAllEmails fails', async () => {
     getAllEmails.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
@@ -80,7 +83,7 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Error fetching emails. Please reload the page to try again./i)).toBeVisible()
   })
 
-  test('expect render of email list', async () => {
+  it('should render the email list', async () => {
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -94,7 +97,7 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Hello, world of email/i)).toBeVisible()
   })
 
-  test('expect message when no emails', async () => {
+  it('should show message when mailbox is empty', async () => {
     getAllEmails.mockResolvedValueOnce([])
     render(
       <Mailbox
@@ -109,7 +112,7 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/This mailbox is empty/i)).toBeVisible()
   })
 
-  test('expect clicking on an email renders it', async () => {
+  it('should render email content when clicking on an email', async () => {
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -122,7 +125,10 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Select an email to view/i)
     const emailElement = (await screen.findByText(/Hello, world of email/i)) as HTMLBaseElement
-    fireEvent.click(emailElement)
+
+    await act(async () => {
+      await userEvent.click(emailElement)
+    })
 
     expect(await screen.findByText(/Email contents/i)).toBeVisible()
     expect(EmailViewer).toHaveBeenCalledWith(
@@ -132,8 +138,8 @@ describe('Mailbox component', () => {
     expect(patchEmail).toHaveBeenCalledWith(user.username, emailId, [{ op: 'replace', path: '/viewed', value: true }])
   })
 
-  test('expect error message when getReceivedEmailContents rejects', async () => {
-    getEmailContents.mockRejectedValueOnce(undefined)
+  it('should show error message when getEmailContents fails', async () => {
+    getEmailContents.mockRejectedValueOnce(undefined).mockRejectedValueOnce(undefined)
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -146,13 +152,16 @@ describe('Mailbox component', () => {
 
     await screen.findByText(/Select an email to view/i)
     const emailElement = (await screen.findByText(/Hello, world of email/i)) as HTMLBaseElement
-    fireEvent.click(emailElement)
+
+    await act(async () => {
+      await userEvent.click(emailElement)
+    })
 
     expect(await screen.findByText(/Error fetching email. Please try again./i)).toBeVisible()
   })
 
-  test('expect deleteEmail invokes deleteReceivedEmail and getAllReceivedEmails', async () => {
-    mocked(EmailViewer).mockImplementationOnce(({ deleteEmail }) => {
+  it('should invoke deleteEmail and refresh email list when deleting an email', async () => {
+    jest.mocked(EmailViewer).mockImplementationOnce(({ deleteEmail }) => {
       deleteEmail && deleteEmail(user.username as string, emailId)
       return <>Delete invoked</>
     })
@@ -173,7 +182,7 @@ describe('Mailbox component', () => {
     expect(getAllEmails).toHaveBeenCalledWith(user.username)
   })
 
-  test('expect forward shows email', async () => {
+  it('should show email content when clicking forward button', async () => {
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -187,14 +196,17 @@ describe('Mailbox component', () => {
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    fireEvent.click(forwardButton)
+
+    await act(async () => {
+      await userEvent.click(forwardButton)
+    })
 
     await waitFor(() => {
       expect(screen.queryByText(/Email contents/i)).toBeVisible()
     })
   })
 
-  test('expect back button from email goes back', async () => {
+  it('should return to email list when clicking back button', async () => {
     render(
       <Mailbox
         deleteEmail={deleteEmail}
@@ -208,11 +220,18 @@ describe('Mailbox component', () => {
     const forwardButton = (await screen.findByLabelText(/Show selected email/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    fireEvent.click(forwardButton)
+
+    await act(async () => {
+      await userEvent.click(forwardButton)
+    })
+
     const backButton = (await screen.findByLabelText(/Back to email list/i, {
       selector: 'button',
     })) as HTMLButtonElement
-    fireEvent.click(backButton)
+
+    await act(async () => {
+      await userEvent.click(backButton)
+    })
 
     expect(await screen.findByText(/4\/13\/1975, \d+:21:13 PM/i)).toBeVisible()
   })

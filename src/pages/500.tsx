@@ -14,6 +14,6 @@ const InternalServerError = (): JSX.Element => {
   )
 }
 
-export const Head: HeadFC = () => <title>500: Internal Server Error -- dbowland.com</title>
+export const Head: HeadFC = () => <title>500: Internal Server Error | dbowland.com</title>
 
 export default InternalServerError

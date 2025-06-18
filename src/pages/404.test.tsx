@@ -47,7 +47,7 @@ describe('404 error page', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <title>
-          404: Not Found -- dbowland.com
+          404: Not Found | dbowland.com
         </title>
       </div>
     `)

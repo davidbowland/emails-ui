@@ -9,12 +9,12 @@ export interface StringObject {
 export interface AttachmentCommon {
   checksum?: string
   cid?: string
-  content: any
+  content: unknown
   contentDisposition: string
   contentId?: string
   contentType: string
   filename?: string
-  headerLines: any
+  headerLines: unknown
   headers: StringObject
   related?: boolean
   size: number

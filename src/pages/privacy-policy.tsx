@@ -21,6 +21,6 @@ const PrivacyPage = (): JSX.Element => {
   )
 }
 
-export const Head: HeadFC = () => <title>Privacy Policy -- dbd.dbowland.com</title>
+export const Head: HeadFC = () => <title>Privacy Policy | dbowland.com</title>
 
 export default PrivacyPage

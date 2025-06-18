@@ -14,6 +14,6 @@ const Forbidden = (): JSX.Element => {
   )
 }
 
-export const Head: HeadFC = () => <title>403: Forbidden -- dbowland.com</title>
+export const Head: HeadFC = () => <title>403: Forbidden | dbowland.com</title>
 
 export default Forbidden

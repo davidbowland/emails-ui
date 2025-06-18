@@ -16,6 +16,6 @@ const NotFound = (): JSX.Element => {
   )
 }
 
-export const Head: HeadFC = () => <title>404: Not Found -- dbowland.com</title>
+export const Head: HeadFC = () => <title>404: Not Found | dbowland.com</title>
 
 export default NotFound

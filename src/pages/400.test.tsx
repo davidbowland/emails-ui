@@ -39,7 +39,7 @@ describe('400 error page', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <title>
-          400: Bad Request -- dbowland.com
+          400: Bad Request | dbowland.com
         </title>
       </div>
     `)

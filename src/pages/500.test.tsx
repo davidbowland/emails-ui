@@ -39,7 +39,7 @@ describe('500 error page', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <title>
-          500: Internal Server Error -- dbowland.com
+          500: Internal Server Error | dbowland.com
         </title>
       </div>
     `)

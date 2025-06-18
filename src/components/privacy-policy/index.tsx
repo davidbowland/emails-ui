@@ -10,7 +10,7 @@ const PrivacyPolicy = (): JSX.Element => {
       <Typography variant="h5">Email Privacy Policy</Typography>
       <Typography variant="body1">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit{' '}
-        <Link to="https://email.dbowland.com/">https://email.dbowland.com</Link> (the &quot;Site&quot;).
+        <Link to="/">https://email.dbowland.com</Link> (the &quot;Site&quot;).
       </Typography>
       <Typography variant="h6">PERSONAL INFORMATION WE COLLECT</Typography>
       <Typography variant="body1">
@@ -26,7 +26,7 @@ const PrivacyPolicy = (): JSX.Element => {
           <li>
             &quot;Cookies&quot; are data files that are placed on your device or computer and often include an anonymous
             unique identifier. For more information about cookies, and how to disable cookies, visit{' '}
-            <Link to="http://www.allaboutcookies.org">http://www.allaboutcookies.org</Link>.
+            <Link to="https://www.allaboutcookies.org">https://www.allaboutcookies.org</Link>.
           </li>
           <li>
             &quot;Log files&quot; track actions occurring on the Site, and collect data including your IP address,

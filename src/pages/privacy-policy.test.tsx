@@ -31,7 +31,7 @@ describe('Privacy page', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <title>
-          Privacy Policy -- dbd.dbowland.com
+          Privacy Policy | dbowland.com
         </title>
       </div>
     `)

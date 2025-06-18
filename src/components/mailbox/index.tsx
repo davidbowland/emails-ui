@@ -56,7 +56,7 @@ const Mailbox = ({
     try {
       const emailContents = await getEmailContents(accountId, emailId)
       setEmail(emailContents)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('emailSelectClick', { accountId, emailId, error })
       setErrorMessage('Error fetching email. Please try again.')
     }
@@ -68,7 +68,7 @@ const Mailbox = ({
       try {
         const emails = await getAllEmails(loggedInUser.username)
         setReceivedEmails(emails.sort((a, b) => Math.sign(b.data.timestamp - a.data.timestamp)))
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('refreshEmails', { error, username: loggedInUser.username })
         setErrorMessage('Error fetching emails. Please reload the page to try again.')
       }
@@ -179,7 +179,7 @@ const Mailbox = ({
   useEffect(() => {
     Auth.currentAuthenticatedUser()
       .then(setLoggedInUser)
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.error('currentAuthenticatedUser', { error })
         setErrorMessage('Error authenticating user. Please reload the page to try again.')
         window.location.reload()

@@ -11,7 +11,7 @@ Gatsby and Amplify implementation of emails-email-api. Example: <https://email.d
 
 ### Local Development
 
-The Gatsby development server automatically rerenders in the browser when the source code changes. Start the local development server with:
+The Gatsby development server automatically re-renders in the browser when the source code changes. Start the local development server with:
 
 ```bash
 npm run start
@@ -97,7 +97,7 @@ npm run workflow
 
 - [Workflow Syntax for GitHub Actions](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions)
 
-- [actions/setup_node](https://github.com/actions/setup-node)
+- [actions/setup-node](https://github.com/actions/setup-node)
 
 - [actions/checkout](https://github.com/actions/checkout)
 

@@ -39,7 +39,7 @@ describe('403 error page', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <title>
-          403: Forbidden -- dbowland.com
+          403: Forbidden | dbowland.com
         </title>
       </div>
     `)

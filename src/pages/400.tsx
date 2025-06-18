@@ -14,6 +14,6 @@ const BadRequest = (): JSX.Element => {
   )
 }
 
-export const Head: HeadFC = () => <title>400: Bad Request -- dbowland.com</title>
+export const Head: HeadFC = () => <title>400: Bad Request | dbowland.com</title>
 
 export default BadRequest

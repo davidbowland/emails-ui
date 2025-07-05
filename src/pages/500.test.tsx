@@ -35,7 +35,7 @@ describe('500 error page', () => {
     expect(ServerErrorMessage).toHaveBeenCalledTimes(1)
   })
 
-  it('returns title in Head component', () => {
+  it('should return title in Head component', () => {
     const { container } = render(<Head {...({} as any)} />)
     expect(container).toMatchInlineSnapshot(`
       <div>

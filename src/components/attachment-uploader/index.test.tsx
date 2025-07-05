@@ -1,6 +1,7 @@
 import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import axios from 'axios'
 import React from 'react'
 
@@ -12,21 +13,23 @@ jest.mock('@config/amplify')
 jest.mock('@services/emails')
 jest.mock('axios')
 
-describe('Attachment viewer component', () => {
+describe('Attachment uploader component', () => {
   const file = new File(['fnord'], 'test.file', { type: 'image/png' })
   const setAttachments = jest.fn()
 
   beforeAll(() => {
-    jest.mocked(emails).postSentAttachment.mockResolvedValue(postAttachmentResult)
+    jest.mocked(emails.postSentAttachment).mockResolvedValue(postAttachmentResult)
     jest.mocked(axios.post).mockResolvedValue({})
     console.error = jest.fn()
   })
 
-  test('expect attachment removed when remove clicked', async () => {
+  it('should remove attachment when remove button is clicked', async () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const removeButton = (await screen.findAllByLabelText(/Remove attachment/i))[0] as HTMLButtonElement
-    fireEvent.click(removeButton)
+    await act(async () => {
+      await userEvent.click(removeButton)
+    })
 
     expect(setAttachments).toHaveBeenCalledWith([
       {
@@ -39,45 +42,54 @@ describe('Attachment viewer component', () => {
     ])
   })
 
-  test('expect error message when attachment upload', async () => {
-    jest.mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
+  it('should show error message when attachment upload fails', async () => {
+    jest.mocked(emails.postSentAttachment).mockRejectedValueOnce(new Error('Upload failed'))
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    fireEvent.change(fileUpload, { target: { files: [file] } })
+    await act(async () => {
+      await userEvent.upload(fileUpload, file)
+    })
 
     expect(
       await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
     ).toBeVisible()
   })
 
-  test('expect closing error message removes it', async () => {
-    jest.mocked(emails).postSentAttachment.mockRejectedValueOnce(undefined)
+  it('should remove error message when close button is clicked', async () => {
+    jest.mocked(emails.postSentAttachment).mockRejectedValueOnce(new Error('Upload failed'))
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    fireEvent.change(fileUpload, { target: { files: [file] } })
+    await act(async () => {
+      await userEvent.upload(fileUpload, file)
+    })
+
     await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(closeSnackbarButton)
+
+    await act(async () => {
+      await userEvent.click(closeSnackbarButton)
+    })
 
     expect(
       screen.queryByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
     ).not.toBeInTheDocument()
   })
 
-  test('expect postSignedUrl called with file', async () => {
+  it('should call postSentAttachment and upload file successfully', async () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
     const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
-    fireEvent.change(fileUpload, {
-      target: { files: [file] },
+    await act(async () => {
+      await userEvent.upload(fileUpload, file)
     })
 
     await waitFor(() => {
       expect(emails.postSentAttachment).toHaveBeenCalled()
       expect(axios.post).toHaveBeenCalledWith(postAttachmentResult.url, expect.any(FormData), expect.anything())
     })
+
     expect(setAttachments).toHaveBeenCalledWith([
       ...attachments,
       {

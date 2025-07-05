@@ -3,7 +3,8 @@ import AttachmentUploader from '@components/attachment-uploader'
 import HtmlEditor from '@components/html-editor'
 import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
 import * as gatsby from 'gatsby'
 import React from 'react'
@@ -29,13 +30,13 @@ describe('Compose component', () => {
   }
 
   beforeAll(() => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(Auth.currentAuthenticatedUser).mockResolvedValue(user)
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     jest.mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
     jest.mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
-    jest.mocked(emails).postSentEmail.mockResolvedValue(email)
+    jest.mocked(emails.postSentEmail).mockResolvedValue(email)
     jest.mocked(getSelection).mockReturnValue(selection)
-    jest.mocked(selection).toString.mockReturnValue('textContent')
+    jest.mocked(selection.toString).mockReturnValue('textContent')
 
     console.error = jest.fn()
     Object.defineProperty(window, 'getSelection', {
@@ -52,69 +53,86 @@ describe('Compose component', () => {
     })
   })
 
-  test('expect error message when user not logged in', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+  it('should show error message when user is not logged in', async () => {
+    jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
   })
 
-  test('expect closing snackbar removes error', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+  it('should remove error message when close button is clicked', async () => {
+    jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
     await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(closeSnackbarButton)
+
+    await act(async () => {
+      await userEvent.click(closeSnackbarButton)
+    })
 
     expect(
       screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
     ).not.toBeInTheDocument()
   })
 
-  test('expect discardCallback called when discard clicked', async () => {
+  it('should call discardCallback when discard is confirmed', async () => {
     render(<Compose discardCallback={discardCallback} />)
 
     const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(discardButton)
+    await act(async () => {
+      await userEvent.click(discardButton)
+    })
+
     const discardDialogButton = (await screen.findAllByText(/Discard/i, { selector: 'button' }))[1] as HTMLButtonElement
-    fireEvent.click(discardDialogButton)
+    await act(async () => {
+      await userEvent.click(discardDialogButton)
+    })
 
     expect(discardCallback).toHaveBeenCalledTimes(1)
   })
 
-  test('expect discardCallback not called when discard cancelled', async () => {
+  it('should not call discardCallback when discard is cancelled', async () => {
     render(<Compose discardCallback={discardCallback} />)
 
     const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(discardButton)
+    await act(async () => {
+      await userEvent.click(discardButton)
+    })
+
     const keepEditingButton = (await screen.findByText(/Keep editing/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(keepEditingButton)
+    await act(async () => {
+      await userEvent.click(keepEditingButton)
+    })
 
     expect(discardCallback).not.toHaveBeenCalled()
   })
 
-  test('expect error message when no recipients', async () => {
+  it('should show error message when no recipients are provided', async () => {
     render(<Compose />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
     expect(await screen.findByText(/Please enter recipients./i)).toBeVisible()
     expect(emails.postSentEmail).not.toHaveBeenCalled()
   })
 
-  test('expect error message when postSentEmail rejects', async () => {
-    jest.mocked(emails).postSentEmail.mockRejectedValueOnce(undefined)
+  it('should show error message when email sending fails', async () => {
+    jest.mocked(emails.postSentEmail).mockRejectedValueOnce(new Error('Sending failed'))
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
     expect(await screen.findByText(/Error sending email. Please try again in a few moments./i)).toBeVisible()
   })
 
-  test('expect error message when too large of attachments', async () => {
+  it('should show error message when attachments are too large', async () => {
     render(
       <Compose
         initialAttachments={[
@@ -131,12 +149,14 @@ describe('Compose component', () => {
     )
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
-    expect(await screen.findByText(/Attachments cannot exceed [\d,]+ bytes./i)).toBeVisible()
+    expect(await screen.findByText(/Attachments cannot exceed [\d,]+ bytes./)).toBeVisible()
   })
 
-  test('expect postSentEmail and navigate called', async () => {
+  it('should call postSentEmail and navigate when email is sent successfully', async () => {
     const inReplyTo = 'umnbghjkk'
     const references = ['0pokm', 'erfgb']
     render(
@@ -149,9 +169,14 @@ describe('Compose component', () => {
     )
 
     const subjectInput = (await screen.findByLabelText(/Subject/i)) as HTMLInputElement
-    fireEvent.change(subjectInput, { target: { value: 'Hello, e-mail world!' } })
+    await act(async () => {
+      await userEvent.type(subjectInput, 'Hello, e-mail world!')
+    })
+
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
     await waitFor(() => {
       expect(gatsby.navigate).toHaveBeenCalled()
@@ -214,26 +239,30 @@ describe('Compose component', () => {
     expect(gatsby.navigate).toHaveBeenCalledWith('/outbox')
   })
 
-  test('expect postSentEmail called with no subject', async () => {
+  it('should use "no subject" when subject is empty', async () => {
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
     expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ subject: 'no subject' }))
   })
 
-  test('expect postSentEmail called with textContent when no selection', async () => {
+  it('should use empty text when no selection is available', async () => {
     jest.mocked(getSelection).mockReturnValueOnce(undefined)
     render(<Compose initialToAddresses={addresses} />)
 
     const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(sendButton)
+    await act(async () => {
+      await userEvent.click(sendButton)
+    })
 
     expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ text: '' }))
   })
 
-  test('expect components rendered', async () => {
+  it('should render all necessary components', async () => {
     const body = '<p>Hello, world!</p>'
     render(<Compose initialBody={body} initialToAddresses={addresses} />)
 
@@ -251,13 +280,22 @@ describe('Compose component', () => {
         ],
         label: 'To:',
       }),
-      {},
+      expect.anything(),
     )
-    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), {})
-    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), {})
-    expect(HtmlEditor).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), {})
+    expect(AddressLine).toHaveBeenCalledWith(
+      expect.objectContaining({ addresses: [], label: 'CC:' }),
+      expect.anything(),
+    )
+    expect(AddressLine).toHaveBeenCalledWith(
+      expect.objectContaining({ addresses: [], label: 'BCC:' }),
+      expect.anything(),
+    )
+    expect(HtmlEditor).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), expect.anything())
     await waitFor(() => {
-      expect(AttachmentUploader).toHaveBeenCalledWith(expect.objectContaining({ accountId, attachments: [] }), {})
+      expect(AttachmentUploader).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId, attachments: [] }),
+        expect.anything(),
+      )
     })
   })
 })

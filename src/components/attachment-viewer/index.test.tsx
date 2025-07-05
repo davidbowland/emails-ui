@@ -1,6 +1,7 @@
 import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import axios from 'axios'
 import React from 'react'
 
@@ -11,19 +12,18 @@ jest.mock('axios')
 
 describe('Attachment viewer component', () => {
   const getAttachment = jest.fn()
-
   const mockBlob = new Blob(['test data'], { type: 'image/jpeg' })
 
   beforeAll(() => {
     getAttachment.mockResolvedValue(attachmentUrl)
-    jest.mocked(axios).get.mockResolvedValue({ data: mockBlob })
+    jest.mocked(axios.get).mockResolvedValue({ data: mockBlob })
     console.error = jest.fn()
 
     window.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url')
     window.URL.revokeObjectURL = jest.fn()
   })
 
-  test('expect attachment downloaded', async () => {
+  it('should download attachment when clicked', async () => {
     render(
       <AttachmentViewer
         accountId={accountId}
@@ -34,7 +34,9 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    fireEvent.click(attachmentElement)
+    await act(async () => {
+      await userEvent.click(attachmentElement)
+    })
 
     expect(getAttachment).toHaveBeenCalledWith(accountId, emailId, '18453696e0bac7e24cd1')
 
@@ -45,8 +47,8 @@ describe('Attachment viewer component', () => {
     })
   })
 
-  test('expect error message when attachment download error', async () => {
-    getAttachment.mockRejectedValueOnce(undefined)
+  it('should show error message when attachment download fails', async () => {
+    jest.mocked(getAttachment).mockRejectedValueOnce(new Error('Download failed'))
     render(
       <AttachmentViewer
         accountId={accountId}
@@ -57,13 +59,15 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    fireEvent.click(attachmentElement)
+    await act(async () => {
+      await userEvent.click(attachmentElement)
+    })
 
     expect(await screen.findByText(/Error downloading the attachment. Please try again./i)).toBeVisible()
   })
 
-  test('expect closing error message removes it', async () => {
-    getAttachment.mockRejectedValueOnce(undefined)
+  it('should remove error message when close button is clicked', async () => {
+    jest.mocked(getAttachment).mockRejectedValueOnce(new Error('Download failed'))
     render(
       <AttachmentViewer
         accountId={accountId}
@@ -74,10 +78,16 @@ describe('Attachment viewer component', () => {
     )
 
     const attachmentElement = (await screen.findByText(/20221018_135343.jpg/i)) as HTMLButtonElement
-    fireEvent.click(attachmentElement)
+    await act(async () => {
+      await userEvent.click(attachmentElement)
+    })
+
     await screen.findByText(/Error downloading the attachment. Please try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(closeSnackbarButton)
+
+    await act(async () => {
+      await userEvent.click(closeSnackbarButton)
+    })
 
     expect(screen.queryByText(/Error downloading the attachment. Please try again./i)).not.toBeInTheDocument()
   })

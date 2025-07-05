@@ -16,6 +16,7 @@ jest.mock('dompurify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-viewer')
 jest.mock('@components/compose')
+jest.mock('@config/amplify')
 
 describe('Email viewer component', () => {
   const style = ['background-url', 'color'] as any

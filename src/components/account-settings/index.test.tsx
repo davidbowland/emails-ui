@@ -10,6 +10,7 @@ import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
+jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
 describe('AccountSettings component', () => {

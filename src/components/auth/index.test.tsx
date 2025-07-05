@@ -12,6 +12,7 @@ jest.mock('aws-amplify')
 jest.mock('gatsby')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
+jest.mock('@config/amplify')
 
 describe('Authenticated component', () => {
   const mockLocationReload = jest.fn()

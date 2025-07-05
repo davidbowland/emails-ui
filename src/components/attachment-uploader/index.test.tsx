@@ -1,31 +1,25 @@
 import { accountId, attachments, postAttachmentResult } from '@test/__mocks__'
-import { http, HttpResponse, server } from '@test/setup-server'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import axios from 'axios'
 import React from 'react'
 
 import AttachmentUploader from './index'
 import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
+jest.mock('@config/amplify')
 jest.mock('@services/emails')
+jest.mock('axios')
 
 describe('Attachment viewer component', () => {
   const file = new File(['fnord'], 'test.file', { type: 'image/png' })
-  const postEndpoint = jest.fn()
   const setAttachments = jest.fn()
 
   beforeAll(() => {
     jest.mocked(emails).postSentAttachment.mockResolvedValue(postAttachmentResult)
-    postEndpoint.mockReturnValue({})
-
+    jest.mocked(axios.post).mockResolvedValue({})
     console.error = jest.fn()
-    server.use(
-      http.post(postAttachmentResult.url, async () => {
-        const body = postEndpoint()
-        return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-      }),
-    )
   })
 
   test('expect attachment removed when remove clicked', async () => {
@@ -81,7 +75,8 @@ describe('Attachment viewer component', () => {
     })
 
     await waitFor(() => {
-      expect(postEndpoint).toHaveBeenCalledTimes(1)
+      expect(emails.postSentAttachment).toHaveBeenCalled()
+      expect(axios.post).toHaveBeenCalledWith(postAttachmentResult.url, expect.any(FormData), expect.anything())
     })
     expect(setAttachments).toHaveBeenCalledWith([
       ...attachments,

@@ -1,29 +1,26 @@
 import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
-import { http, HttpResponse, server } from '@test/setup-server'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import axios from 'axios'
 import React from 'react'
 
 import AttachmentViewer from './index'
 
 jest.mock('aws-amplify')
+jest.mock('axios')
 
 describe('Attachment viewer component', () => {
-  const attachmentBlob = new Blob(['Hello, world'])
   const getAttachment = jest.fn()
-  const getEndpoint = jest.fn()
+
+  const mockBlob = new Blob(['test data'], { type: 'image/jpeg' })
 
   beforeAll(() => {
     getAttachment.mockResolvedValue(attachmentUrl)
-    getEndpoint.mockReturnValue(attachmentBlob)
-
+    jest.mocked(axios).get.mockResolvedValue({ data: mockBlob })
     console.error = jest.fn()
-    server.use(
-      http.get('http://localhost/a/really/long/url', async () => {
-        const body = getEndpoint()
-        return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-      }),
-    )
+
+    window.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url')
+    window.URL.revokeObjectURL = jest.fn()
   })
 
   test('expect attachment downloaded', async () => {
@@ -40,6 +37,12 @@ describe('Attachment viewer component', () => {
     fireEvent.click(attachmentElement)
 
     expect(getAttachment).toHaveBeenCalledWith(accountId, emailId, '18453696e0bac7e24cd1')
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalledWith(attachmentUrl.url, { responseType: 'blob' })
+      expect(window.URL.createObjectURL).toHaveBeenCalled()
+      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith(attachmentUrl.url)
+    })
   })
 
   test('expect error message when attachment download error', async () => {

@@ -10,6 +10,7 @@ import Mailbox from './index'
 
 jest.mock('aws-amplify')
 jest.mock('@components/email-viewer')
+jest.mock('@config/amplify')
 
 describe('Mailbox component', () => {
   const deleteEmail = jest.fn().mockResolvedValue(email)

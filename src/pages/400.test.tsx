@@ -11,6 +11,7 @@ jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/server-error-message')
 jest.mock('@components/themed')
+jest.mock('@config/amplify')
 
 describe('400 error page', () => {
   beforeAll(() => {

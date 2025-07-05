@@ -12,6 +12,7 @@ jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/mailbox')
 jest.mock('@components/privacy-link')
+jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
 describe('Outbox page', () => {

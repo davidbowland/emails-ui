@@ -11,6 +11,7 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import Themed from './index'
 
 jest.mock('@aws-amplify/analytics')
+jest.mock('@config/amplify')
 jest.mock('@mui/material/CssBaseline')
 jest.mock('@mui/material/styles', () => ({
   createTheme: jest.fn(),

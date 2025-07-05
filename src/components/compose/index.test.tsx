@@ -16,6 +16,7 @@ jest.mock('gatsby')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
 jest.mock('@components/html-editor')
+jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
 describe('Compose component', () => {

@@ -11,6 +11,7 @@ jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/compose')
 jest.mock('@components/privacy-link')
+jest.mock('@config/amplify')
 
 describe('Compose page', () => {
   beforeAll(() => {

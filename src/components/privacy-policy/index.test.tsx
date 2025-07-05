@@ -4,6 +4,8 @@ import React from 'react'
 
 import PrivacyPolicy from './index'
 
+jest.mock('@config/amplify')
+
 describe('provacy-policy component', () => {
   test('expect privacy policy rendered', async () => {
     render(<PrivacyPolicy />)

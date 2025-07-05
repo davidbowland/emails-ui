@@ -6,6 +6,7 @@ import React from 'react'
 import ServerErrorMessage from './index'
 
 jest.mock('@components/privacy-link')
+jest.mock('@config/amplify')
 
 describe('Server error message component', () => {
   const title = 'server-error-message'

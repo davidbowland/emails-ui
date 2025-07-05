@@ -10,6 +10,7 @@ import Index, { Head } from './index'
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/privacy-link')
+jest.mock('@config/amplify')
 jest.mock('gatsby')
 
 describe('Index page', () => {

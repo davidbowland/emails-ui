@@ -11,9 +11,8 @@ import {
   outboundEmail,
   postAttachmentResult,
 } from '@test/__mocks__'
-import { http, HttpResponse, server } from '@test/setup-server'
 import { CognitoUserSession } from 'amazon-cognito-identity-js'
-import { Auth } from 'aws-amplify'
+import { API, Auth } from 'aws-amplify'
 
 import {
   deleteAccount,
@@ -34,92 +33,61 @@ import {
   putAccount,
 } from './emails'
 
-const baseUrl = process.env.GATSBY_EMAILS_API_BASE_URL
 jest.mock('@aws-amplify/analytics')
+jest.mock('@config/amplify', () => ({
+  apiName: 'apiName',
+}))
+jest.mock('aws-amplify')
 
 describe('Emails service', () => {
+  const apiName = 'apiName'
+
   beforeAll(() => {
     const userSession = { getIdToken: () => ({ getJwtToken: () => '' }) } as CognitoUserSession
-    jest.spyOn(Auth, 'currentSession').mockResolvedValue(userSession)
+    jest.mocked(Auth).currentSession.mockResolvedValue(userSession)
   })
 
   describe('accounts', () => {
     describe('deleteAccount', () => {
-      const deleteEndpoint = jest.fn().mockReturnValue(account)
-
-      beforeAll(() => {
-        server.use(
-          http.delete(`${baseUrl}/accounts/:id`, async ({ params }) => {
-            const { id } = params
-            const body = deleteEndpoint(id)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).del.mockResolvedValueOnce(account)
+
         const result = await deleteAccount(accountId)
-        expect(deleteEndpoint).toHaveBeenCalledWith(accountId)
+
+        expect(API.del).toHaveBeenCalledWith(apiName, `/accounts/${accountId}`, {})
         expect(result).toEqual(account)
       })
     })
 
     describe('getAccount', () => {
-      const getEndpoint = jest.fn().mockReturnValue(account)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id`, async ({ params }) => {
-            const { id } = params
-            const body = getEndpoint(id)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(account)
+
         const result = await getAccount(accountId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId)
+
+        expect(API.get).toHaveBeenCalledWith(apiName, `/accounts/${accountId}`, {})
         expect(result).toEqual(account)
       })
     })
 
     describe('patchAccount', () => {
-      const patchEndpoint = jest.fn().mockReturnValue(account)
-
-      beforeAll(() => {
-        server.use(
-          http.patch(`${baseUrl}/accounts/:id`, async ({ params, request }) => {
-            const { id } = params
-            const body = patchEndpoint(id, await request.json())
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).patch.mockResolvedValueOnce(account)
+
         const result = await patchAccount(accountId, jsonPatchOperations)
-        expect(patchEndpoint).toHaveBeenCalledWith(accountId, jsonPatchOperations)
+
+        expect(API.patch).toHaveBeenCalledWith(apiName, `/accounts/${accountId}`, { body: jsonPatchOperations })
         expect(result).toEqual(account)
       })
     })
 
     describe('putAccount', () => {
-      const putEndpoint = jest.fn().mockReturnValue(account)
-
-      beforeAll(() => {
-        server.use(
-          http.put(`${baseUrl}/accounts/:id`, async ({ params, request }) => {
-            const { id } = params
-            const body = putEndpoint(id, await request.json())
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).put.mockResolvedValueOnce(account)
+
         const result = await putAccount(accountId, account)
-        expect(putEndpoint).toHaveBeenCalledWith(accountId, account)
+
+        expect(API.put).toHaveBeenCalledWith(apiName, `/accounts/${accountId}`, { body: account })
         expect(result).toEqual(account)
       })
     })
@@ -127,101 +95,62 @@ describe('Emails service', () => {
 
   describe('received emails', () => {
     describe('deleteReceivedEmail', () => {
-      const deleteEndpoint = jest.fn().mockReturnValue(email)
-
-      beforeAll(() => {
-        server.use(
-          http.delete(`${baseUrl}/accounts/:id/emails/received/:emailId`, async ({ params }) => {
-            const { emailId, id } = params
-            const body = deleteEndpoint(id, emailId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).del.mockResolvedValueOnce(email)
+
         const result = await deleteReceivedEmail(accountId, emailId)
-        expect(deleteEndpoint).toHaveBeenCalledTimes(1)
+
+        expect(API.del).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received/${emailId}`, {})
         expect(result).toEqual(email)
       })
     })
 
     describe('getAllReceivedEmails', () => {
-      const getEndpoint = jest.fn().mockReturnValue(emailBatch)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/received`, async ({ params }) => {
-            const { id } = params
-            const body = getEndpoint(id)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(emailBatch)
+
         const result = await getAllReceivedEmails(accountId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId)
+
+        expect(API.get).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received`, {})
         expect(result).toEqual(emailBatch)
       })
     })
 
     describe('getReceivedAttachment', () => {
-      const getEndpoint = jest.fn().mockReturnValue(attachmentUrl)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/received/:emailId/attachments/:attachmentId`, async ({ params }) => {
-            const { attachmentId, emailId, id } = params
-            const body = getEndpoint(id, emailId, attachmentId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the attachment URL', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(attachmentUrl)
+
         const result = await getReceivedAttachment(accountId, emailId, attachmentId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
+
+        expect(API.get).toHaveBeenCalledWith(
+          apiName,
+          `/accounts/${accountId}/emails/received/${emailId}/attachments/${attachmentId}`,
+          {},
+        )
         expect(result).toEqual(attachmentUrl)
       })
     })
 
     describe('getReceivedEmailContents', () => {
-      const getEndpoint = jest.fn().mockReturnValue(emailContents)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/received/:emailId/contents`, async ({ params }) => {
-            const { emailId, id } = params
-            const body = getEndpoint(id, emailId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the email contents', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(emailContents)
+
         const result = await getReceivedEmailContents(accountId, emailId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
+
+        expect(API.get).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received/${emailId}/contents`, {})
         expect(result).toEqual(emailContents)
       })
     })
 
     describe('patchReceivedEmail', () => {
-      const patchEndpoint = jest.fn().mockReturnValue(email)
-
-      beforeAll(() => {
-        server.use(
-          http.patch(`${baseUrl}/accounts/:id/emails/received/:emailId`, async ({ params, request }) => {
-            const { emailId, id } = params
-            const body = patchEndpoint(id, emailId, await request.json())
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).patch.mockResolvedValueOnce(email)
+
         const result = await patchReceivedEmail(accountId, emailId, jsonPatchOperations)
-        expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
+
+        expect(API.patch).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received/${emailId}`, {
+          body: jsonPatchOperations,
+        })
         expect(result).toEqual(email)
       })
     })
@@ -229,141 +158,84 @@ describe('Emails service', () => {
 
   describe('sent emails', () => {
     describe('deleteSentEmail', () => {
-      const deleteEndpoint = jest.fn().mockReturnValue(email)
-
-      beforeAll(() => {
-        server.use(
-          http.delete(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async ({ params }) => {
-            const { emailId, id } = params
-            const body = deleteEndpoint(id, emailId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).del.mockResolvedValueOnce(email)
+
         const result = await deleteSentEmail(accountId, emailId)
-        expect(deleteEndpoint).toHaveBeenCalledTimes(1)
+
+        expect(API.del).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent/${emailId}`, {})
         expect(result).toEqual(email)
       })
     })
 
     describe('getAllSentEmails', () => {
-      const getEndpoint = jest.fn().mockReturnValue(emailBatch)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/sent`, async ({ params }) => {
-            const { id } = params
-            const body = getEndpoint(id)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(emailBatch)
+
         const result = await getAllSentEmails(accountId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId)
+
+        expect(API.get).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent`, {})
         expect(result).toEqual(emailBatch)
       })
     })
 
     describe('getSentAttachment', () => {
-      const getEndpoint = jest.fn().mockReturnValue(attachmentUrl)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/attachments/:attachmentId`, async ({ params }) => {
-            const { attachmentId, emailId, id } = params
-            const body = getEndpoint(id, emailId, attachmentId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the attachment URL', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(attachmentUrl)
+
         const result = await getSentAttachment(accountId, emailId, attachmentId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId, attachmentId)
+
+        expect(API.get).toHaveBeenCalledWith(
+          apiName,
+          `/accounts/${accountId}/emails/sent/${emailId}/attachments/${attachmentId}`,
+          {},
+        )
         expect(result).toEqual(attachmentUrl)
       })
     })
 
     describe('getSentEmailContents', () => {
-      const getEndpoint = jest.fn().mockReturnValue(emailContents)
-
-      beforeAll(() => {
-        server.use(
-          http.get(`${baseUrl}/accounts/:id/emails/sent/:emailId/contents`, async ({ params }) => {
-            const { emailId, id } = params
-            const body = getEndpoint(id, emailId)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the email contents', async () => {
+        jest.mocked(API).get.mockResolvedValueOnce(emailContents)
+
         const result = await getSentEmailContents(accountId, emailId)
-        expect(getEndpoint).toHaveBeenCalledWith(accountId, emailId)
+
+        expect(API.get).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent/${emailId}/contents`, {})
         expect(result).toEqual(emailContents)
       })
     })
 
     describe('postSentAttachment', () => {
-      const postEndpoint = jest.fn().mockReturnValue(postAttachmentResult)
-
-      beforeAll(() => {
-        server.use(
-          http.post(`${baseUrl}/accounts/:id/emails/sent/attachments`, async ({ params }) => {
-            const { id } = params
-            const body = postEndpoint(id)
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).post.mockResolvedValueOnce(postAttachmentResult)
+
         const result = await postSentAttachment(accountId)
-        expect(postEndpoint).toHaveBeenCalledWith(accountId)
+
+        expect(API.post).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent/attachments`, {})
         expect(result).toEqual(postAttachmentResult)
       })
     })
 
     describe('patchSentEmail', () => {
-      const patchEndpoint = jest.fn().mockReturnValue(email)
-
-      beforeAll(() => {
-        server.use(
-          http.patch(`${baseUrl}/accounts/:id/emails/sent/:emailId`, async ({ params, request }) => {
-            const { emailId, id } = params
-            const body = patchEndpoint(id, emailId, await request.json())
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).patch.mockResolvedValueOnce(email)
+
         const result = await patchSentEmail(accountId, emailId, jsonPatchOperations)
-        expect(patchEndpoint).toHaveBeenCalledWith(accountId, emailId, jsonPatchOperations)
+
+        expect(API.patch).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent/${emailId}`, {
+          body: jsonPatchOperations,
+        })
         expect(result).toEqual(email)
       })
     })
 
     describe('postSentEmail', () => {
-      const postEndpoint = jest.fn().mockReturnValue(email)
-
-      beforeAll(() => {
-        server.use(
-          http.post(`${baseUrl}/accounts/:id/emails/sent`, async ({ params, request }) => {
-            const { id } = params
-            const body = postEndpoint(id, await request.json())
-            return body ? HttpResponse.json(body) : new HttpResponse(null, { status: 400 })
-          }),
-        )
-      })
-
       it('should return the result from the API call', async () => {
+        jest.mocked(API).post.mockResolvedValueOnce(email)
+
         const result = await postSentEmail(accountId, outboundEmail)
-        expect(postEndpoint).toHaveBeenCalledWith(accountId, outboundEmail)
+
+        expect(API.post).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/sent`, { body: outboundEmail })
         expect(result).toEqual(email)
       })
     })

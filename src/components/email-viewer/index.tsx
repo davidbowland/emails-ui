@@ -1,6 +1,3 @@
-import AddressLine from '@components/address-line'
-import AttachmentViewer from '@components/attachment-viewer'
-import Compose from '@components/compose'
 import DOMPurify from 'dompurify'
 import React, { useState } from 'react'
 import ReactDOMServer from 'react-dom/server'
@@ -28,6 +25,9 @@ import Snackbar from '@mui/material/Snackbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
+import Compose from '@components/compose'
 import { EmailAddress, EmailContents, SignedUrl } from '@types'
 
 const DOMAIN = process.env.GATSBY_DOMAIN

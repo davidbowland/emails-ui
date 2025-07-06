@@ -34,6 +34,10 @@
     "linebreak-style": ["error", "unix"],
     "no-negated-condition": ["error"],
     "quotes": ["error", "single", { "avoidEscape": true }],
+    "react/jsx-curly-brace-presence": [
+      "error",
+      { "children": "never", "propElementValues": "always", "props": "never" }
+    ],
     "react/jsx-sort-props": ["error"],
     "semi": ["error", "never"],
     "sort-keys": ["error", "asc", { "caseSensitive": false, "natural": false }],

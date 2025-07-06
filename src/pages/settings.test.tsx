@@ -1,11 +1,11 @@
-import AccountSettings from '@components/account-settings'
-import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
 import SettingsPage, { Head } from './settings'
+import AccountSettings from '@components/account-settings'
+import Authenticated from '@components/auth'
+import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/account-settings')

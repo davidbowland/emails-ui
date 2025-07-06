@@ -1,7 +1,8 @@
-import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 import { HeadFC, navigate } from 'gatsby'
 import React from 'react'
+
+import Authenticated from '@components/auth'
+import PrivacyLink from '@components/privacy-link'
 
 const Index = (): JSX.Element => {
   return (

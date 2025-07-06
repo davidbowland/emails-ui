@@ -1,11 +1,11 @@
-import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import * as gatsby from 'gatsby'
 import React from 'react'
 
 import Index, { Head } from './index'
+import Authenticated from '@components/auth'
+import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

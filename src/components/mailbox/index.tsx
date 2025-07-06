@@ -1,4 +1,3 @@
-import EmailViewer from '@components/email-viewer'
 import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
 
@@ -19,6 +18,7 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import EmailViewer from '@components/email-viewer'
 import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
 
 export interface MailboxProps {

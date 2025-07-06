@@ -1,6 +1,3 @@
-import AddressLine from '@components/address-line'
-import AttachmentUploader from '@components/attachment-uploader'
-import HtmlEditor from '@components/html-editor'
 import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
@@ -10,6 +7,9 @@ import * as gatsby from 'gatsby'
 import React from 'react'
 
 import Compose from './index'
+import AddressLine from '@components/address-line'
+import AttachmentUploader from '@components/attachment-uploader'
+import HtmlEditor from '@components/html-editor'
 import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')

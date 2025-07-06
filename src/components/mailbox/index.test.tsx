@@ -1,4 +1,3 @@
-import EmailViewer from '@components/email-viewer'
 import { email, emailBatch, emailContents, emailId, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
@@ -7,6 +6,7 @@ import { Auth } from 'aws-amplify'
 import React from 'react'
 
 import Mailbox from './index'
+import EmailViewer from '@components/email-viewer'
 
 jest.mock('aws-amplify')
 jest.mock('@components/email-viewer')

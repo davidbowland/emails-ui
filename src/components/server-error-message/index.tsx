@@ -1,9 +1,10 @@
-import PrivacyLink from '@components/privacy-link'
 import { Link } from 'gatsby'
 import React from 'react'
 
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
+
+import PrivacyLink from '@components/privacy-link'
 
 export interface ServerErrorProps {
   children: React.ReactNode

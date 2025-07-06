@@ -1,6 +1,3 @@
-import AddressLine from '@components/address-line'
-import AttachmentUploader from '@components/attachment-uploader'
-import HtmlEditor from '@components/html-editor'
 import { Auth } from 'aws-amplify'
 import { navigate } from 'gatsby'
 import React, { useEffect, useRef, useState } from 'react'
@@ -23,6 +20,9 @@ import Snackbar from '@mui/material/Snackbar'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import AddressLine from '@components/address-line'
+import AttachmentUploader from '@components/attachment-uploader'
+import HtmlEditor from '@components/html-editor'
 import { postSentEmail } from '@services/emails'
 import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 

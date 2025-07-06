@@ -1,11 +1,11 @@
-import Authenticated from '@components/auth'
-import Compose from '@components/compose'
-import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
 import ComposePage, { Head } from './compose'
+import Authenticated from '@components/auth'
+import Compose from '@components/compose'
+import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

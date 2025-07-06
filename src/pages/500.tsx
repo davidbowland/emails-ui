@@ -1,7 +1,8 @@
-import Authenticated from '@components/auth'
-import ServerErrorMessage from '@components/server-error-message'
 import { HeadFC } from 'gatsby'
 import React from 'react'
+
+import Authenticated from '@components/auth'
+import ServerErrorMessage from '@components/server-error-message'
 
 const InternalServerError = (): JSX.Element => {
   return (

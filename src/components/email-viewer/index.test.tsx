@@ -1,6 +1,3 @@
-import AddressLine from '@components/address-line'
-import AttachmentViewer from '@components/attachment-viewer'
-import Compose from '@components/compose'
 import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen } from '@testing-library/react'
@@ -9,6 +6,9 @@ import DOMPurify from 'dompurify'
 import React from 'react'
 
 import EmailViewer from './index'
+import AddressLine from '@components/address-line'
+import AttachmentViewer from '@components/attachment-viewer'
+import Compose from '@components/compose'
 import { EmailContents } from '@types'
 
 jest.mock('aws-amplify')

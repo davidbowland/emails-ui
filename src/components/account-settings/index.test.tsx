@@ -1,4 +1,3 @@
-import AddressLine from '@components/address-line'
 import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -6,6 +5,7 @@ import { Auth } from 'aws-amplify'
 import React from 'react'
 
 import AccountSettings from './index'
+import AddressLine from '@components/address-line'
 import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')

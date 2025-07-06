@@ -1,4 +1,3 @@
-import AddressLine from '@components/address-line'
 import { Auth } from 'aws-amplify'
 import jsonpatch from 'fast-json-patch'
 import React, { useEffect, useState } from 'react'
@@ -15,6 +14,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import AddressLine from '@components/address-line'
 import { getAccount, patchAccount } from '@services/emails'
 import { Account, AmplifyUser, EmailAddress } from '@types'
 

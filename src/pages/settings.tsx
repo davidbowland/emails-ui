@@ -1,10 +1,11 @@
-import AccountSettings from '@components/account-settings'
-import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 import { HeadFC } from 'gatsby'
 import React from 'react'
 
 import Grid from '@mui/material/Grid'
+
+import AccountSettings from '@components/account-settings'
+import Authenticated from '@components/auth'
+import PrivacyLink from '@components/privacy-link'
 
 const SettingsPage = (): JSX.Element => {
   return (

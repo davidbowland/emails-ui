@@ -1,11 +1,11 @@
-import Authenticated from '@components/auth'
-import Mailbox from '@components/mailbox'
-import PrivacyLink from '@components/privacy-link'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
 import InboxPage, { Head } from './inbox'
+import Authenticated from '@components/auth'
+import Mailbox from '@components/mailbox'
+import PrivacyLink from '@components/privacy-link'
 import * as emails from '@services/emails'
 
 jest.mock('@aws-amplify/analytics')

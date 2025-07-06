@@ -2,7 +2,7 @@
   "importOrder": [
     "<THIRD_PARTY_MODULES>",
     "^@mui",
-    "^(\\.+/|@assets|@config|@events|@handlers|@services|@types|@utils)"
+    "^(\\.+/|@assets|@config|@components|@events|@handlers|@hooks|@services|@types|@utils)"
   ],
   "importOrderCaseInsensitive": true,
   "importOrderSeparation": true,

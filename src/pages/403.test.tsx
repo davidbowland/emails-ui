@@ -1,11 +1,11 @@
-import Authenticated from '@components/auth'
-import ServerErrorMessage from '@components/server-error-message'
-import Themed from '@components/themed'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
 import Forbidden, { Head } from './403'
+import Authenticated from '@components/auth'
+import ServerErrorMessage from '@components/server-error-message'
+import Themed from '@components/themed'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

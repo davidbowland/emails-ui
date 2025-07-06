@@ -1,10 +1,10 @@
-import Authenticated from '@components/auth'
-import PrivacyPolicy from '@components/privacy-policy'
 import { HeadFC } from 'gatsby'
 import React from 'react'
 
 import Paper from '@mui/material/Paper'
 
+import Authenticated from '@components/auth'
+import PrivacyPolicy from '@components/privacy-policy'
 import '@config/amplify'
 
 const PrivacyPage = (): JSX.Element => {

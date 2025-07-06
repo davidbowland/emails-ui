@@ -2,6 +2,7 @@ import Disclaimer from '@components/disclaimer'
 import '@fontsource/roboto'
 import React, { useMemo } from 'react'
 
+import Box from '@mui/material/Box'
 import CssBaseline from '@mui/material/CssBaseline'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -32,7 +33,7 @@ const Themed = ({ children }: ThemedProps): JSX.Element => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {children}
+      <Box sx={{ backgroundColor: 'background.default', color: 'text.primary', minHeight: '100vh' }}>{children}</Box>
       <Disclaimer />
     </ThemeProvider>
   )

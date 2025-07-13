@@ -30,9 +30,7 @@ const Disclaimer = (): JSX.Element => {
                   <Typography variant="body2">
                     This site only uses essential cookies such as those used to keep you logged in. We may collect your
                     phone number simply to prevent fraud and to keep costs low. Depending on your activity, your IP
-                    address may appear in our logs for up to 90 days. We never sell your information, but we do collect
-                    device and site usage information using{' '}
-                    <Link to="https://aws.amazon.com/pinpoint/">Amazon Pinpoint</Link>.
+                    address may appear in our logs for up to 90 days. We never sell your information.
                   </Typography>
                   <Typography variant="body2">
                     See our <Link to="/privacy-policy">privacy policy</Link> for more information.

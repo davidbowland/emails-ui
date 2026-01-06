@@ -16,26 +16,26 @@ describe('Server error message component', () => {
     jest.mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
-  test('expect rendering ServerErrorMessage has title in output', () => {
+  it('expect rendering ServerErrorMessage has title in output', () => {
     render(<ServerErrorMessage title={title}> </ServerErrorMessage>)
 
     expect(screen.getByText(title)).toBeInTheDocument()
   })
 
-  test('expect rendering ServerErrorMessage contains passed children in output', () => {
+  it('expect rendering ServerErrorMessage contains passed children in output', () => {
     render(<ServerErrorMessage title={title}>{children}</ServerErrorMessage>)
 
     expect(screen.getByText(children, { exact: false })).toBeInTheDocument()
   })
 
-  test('expect rendering ServerErrorMessage has link to home', () => {
+  it('expect rendering ServerErrorMessage has link to home', () => {
     render(<ServerErrorMessage title={title}> </ServerErrorMessage>)
 
     const anchors = screen.getAllByRole('link') as HTMLAnchorElement[]
     expect(anchors.filter((link) => new URL(link.href).pathname === '/').length).toBe(1)
   })
 
-  test('expect rendering ServerErrorMessage has privacy link', () => {
+  it('expect rendering ServerErrorMessage has privacy link', () => {
     render(<ServerErrorMessage title={title}> </ServerErrorMessage>)
 
     expect(PrivacyLink).toHaveBeenCalledTimes(1)

@@ -21,11 +21,6 @@ export interface AttachmentCommon {
   type: 'attachment'
 }
 
-export interface AttachmentContents {
-  body: Buffer | string
-  metadata: StringObject
-}
-
 export interface Account {
   bounceSenders: string[]
   forwardTargets: string[]
@@ -87,10 +82,6 @@ export interface EmailAddressReplyTo {
   value: EmailAddress[]
 }
 
-export interface EmailHeaders {
-  [key: string]: string
-}
-
 export interface EmailContents {
   attachments?: EmailAttachment[]
   bccAddress?: EmailAddressParsed
@@ -99,7 +90,7 @@ export interface EmailContents {
   ccAddress?: EmailAddressParsed
   date?: string
   fromAddress: EmailAddressParsed
-  headers: EmailHeaders
+  headers: StringObject
   id: string
   inReplyTo?: string
   references: string[]

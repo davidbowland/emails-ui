@@ -21,13 +21,13 @@ describe('Disclaimer component', () => {
     )
   })
 
-  test('expect disclaimer loads under normal circumstances', async () => {
+  it('expect disclaimer loads under normal circumstances', async () => {
     render(<Disclaimer />)
 
     expect(await screen.findByText(/Accept & continue/i)).toBeVisible()
   })
 
-  test('expect disclaimer closes when button clicked', async () => {
+  it('expect disclaimer closes when button clicked', async () => {
     render(<Disclaimer />)
 
     const closeButton = (await screen.findByText(/Accept & continue/i, {
@@ -43,7 +43,7 @@ describe('Disclaimer component', () => {
     expect(screen.queryByText(/Cookie and Privacy Disclosure/i)).not.toBeInTheDocument()
   })
 
-  test('expect disclaimer loads closed when cookie set', async () => {
+  it('expect disclaimer loads closed when cookie set', async () => {
     mockCookieGet.mockReturnValueOnce('true')
     render(<Disclaimer />)
 

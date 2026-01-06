@@ -30,14 +30,14 @@ describe('AccountSettings component', () => {
     })
   })
 
-  test('expect error message when user not logged in', async () => {
+  it('expect error message when user not logged in', async () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
   })
 
-  test('expect closing snackbar removes error', async () => {
+  it('expect closing snackbar removes error', async () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
@@ -50,7 +50,7 @@ describe('AccountSettings component', () => {
     ).not.toBeInTheDocument()
   })
 
-  test('expect error message when getAccount rejects', async () => {
+  it('expect error message when getAccount rejects', async () => {
     jest.mocked(emails).getAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
@@ -59,7 +59,7 @@ describe('AccountSettings component', () => {
     ).toBeVisible()
   })
 
-  test('expect error message when patchAccount rejects', async () => {
+  it('expect error message when patchAccount rejects', async () => {
     jest.mocked(emails).patchAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
@@ -73,7 +73,7 @@ describe('AccountSettings component', () => {
     ).toBeVisible()
   })
 
-  test('expect patchAccount not called when no changes', async () => {
+  it('expect patchAccount not called when no changes', async () => {
     render(<AccountSettings />)
 
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
@@ -82,7 +82,7 @@ describe('AccountSettings component', () => {
     expect(emails.patchAccount).not.toHaveBeenCalled()
   })
 
-  test('expect patch instructions passed to patchAccount', async () => {
+  it('expect patch instructions passed to patchAccount', async () => {
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
@@ -96,7 +96,7 @@ describe('AccountSettings component', () => {
     ])
   })
 
-  test('expect bounce senders BounceSenderInput rendered', async () => {
+  it('expect bounce senders BounceSenderInput rendered', async () => {
     render(<AccountSettings />)
 
     await screen.findByText(/Account Settings/i)

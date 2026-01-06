@@ -10,9 +10,8 @@ Its purpose is to manage email accounts and handle both received and sent emails
 
 - **Gatsby** - Static site generator and React framework
 - **React** - UI library with functional components
-- **Material-UI (@mui/material)** - Primary component library
+- **Material-UI (@mui/material)** - Primary component library with built-in styling
 - **AWS Amplify** - Authentication and API client
-- **Styled Components** - CSS-in-JS styling
 - **TypeScript** - Type safety
 - **Jest & React Testing Library** - Testing framework
 

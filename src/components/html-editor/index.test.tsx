@@ -126,7 +126,7 @@ describe('HtmlEditor component', () => {
       })
     })
 
-    test('expect link dialog opened when create link clicked', async () => {
+    it('expect link dialog opened when create link clicked', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
@@ -137,7 +137,7 @@ describe('HtmlEditor component', () => {
       expect(await screen.findByText(/Add link to email/i)).toBeVisible()
     })
 
-    test('expect link dialog closed when cancel clicked', async () => {
+    it('expect link dialog closed when cancel clicked', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
@@ -151,7 +151,7 @@ describe('HtmlEditor component', () => {
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
 
-    test('expect link added when link clicked, with range', async () => {
+    it('expect link added when link clicked, with range', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const createLinkButton = (await screen.findByLabelText(/Create link/i, {
@@ -169,7 +169,7 @@ describe('HtmlEditor component', () => {
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
 
-    test('expect link added when link clicked, no range', async () => {
+    it('expect link added when link clicked, no range', async () => {
       getSelection.mockReturnValueOnce(undefined)
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
@@ -201,14 +201,14 @@ describe('HtmlEditor component', () => {
       jest.mocked(pasteEvent).clipboardData.getData.mockReturnValue('pasted text')
     })
 
-    test('expect initialBody sets message body', async () => {
+    it('expect initialBody sets message body', async () => {
       const body = '<p>Hello, world!</p>'
       render(<HtmlEditor initialBody={body} inputRef={React.createRef<HTMLDivElement>()} />)
 
       expect(await screen.findByText(/Hello, world!/i)).toBeInTheDocument()
     })
 
-    test('expect pasting does not work with images', async () => {
+    it('expect pasting does not work with images', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
       const inputDiv = (await screen.findByLabelText(/Message contents/i)) as HTMLDivElement
@@ -217,7 +217,7 @@ describe('HtmlEditor component', () => {
       expect(pasteEvent.preventDefault).not.toHaveBeenCalled()
     })
 
-    test('expect pasting works with plain text', async () => {
+    it('expect pasting works with plain text', async () => {
       jest.mocked(pasteEvent).clipboardData.getData.mockReturnValueOnce('')
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 

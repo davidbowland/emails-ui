@@ -18,6 +18,7 @@ import {
 export const accountId = 'dave'
 
 export const account: Account = {
+  bounceSenders: ['spam@domain.com'],
   forwardTargets: ['any@domain.com'],
   id: accountId,
   name: 'Dave',

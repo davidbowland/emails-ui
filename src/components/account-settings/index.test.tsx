@@ -6,10 +6,12 @@ import React from 'react'
 
 import AccountSettings from './index'
 import AddressLine from '@components/address-line'
+import BounceSenderInput from '@components/bounce-sender-input'
 import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
+jest.mock('@components/bounce-sender-input')
 jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
@@ -17,6 +19,7 @@ describe('AccountSettings component', () => {
   beforeAll(() => {
     jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
+    jest.mocked(BounceSenderInput).mockReturnValue(<>BounceSenderInput</>)
     jest.mocked(emails).getAccount.mockResolvedValue(account)
     jest.mocked(emails).patchAccount.mockResolvedValue(account)
 
@@ -91,5 +94,23 @@ describe('AccountSettings component', () => {
       { op: 'test', path: '/name', value: 'Dave' },
       { op: 'replace', path: '/name', value: 'George' },
     ])
+  })
+
+  test('expect bounce senders BounceSenderInput rendered', async () => {
+    render(<AccountSettings />)
+
+    await screen.findByText(/Account Settings/i)
+    expect(BounceSenderInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Bounce emails from senders:',
+        rules: ['spam@domain.com'],
+      }),
+      {},
+    )
+    expect(
+      await screen.findByText(
+        /Bounce senders can be email addresses \(user@domain\.com\), domains \(@domain\.com\), or \* to bounce all senders\./i,
+      ),
+    ).toBeVisible()
   })
 })

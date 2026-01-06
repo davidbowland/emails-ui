@@ -20,22 +20,14 @@ describe('Address line component', () => {
   it('should allow editing and saving an address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const editButton = (
-      await screen.findAllByLabelText(/Edit recipient/i, {
-        selector: 'button',
-      })
-    )[0] as HTMLButtonElement
-    fireEvent.click(editButton)
-    const addressInput = (await screen.findByLabelText(/Email address/i)) as HTMLInputElement
-    fireEvent.change(addressInput, { target: { value: 'c@domain.com' } })
-    const saveButton = (await screen.findByLabelText(/Save changes/i, {
-      selector: 'button',
-    })) as HTMLButtonElement
-    fireEvent.click(saveButton)
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'c@domain.com' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     expect(setAddresses).toHaveBeenCalledWith([
-      { address: 'c@domain.com', name: '' },
+      { address: 'a@domain.com', name: '' },
       { address: 'b@domain.com', name: '' },
+      { address: 'c@domain.com', name: '' },
     ])
   })
 
@@ -51,30 +43,24 @@ describe('Address line component', () => {
       />,
     )
 
-    const editButton = (
-      await screen.findAllByLabelText(/Edit recipient/i, {
-        selector: 'button',
-      })
-    )[1] as HTMLButtonElement
-    fireEvent.click(editButton)
-    const saveButton = (await screen.findByLabelText(/Save changes/i, {
-      selector: 'button',
-    })) as HTMLButtonElement
-    fireEvent.click(saveButton)
+    // Click the X button on the second chip (empty address)
+    const deleteButtons = await screen.findAllByTestId('CancelIcon')
+    fireEvent.click(deleteButtons[1])
 
-    expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: 'A' }])
+    expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: '' }])
   })
 
   it('should allow adding a new address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const addButton = (await screen.findByLabelText(/Add recipient/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(addButton)
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'new@domain.com' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
 
     expect(setAddresses).toHaveBeenCalledWith([
-      { address: 'a@domain.com', name: 'A' },
+      { address: 'a@domain.com', name: '' },
       { address: 'b@domain.com', name: '' },
-      { address: '', name: '' },
+      { address: 'new@domain.com', name: '' },
     ])
   })
 })

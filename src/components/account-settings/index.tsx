@@ -15,11 +15,13 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import AddressLine from '@components/address-line'
+import BounceSenderInput from '@components/bounce-sender-input'
 import { getAccount, patchAccount } from '@services/emails'
 import { Account, AmplifyUser, EmailAddress } from '@types'
 
 const AccountSettings = (): JSX.Element => {
   const [account, setAccount] = useState<Account | undefined>()
+  const [bounceSenders, setBounceSenders] = useState<string[]>([])
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -31,14 +33,14 @@ const AccountSettings = (): JSX.Element => {
     setIsSaving(true)
     try {
       const forwardTargets = forwardAddresses.map((address) => address.address)
-      const updatedAccount: Account = { forwardTargets, id: accountId, name }
+      const updatedAccount: Account = { bounceSenders, forwardTargets, id: accountId, name }
       const jsonPatchOperations = jsonpatch.compare(account, updatedAccount, true)
       if (jsonPatchOperations.length > 0) {
         await patchAccount(accountId, jsonPatchOperations)
         setAccount(updatedAccount)
       }
     } catch (error: any) {
-      console.error('handleSaveClick', { account, accountId, error, forwardAddresses })
+      console.error('handleSaveClick', { account, accountId, bounceSenders, error, forwardAddresses })
       setErrorMessage('Error saving account settings. Please refresh the page and try again.')
     }
     setIsSaving(false)
@@ -70,6 +72,14 @@ const AccountSettings = (): JSX.Element => {
       {account !== undefined && (
         <AddressLine addresses={forwardAddresses} label="Forward targets:" setAddresses={setForwardAddresses} />
       )}
+      {account !== undefined && (
+        <>
+          <BounceSenderInput label="Bounce emails from senders:" rules={bounceSenders} setRules={setBounceSenders} />
+          <Typography color="text.secondary" variant="body2">
+            Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all senders.
+          </Typography>
+        </>
+      )}
       <Grid container>
         <Grid item order={{ md: 1, xs: 2 }} xs></Grid>
         <Grid item md={3} order={{ md: 2, xs: 1 }} padding={2} xs={12}>
@@ -96,6 +106,7 @@ const AccountSettings = (): JSX.Element => {
 
   useEffect(() => {
     if (account) {
+      setBounceSenders(account.bounceSenders)
       const forwardTargets = account.forwardTargets.map((address) => ({ address, name: '' }))
       setForwardAddresses(forwardTargets)
       setName(account.name)

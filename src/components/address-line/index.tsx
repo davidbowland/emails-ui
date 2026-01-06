@@ -47,6 +47,12 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): JSX.
             value.map((address, index) => {
               const { key, ...tagProps } = getTagProps({ index })
 
+              // Remove delete functionality when read-only
+              if (!setAddresses) {
+                const { onDelete: _, ...readOnlyTagProps } = tagProps
+                return <Chip key={key} label={address} variant="outlined" {...readOnlyTagProps} />
+              }
+
               return <Chip key={key} label={address} variant="outlined" {...tagProps} />
             })
           }

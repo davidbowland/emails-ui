@@ -15,6 +15,8 @@ describe('Address line component', () => {
     expect(await screen.findByText(/to:/i)).toBeVisible()
     expect(await screen.findByText(/a@domain.com/i)).toBeVisible()
     expect(screen.queryByLabelText(/Edit recipient/i)).not.toBeInTheDocument()
+    // Verify no delete buttons are present in read-only mode
+    expect(screen.queryByTestId('CancelIcon')).not.toBeInTheDocument()
   })
 
   it('should allow editing and saving an address', async () => {

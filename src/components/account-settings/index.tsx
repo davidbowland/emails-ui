@@ -77,6 +77,7 @@ const AccountSettings = (): JSX.Element => {
           <BounceSenderInput label="Bounce emails from senders:" rules={bounceSenders} setRules={setBounceSenders} />
           <Typography color="text.secondary" variant="body2">
             Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all senders.
+            Automatically bounced emails will <b>NOT</b> be forwarded.
           </Typography>
         </>
       )}

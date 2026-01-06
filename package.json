@@ -1,6 +1,6 @@
 {
   "name": "emails-ui",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "UI for emails",
   "author": "David Bowland",
   "engines": {

@@ -83,6 +83,34 @@ describe('Email viewer component', () => {
       )
     })
 
+    it('should display bounced chip when bounced prop is true', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounced={true}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      expect(await screen.findByText(/Bounced/i)).toBeVisible()
+    })
+
+    it('should not display bounced chip when bounced prop is false', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounced={false}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      expect(screen.queryByText(/Bounced/i)).not.toBeInTheDocument()
+    })
+
     it('should display empty To line when no recipients', async () => {
       const emailNoToAddress = {
         ...emailContents,

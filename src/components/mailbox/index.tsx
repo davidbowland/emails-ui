@@ -155,10 +155,13 @@ const Mailbox = ({
         </Grid>
       )
     }
+
+    const selectedEmail = receivedEmails?.find((e) => e.id === emailId)
     return (
       <EmailViewer
         accountId={accountId}
         bounceEmail={canBeBounced ? bounceEmailCallback : undefined}
+        bounced={selectedEmail?.data.bounced}
         deleteEmail={deleteEmailCallback}
         email={email}
         emailId={emailId}

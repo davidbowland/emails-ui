@@ -13,6 +13,7 @@ import Alert from '@mui/material/Alert'
 import Backdrop from '@mui/material/Backdrop'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -23,6 +24,7 @@ import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import Snackbar from '@mui/material/Snackbar'
+import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
@@ -47,6 +49,7 @@ enum ComposeMode {
 
 export interface EmailViewerProps {
   accountId: string
+  bounced?: boolean
   bounceEmail?: bounceEmailFn
   deleteEmail?: deleteEmailFn
   email: EmailContents
@@ -56,6 +59,7 @@ export interface EmailViewerProps {
 
 const EmailViewer = ({
   accountId,
+  bounced,
   bounceEmail,
   deleteEmail,
   email,
@@ -148,9 +152,10 @@ const EmailViewer = ({
     }
     return (
       <>
-        <Typography padding={2} paddingBottom={1} variant="h4">
-          {subject}
-        </Typography>
+        <Stack alignItems="center" direction="row" gap={1} padding={2} paddingBottom={1}>
+          <Typography variant="h4">{subject}</Typography>
+          {bounced && <Chip color="error" label="Bounced" size="small" variant="outlined" />}
+        </Stack>
         <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
         {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
         {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}

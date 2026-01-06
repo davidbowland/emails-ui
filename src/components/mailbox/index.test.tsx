@@ -140,7 +140,7 @@ describe('Mailbox component', () => {
 
     expect(await screen.findByText(/Email contents/i)).toBeVisible()
     expect(EmailViewer).toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: user.username, email: emailContents, emailId }),
+      expect.objectContaining({ accountId: user.username, bounced: undefined, email: emailContents, emailId }),
       {},
     )
     expect(patchEmail).toHaveBeenCalledWith(user.username, emailId, [{ op: 'replace', path: '/viewed', value: true }])

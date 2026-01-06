@@ -23,6 +23,7 @@ import EmailViewer from '@components/email-viewer'
 import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
 
 export interface MailboxProps {
+  bounceEmail?: (accountId: string, emailId: string) => Promise<Email>
   deleteEmail: (accountId: string, emailId: string) => Promise<Email>
   getAllEmails: (accountId: string) => Promise<EmailBatch[]>
   getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
@@ -31,6 +32,7 @@ export interface MailboxProps {
 }
 
 const Mailbox = ({
+  bounceEmail,
   deleteEmail,
   getAllEmails,
   getEmailAttachment,
@@ -44,6 +46,13 @@ const Mailbox = ({
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>()
   const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>()
+
+  const bounceEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
+    if (bounceEmail) {
+      await bounceEmail(accountId, emailId)
+      await refreshEmails()
+    }
+  }
 
   const deleteEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
     await deleteEmail(accountId, emailId)
@@ -129,7 +138,12 @@ const Mailbox = ({
     )
   }
 
-  const renderViewer = (accountId: string, emailId?: string, email?: EmailContents): JSX.Element => {
+  const renderViewer = (
+    accountId: string,
+    emailId?: string,
+    email?: EmailContents,
+    canBeBounced?: boolean,
+  ): JSX.Element => {
     if (email === undefined || emailId === undefined) {
       return (
         <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
@@ -144,6 +158,7 @@ const Mailbox = ({
     return (
       <EmailViewer
         accountId={accountId}
+        bounceEmail={canBeBounced ? bounceEmailCallback : undefined}
         deleteEmail={deleteEmailCallback}
         email={email}
         emailId={emailId}
@@ -221,7 +236,12 @@ const Mailbox = ({
           <Card sx={{ minHeight: { md: '80vh', xs: '40vh' }, overflow: 'scroll', width: '100%' }} variant="outlined">
             {isEmailLoading || loggedInUser?.username === undefined
               ? renderLoading()
-              : renderViewer(loggedInUser?.username, selectedEmailId, email)}
+              : renderViewer(
+                loggedInUser?.username,
+                selectedEmailId,
+                email,
+                receivedEmails?.find((e) => e.id === selectedEmailId)?.data.canBeBounced,
+              )}
           </Card>
         </Grid>
       </Grid>

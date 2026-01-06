@@ -12,6 +12,7 @@ import {
   getReceivedAttachment,
   getReceivedEmailContents,
   patchReceivedEmail,
+  postBounceEmail,
 } from '@services/emails'
 
 const InboxPage = (): JSX.Element => {
@@ -21,6 +22,7 @@ const InboxPage = (): JSX.Element => {
         <Grid container sx={{ padding: '0px 10px' }}>
           <Grid item xs>
             <Mailbox
+              bounceEmail={postBounceEmail}
               deleteEmail={deleteReceivedEmail}
               getAllEmails={getAllReceivedEmails}
               getEmailAttachment={getReceivedAttachment}

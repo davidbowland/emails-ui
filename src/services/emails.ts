@@ -59,6 +59,13 @@ export const patchReceivedEmail = (
     body: patchOperations,
   })
 
+export const postBounceEmail = (accountId: string, emailId: string): Promise<Email> =>
+  API.post(
+    apiName,
+    `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}/bounce`,
+    {},
+  )
+
 /* Sent emails */
 
 export const deleteSentEmail = (accountId: string, emailId: string): Promise<Email> =>

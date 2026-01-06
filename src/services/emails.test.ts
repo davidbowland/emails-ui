@@ -28,6 +28,7 @@ import {
   patchAccount,
   patchReceivedEmail,
   patchSentEmail,
+  postBounceEmail,
   postSentAttachment,
   postSentEmail,
   putAccount,
@@ -151,6 +152,17 @@ describe('Emails service', () => {
         expect(API.patch).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received/${emailId}`, {
           body: jsonPatchOperations,
         })
+        expect(result).toEqual(email)
+      })
+    })
+
+    describe('postBounceEmail', () => {
+      it('should return the result from the API call', async () => {
+        jest.mocked(API).post.mockResolvedValueOnce(email)
+
+        const result = await postBounceEmail(accountId, emailId)
+
+        expect(API.post).toHaveBeenCalledWith(apiName, `/accounts/${accountId}/emails/received/${emailId}/bounce`, {})
         expect(result).toEqual(email)
       })
     })

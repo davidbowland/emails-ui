@@ -32,6 +32,7 @@ describe('Email viewer component', () => {
     style,
   }
 
+  const bounceReceivedEmail = jest.fn()
   const deleteReceivedEmail = jest.fn()
   const getAttachment = jest.fn()
   const hookMock = jest.fn()
@@ -544,6 +545,171 @@ describe('Email viewer component', () => {
       })
 
       expect(screen.queryByText(/Error deleting email. Please refresh and try again./i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('bounce', () => {
+    it('should show bounce button when bounceEmail prop is provided', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      expect(await screen.findByLabelText(/Bounce email/i, { selector: 'button' })).toBeVisible()
+    })
+
+    it('should not show bounce button when bounceEmail prop is not provided', async () => {
+      render(
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
+      )
+
+      expect(screen.queryByLabelText(/Bounce email/i, { selector: 'button' })).not.toBeInTheDocument()
+    })
+
+    it('should open confirmation dialog when clicking bounce', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceIcon)
+      })
+
+      expect(await screen.findByText(/Are you sure you want to bounce this email/i)).toBeVisible()
+      expect(
+        await screen.findByText(/Bouncing an email signals to the sender that the account is invalid/i),
+      ).toBeVisible()
+      expect(
+        await screen.findByText(/You can automatically bounce messages from certain senders in account settings/i),
+      ).toBeVisible()
+    })
+
+    it('should close dialog when clicking cancel', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceIcon)
+      })
+
+      const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(cancelButton)
+      })
+
+      expect(screen.queryByText(/Are you sure you want to bounce this email/i)).not.toBeVisible()
+      expect(bounceReceivedEmail).not.toHaveBeenCalled()
+    })
+
+    it('should bounce email when confirming bounce', async () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceIcon)
+      })
+
+      const bounceButton = (await screen.findByText(/Bounce/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceButton)
+      })
+
+      expect(screen.queryByText(/Are you sure you want to bounce this email/i)).not.toBeVisible()
+      expect(bounceReceivedEmail).toHaveBeenCalledWith(accountId, emailId)
+    })
+
+    it('should show error message when bounce operation fails', async () => {
+      bounceReceivedEmail.mockRejectedValueOnce(undefined)
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceIcon)
+      })
+
+      const bounceButton = (await screen.findByText(/Bounce/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceButton)
+      })
+
+      expect(await screen.findByText(/Error bouncing email. Please refresh and try again./i)).toBeVisible()
+    })
+
+    it('should remove error message when closing the snackbar', async () => {
+      bounceReceivedEmail.mockRejectedValueOnce(undefined)
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+        />,
+      )
+
+      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceIcon)
+      })
+
+      const bounceButton = (await screen.findByText(/Bounce/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(bounceButton)
+      })
+
+      await screen.findByText(/Error bouncing email. Please refresh and try again./i)
+      const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(closeSnackbarButton)
+      })
+
+      expect(screen.queryByText(/Error bouncing email. Please refresh and try again./i)).not.toBeInTheDocument()
     })
   })
 })

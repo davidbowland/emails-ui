@@ -2,6 +2,7 @@ import DOMPurify from 'dompurify'
 import React, { useState } from 'react'
 import ReactDOMServer from 'react-dom/server'
 
+import BlockIcon from '@mui/icons-material/Block'
 import DeleteIcon from '@mui/icons-material/Delete'
 import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
 import HideImageIcon from '@mui/icons-material/HideImage'
@@ -33,6 +34,7 @@ import { EmailAddress, EmailContents, SignedUrl } from '@types'
 const DOMAIN = process.env.GATSBY_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 
+type bounceEmailFn = (accountId: string, emailId: string) => Promise<any>
 type deleteEmailFn = (accountId: string, emailId: string) => Promise<any>
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
 
@@ -45,18 +47,43 @@ enum ComposeMode {
 
 export interface EmailViewerProps {
   accountId: string
+  bounceEmail?: bounceEmailFn
   deleteEmail?: deleteEmailFn
   email: EmailContents
   emailId: string
   getAttachment: getAttachmentFn
 }
 
-const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: EmailViewerProps): JSX.Element => {
+const EmailViewer = ({
+  accountId,
+  bounceEmail,
+  deleteEmail,
+  email,
+  emailId,
+  getAttachment,
+}: EmailViewerProps): JSX.Element => {
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
+  const [showBounceDialog, setShowBounceDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showImages, setShowImages] = useState(false)
+
+  const bounceDialogClose = (): void => {
+    setShowBounceDialog(false)
+  }
+
+  const bounceEmailClick = async (bounceEmail: bounceEmailFn): Promise<void> => {
+    setBackdropShown(true)
+    bounceDialogClose()
+    try {
+      await bounceEmail(accountId, emailId)
+    } catch (error: any) {
+      console.error('bounceEmailClick', { accountId, emailId, error })
+      setErrorMessage('Error bouncing email. Please refresh and try again.')
+    }
+    setBackdropShown(false)
+  }
 
   const deleteDialogClose = (): void => {
     setShowDeleteDialog(false)
@@ -170,6 +197,15 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
               </IconButton>
             </Tooltip>
           </Grid>
+          {bounceEmail && (
+            <Grid item xs="auto">
+              <Tooltip title="Bounce email">
+                <IconButton onClick={() => setShowBounceDialog(true)}>
+                  <BlockIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          )}
           {deleteEmail && (
             <Grid item xs="auto">
               <Tooltip title="Delete email">
@@ -269,6 +305,26 @@ const EmailViewer = ({ accountId, deleteEmail, email, emailId, getAttachment }: 
           </Grid>
         </Grid>
       </Backdrop>
+      <Dialog
+        aria-describedby="Are you sure you want to bounce the email?"
+        aria-labelledby="Bounce email dialog"
+        onClose={bounceDialogClose}
+        open={showBounceDialog}
+      >
+        <DialogTitle id="bounce-dialog-title">Bounce email</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="bounce-dialog-description">
+            Are you sure you want to bounce this email? Bouncing an email signals to the sender that the account is
+            invalid. You can automatically bounce messages from certain senders in account settings.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={bounceDialogClose}>
+            Cancel
+          </Button>
+          {bounceEmail && <Button onClick={() => bounceEmailClick(bounceEmail)}>Bounce</Button>}
+        </DialogActions>
+      </Dialog>
       <Dialog
         aria-describedby="Are you sure you want to delete the email?"
         aria-labelledby="Delete email dialog"

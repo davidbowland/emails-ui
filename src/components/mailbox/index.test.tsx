@@ -13,6 +13,7 @@ jest.mock('@components/email-viewer')
 jest.mock('@config/amplify')
 
 describe('Mailbox component', () => {
+  const bounceEmail = jest.fn().mockResolvedValue(email)
   const deleteEmail = jest.fn().mockResolvedValue(email)
   const getAllEmails = jest.fn().mockResolvedValue(emailBatch)
   const getEmailAttachment = jest.fn()
@@ -34,6 +35,7 @@ describe('Mailbox component', () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -49,6 +51,7 @@ describe('Mailbox component', () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -73,6 +76,7 @@ describe('Mailbox component', () => {
     getAllEmails.mockRejectedValueOnce(undefined)
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -87,6 +91,7 @@ describe('Mailbox component', () => {
   it('should render the email list', async () => {
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -102,6 +107,7 @@ describe('Mailbox component', () => {
     getAllEmails.mockResolvedValueOnce([])
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -116,6 +122,7 @@ describe('Mailbox component', () => {
   it('should render email content when clicking on an email', async () => {
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -143,6 +150,7 @@ describe('Mailbox component', () => {
     getEmailContents.mockRejectedValueOnce(undefined).mockRejectedValueOnce(undefined)
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -161,6 +169,41 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Error fetching email. Please try again./i)).toBeVisible()
   })
 
+  it('should invoke bounceEmail and refresh email list when bouncing an email', async () => {
+    const bouncableEmailBatch = [
+      {
+        accountId,
+        data: {
+          ...email,
+          canBeBounced: true,
+        },
+        id: emailId,
+      },
+    ]
+    getAllEmails.mockResolvedValueOnce(bouncableEmailBatch).mockResolvedValueOnce(bouncableEmailBatch)
+
+    jest.mocked(EmailViewer).mockImplementationOnce(({ bounceEmail }) => {
+      bounceEmail && bounceEmail(user.username as string, emailId)
+      return <>Bounce invoked</>
+    })
+    render(
+      <Mailbox
+        bounceEmail={bounceEmail}
+        deleteEmail={deleteEmail}
+        getAllEmails={getAllEmails}
+        getEmailAttachment={getEmailAttachment}
+        getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
+      />,
+    )
+
+    await screen.findByText(/Bounce invoked/i)
+    await waitFor(() => {
+      expect(bounceEmail).toHaveBeenCalledWith(user.username, emailId)
+    })
+    expect(getAllEmails).toHaveBeenCalledWith(user.username)
+  })
+
   it('should invoke deleteEmail and refresh email list when deleting an email', async () => {
     jest.mocked(EmailViewer).mockImplementationOnce(({ deleteEmail }) => {
       deleteEmail && deleteEmail(user.username as string, emailId)
@@ -168,6 +211,7 @@ describe('Mailbox component', () => {
     })
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -186,6 +230,7 @@ describe('Mailbox component', () => {
   it('should show email content when clicking forward button', async () => {
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -208,8 +253,11 @@ describe('Mailbox component', () => {
   })
 
   it('should return to email list when clicking back button', async () => {
+    getAllEmails.mockResolvedValueOnce(emailBatch)
+
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -252,6 +300,7 @@ describe('Mailbox component', () => {
 
     render(
       <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}
@@ -278,33 +327,7 @@ describe('Mailbox component', () => {
 
     render(
       <Mailbox
-        deleteEmail={deleteEmail}
-        getAllEmails={getAllEmails}
-        getEmailAttachment={getEmailAttachment}
-        getEmailContents={getEmailContents}
-        patchEmail={patchEmail}
-      />,
-    )
-
-    await screen.findByText(/Hello, world of email/i)
-    expect(screen.queryByText(/Bounced/i)).not.toBeInTheDocument()
-  })
-
-  it('should not display bounced chip when bounced property is undefined', async () => {
-    const emailWithoutBouncedProperty = [
-      {
-        accountId,
-        data: {
-          ...email,
-          // bounced property is undefined
-        },
-        id: emailId,
-      },
-    ]
-    getAllEmails.mockResolvedValueOnce(emailWithoutBouncedProperty)
-
-    render(
-      <Mailbox
+        bounceEmail={bounceEmail}
         deleteEmail={deleteEmail}
         getAllEmails={getAllEmails}
         getEmailAttachment={getEmailAttachment}

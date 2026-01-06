@@ -30,6 +30,7 @@ describe('Inbox page', () => {
     render(<InboxPage />)
     expect(Mailbox).toHaveBeenCalledWith(
       {
+        bounceEmail: jest.mocked(emails).postBounceEmail,
         deleteEmail: jest.mocked(emails).deleteReceivedEmail,
         getAllEmails: jest.mocked(emails).getAllReceivedEmails,
         getEmailAttachment: jest.mocked(emails).getReceivedAttachment,

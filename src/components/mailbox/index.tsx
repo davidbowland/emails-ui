@@ -6,6 +6,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
+import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
@@ -105,9 +106,12 @@ const Mailbox = ({
             >
               <ListItemText
                 primary={
-                  <Typography sx={{ fontWeight: email.data.viewed ? 'normal' : 'bold' }}>
-                    {email.data.subject}
-                  </Typography>
+                  <Stack alignItems="center" direction="row" spacing={1}>
+                    <Typography sx={{ fontWeight: email.data.viewed ? 'normal' : 'bold' }}>
+                      {email.data.subject}
+                    </Typography>
+                    {email.data.bounced && <Chip color="error" label="Bounced" size="small" variant="outlined" />}
+                  </Stack>
                 }
                 secondary={
                   <Stack spacing={1}>

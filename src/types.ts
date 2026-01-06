@@ -53,6 +53,7 @@ export interface EmailAttachment {
 export interface Email {
   attachments?: EmailAttachment[]
   bcc?: string[]
+  bounced?: boolean
   cc?: string[]
   from: string
   subject: string

@@ -1,4 +1,4 @@
-import { email, emailBatch, emailContents, emailId, user } from '@test/__mocks__'
+import { email, emailBatch, emailContents, emailId, user, accountId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -235,5 +235,85 @@ describe('Mailbox component', () => {
     })
 
     expect(await screen.findByText(/4\/13\/1975, \d+:21:13 PM/i)).toBeVisible()
+  })
+
+  it('should display bounced chip when email is bounced', async () => {
+    const bouncedEmailBatch = [
+      {
+        accountId,
+        data: {
+          ...email,
+          bounced: true,
+        },
+        id: emailId,
+      },
+    ]
+    getAllEmails.mockResolvedValueOnce(bouncedEmailBatch)
+
+    render(
+      <Mailbox
+        deleteEmail={deleteEmail}
+        getAllEmails={getAllEmails}
+        getEmailAttachment={getEmailAttachment}
+        getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
+      />,
+    )
+
+    expect(await screen.findByText(/Bounced/i)).toBeVisible()
+  })
+
+  it('should not display bounced chip when email is not bounced', async () => {
+    const nonBouncedEmailBatch = [
+      {
+        accountId,
+        data: {
+          ...email,
+          bounced: false,
+        },
+        id: emailId,
+      },
+    ]
+    getAllEmails.mockResolvedValueOnce(nonBouncedEmailBatch)
+
+    render(
+      <Mailbox
+        deleteEmail={deleteEmail}
+        getAllEmails={getAllEmails}
+        getEmailAttachment={getEmailAttachment}
+        getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
+      />,
+    )
+
+    await screen.findByText(/Hello, world of email/i)
+    expect(screen.queryByText(/Bounced/i)).not.toBeInTheDocument()
+  })
+
+  it('should not display bounced chip when bounced property is undefined', async () => {
+    const emailWithoutBouncedProperty = [
+      {
+        accountId,
+        data: {
+          ...email,
+          // bounced property is undefined
+        },
+        id: emailId,
+      },
+    ]
+    getAllEmails.mockResolvedValueOnce(emailWithoutBouncedProperty)
+
+    render(
+      <Mailbox
+        deleteEmail={deleteEmail}
+        getAllEmails={getAllEmails}
+        getEmailAttachment={getEmailAttachment}
+        getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
+      />,
+    )
+
+    await screen.findByText(/Hello, world of email/i)
+    expect(screen.queryByText(/Bounced/i)).not.toBeInTheDocument()
   })
 })

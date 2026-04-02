@@ -1,4 +1,4 @@
-import { Link } from 'gatsby'
+import Link from 'next/link'
 import React from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -11,7 +11,7 @@ export interface ServerErrorProps {
   title: string
 }
 
-const ServerErrorMessage = ({ children, title }: ServerErrorProps): JSX.Element => {
+const ServerErrorMessage = ({ children, title }: ServerErrorProps): React.ReactNode => {
   return (
     <>
       <Grid container justifyContent="center">
@@ -23,7 +23,7 @@ const ServerErrorMessage = ({ children, title }: ServerErrorProps): JSX.Element 
             {children}
           </Grid>
           <Grid item xs>
-            <Link to="/">Go home</Link>
+            <Link href="/">Go home</Link>
             <PrivacyLink />
           </Grid>
         </Grid>

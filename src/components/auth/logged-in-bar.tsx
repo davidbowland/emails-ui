@@ -1,4 +1,4 @@
-import { Link } from 'gatsby'
+import Link from 'next/link'
 import React from 'react'
 
 import MenuIcon from '@mui/icons-material/Menu'
@@ -13,7 +13,7 @@ export interface LoggedInBarProps {
   openMenu: () => void
 }
 
-const LoggedInBar = ({ loggedInUser, navMenuOpen, openMenu }: LoggedInBarProps): JSX.Element => {
+const LoggedInBar = ({ loggedInUser, navMenuOpen, openMenu }: LoggedInBarProps): React.ReactNode => {
   return (
     <>
       <IconButton
@@ -28,7 +28,7 @@ const LoggedInBar = ({ loggedInUser, navMenuOpen, openMenu }: LoggedInBarProps):
         <MenuIcon />
       </IconButton>
       <Typography sx={{ flexGrow: 1 }} variant="h6">
-        <Link style={{ color: '#fff', textDecoration: 'none' }} to="/">
+        <Link href="/" style={{ color: '#fff', textDecoration: 'none' }}>
           Email
         </Link>
       </Typography>

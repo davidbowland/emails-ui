@@ -1,4 +1,4 @@
-import { HeadFC } from 'gatsby'
+import Head from 'next/head'
 import React from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -7,21 +7,24 @@ import Authenticated from '@components/auth'
 import Compose from '@components/compose'
 import PrivacyLink from '@components/privacy-link'
 
-const ComposePage = (): JSX.Element => {
+const ComposePage = (): React.ReactNode => {
   return (
-    <main style={{ height: '100%' }}>
-      <Authenticated>
-        <Grid container sx={{ padding: '0px 10px' }}>
-          <Grid item xs>
-            <Compose />
+    <>
+      <Head>
+        <title>Email | dbowland.com</title>
+      </Head>
+      <main style={{ height: '100%' }}>
+        <Authenticated>
+          <Grid container sx={{ padding: '0px 10px' }}>
+            <Grid item xs>
+              <Compose />
+            </Grid>
           </Grid>
-        </Grid>
-      </Authenticated>
-      <PrivacyLink />
-    </main>
+        </Authenticated>
+        <PrivacyLink />
+      </main>
+    </>
   )
 }
-
-export const Head: HeadFC = () => <title>Email | dbowland.com</title>
 
 export default ComposePage

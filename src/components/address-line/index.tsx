@@ -16,7 +16,7 @@ export interface AddressLineProps {
   setAddresses?: AddressSetter
 }
 
-const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): JSX.Element => {
+const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): React.ReactNode => {
   const handleChange = (event: React.SyntheticEvent, newValue: string[]): void => {
     if (!setAddresses) return
 

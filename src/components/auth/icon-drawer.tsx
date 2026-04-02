@@ -1,7 +1,7 @@
 import '@aws-amplify/ui-react/styles.css'
 import { Auth } from 'aws-amplify'
-import { navigate } from 'gatsby'
-import React, { useState } from 'react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import CreateIcon from '@mui/icons-material/Create'
@@ -33,7 +33,7 @@ import Tooltip from '@mui/material/Tooltip'
 
 import { AmplifyUser } from '@types'
 
-const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)
+const drawerWidth = parseInt(process.env.NEXT_PUBLIC_DRAWER_WIDTH, 10)
 
 const openedMixin = (theme: Theme): CSSObject => ({
   overflowX: 'hidden',
@@ -80,7 +80,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 }))
 
 export interface IconDrawerProps {
-  children: JSX.Element | JSX.Element[]
+  children: React.ReactNode
   closeMenu: () => void
   loggedInUser: AmplifyUser
   navMenuOpen: boolean
@@ -95,9 +95,16 @@ const IconDrawer = ({
   navMenuOpen,
   openMenu,
   setLoggedInUser,
-}: IconDrawerProps): JSX.Element => {
+}: IconDrawerProps): React.ReactNode => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDeleteErrorSnackbar, setShowDeleteErrorSnackbar] = useState(false)
+
+  const router = useRouter()
+  const [pathname, setPathname] = useState('')
+
+  useEffect(() => {
+    setPathname(window.location.pathname)
+  }, [router.asPath])
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
@@ -121,7 +128,6 @@ const IconDrawer = ({
     setShowDeleteErrorSnackbar(false)
   }
 
-  const pathname = (typeof window !== 'undefined' && window.location.pathname) || ''
   return (
     <>
       <Drawer onClose={closeMenu} onOpen={openMenu} open={navMenuOpen} variant="permanent">
@@ -134,7 +140,7 @@ const IconDrawer = ({
         <List>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/compose')}
+              onClick={() => router.push('/compose')}
               selected={!!pathname.match(/\/compose\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
@@ -158,7 +164,7 @@ const IconDrawer = ({
           </ListItem>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/inbox')}
+              onClick={() => router.push('/inbox')}
               selected={!!pathname.match(/\/inbox\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
@@ -182,7 +188,7 @@ const IconDrawer = ({
           </ListItem>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/outbox')}
+              onClick={() => router.push('/outbox')}
               selected={!!pathname.match(/\/outbox\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
@@ -209,7 +215,7 @@ const IconDrawer = ({
         <List>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/settings')}
+              onClick={() => router.push('/settings')}
               selected={!!pathname.match(/\/settings\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',
@@ -233,7 +239,7 @@ const IconDrawer = ({
           </ListItem>
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/privacy-policy')}
+              onClick={() => router.push('/privacy-policy')}
               selected={!!pathname.match(/\/privacy-policy\/?$/)}
               sx={{
                 justifyContent: navMenuOpen ? 'initial' : 'center',

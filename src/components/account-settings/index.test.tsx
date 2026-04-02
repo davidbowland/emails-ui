@@ -105,7 +105,7 @@ describe('AccountSettings component', () => {
         label: 'Bounce emails from senders:',
         rules: ['spam@domain.com'],
       }),
-      {},
+      undefined,
     )
     expect(
       await screen.findByText(

@@ -13,7 +13,7 @@ import LoggedInBar from './logged-in-bar'
 import LoggedOutBar from './logged-out-bar'
 import { AmplifyUser } from '@types'
 
-const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)
+const drawerWidth = parseInt(process.env.NEXT_PUBLIC_DRAWER_WIDTH, 10)
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean
@@ -38,11 +38,11 @@ const AppBar = styled(MuiAppBar, {
 }))
 
 export interface AuthenticatedProps {
-  children: JSX.Element | JSX.Element[]
+  children: React.ReactNode
   showContent?: boolean
 }
 
-const Authenticated = ({ children, showContent = false }: AuthenticatedProps): JSX.Element => {
+const Authenticated = ({ children, showContent = false }: AuthenticatedProps): React.ReactNode => {
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
   const [navMenuOpen, setNavMenuOpen] = useState(false)
 
@@ -54,7 +54,7 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): J
     setNavMenuOpen(true)
   }
 
-  const renderChildren = (): JSX.Element[] | JSX.Element => {
+  const renderChildren = (): React.ReactNode => {
     if (loggedInUser) {
       return (
         <IconDrawer

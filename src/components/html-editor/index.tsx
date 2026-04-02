@@ -69,10 +69,10 @@ const formatParagraphButtons = [
 
 export interface HtmlEditorProps {
   initialBody?: string
-  inputRef: RefObject<HTMLDivElement>
+  inputRef: RefObject<HTMLDivElement | null>
 }
 
-const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => {
+const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode => {
   const [linkErrorMessage, setLinkErrorMessage] = useState<string | undefined>()
   const [linkRange, setLinkRange] = useState<Range | undefined>()
   const [linkTarget, setLinkTarget] = useState('')

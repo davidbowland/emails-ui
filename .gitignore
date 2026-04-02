@@ -8,6 +8,8 @@ out/
 .next/
 
 # Generated artifacts
+public/sitemap*.xml
+public/robots.txt
 public/
 
 # Compiled Java class files

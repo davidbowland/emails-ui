@@ -4,7 +4,10 @@ __snapshots__/
 coverage/
 deploy/
 infrastructure/
+next.config.js
+next-sitemap.config.js
 node_modules/
+out/
 public/
 static/
 *.min.*

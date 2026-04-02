@@ -1,13 +1,13 @@
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      GATSBY_COGNITO_APP_CLIENT_ID: string
-      GATSBY_COGNITO_USER_POOL_ID: string
-      GATSBY_DOMAIN: string
-      GATSBY_DRAWER_WIDTH: string
-      GATSBY_EMAILS_API_BASE_URL: string
-      GATSBY_IDENTITY_POOL_ID: string
-      GATSBY_MAX_UPLOAD_SIZE: string
+      NEXT_PUBLIC_COGNITO_APP_CLIENT_ID: string
+      NEXT_PUBLIC_COGNITO_USER_POOL_ID: string
+      NEXT_PUBLIC_DOMAIN: string
+      NEXT_PUBLIC_DRAWER_WIDTH: string
+      NEXT_PUBLIC_EMAILS_API_BASE_URL: string
+      NEXT_PUBLIC_IDENTITY_POOL_ID: string
+      NEXT_PUBLIC_MAX_UPLOAD_SIZE: string
     }
   }
 }

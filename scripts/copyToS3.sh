@@ -10,7 +10,7 @@ fi
 
 ### Deploy code by copying build output to S3
 
-cd public
+cd out
 # Cache "forever" (one year)
 aws s3 sync . "s3://$S3_BUCKET/" --exclude "*.html" --exclude "*.json" --exclude "*.xml" \
   --metadata-directive REPLACE --cache-control "public, max-age=31536000, immutable" --acl public-read

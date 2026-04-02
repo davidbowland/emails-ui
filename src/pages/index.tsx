@@ -1,18 +1,34 @@
-import { HeadFC, navigate } from 'gatsby'
-import React from 'react'
+import Head from 'next/head'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 
 import Authenticated from '@components/auth'
 import PrivacyLink from '@components/privacy-link'
 
-const Index = (): JSX.Element => {
+const Index = (): React.ReactNode => {
+  const router = useRouter()
+  const [redirected, setRedirected] = useState(false)
+
+  useEffect(() => {
+    if (!redirected) {
+      setRedirected(true)
+      router.replace('/inbox')
+    }
+  }, [])
+
   return (
-    <main style={{ height: '100%' }}>
-      <Authenticated>{(typeof window !== 'undefined' && navigate('/inbox')) || <></>}</Authenticated>
-      <PrivacyLink />
-    </main>
+    <>
+      <Head>
+        <title>Email | dbowland.com</title>
+      </Head>
+      <main style={{ height: '100%' }}>
+        <Authenticated>
+          <></>
+        </Authenticated>
+        <PrivacyLink />
+      </main>
+    </>
   )
 }
-
-export const Head: HeadFC = () => <title>Email | dbowland.com</title>
 
 export default Index

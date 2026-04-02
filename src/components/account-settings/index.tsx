@@ -19,7 +19,7 @@ import BounceSenderInput from '@components/bounce-sender-input'
 import { getAccount, patchAccount } from '@services/emails'
 import { Account, AmplifyUser, EmailAddress } from '@types'
 
-const AccountSettings = (): JSX.Element => {
+const AccountSettings = (): React.ReactNode => {
   const [account, setAccount] = useState<Account | undefined>()
   const [bounceSenders, setBounceSenders] = useState<string[]>([])
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
@@ -46,7 +46,7 @@ const AccountSettings = (): JSX.Element => {
     setIsSaving(false)
   }
 
-  const renderLoading = (): JSX.Element => (
+  const renderLoading = (): React.ReactNode => (
     <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
       <Grid item>
         <CircularProgress />
@@ -54,7 +54,7 @@ const AccountSettings = (): JSX.Element => {
     </Grid>
   )
 
-  const renderSettings = (): JSX.Element => (
+  const renderSettings = (): React.ReactNode => (
     <Stack padding={2} spacing={2}>
       <Typography component="div" variant="h4">
         Account Settings

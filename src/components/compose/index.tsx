@@ -1,5 +1,5 @@
 import { Auth } from 'aws-amplify'
-import { navigate } from 'gatsby'
+import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -26,8 +26,8 @@ import HtmlEditor from '@components/html-editor'
 import { postSentEmail } from '@services/emails'
 import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 
-const DOMAIN = process.env.GATSBY_DOMAIN
-const MAX_UPLOAD_SIZE = parseInt(process.env.GATSBY_MAX_UPLOAD_SIZE, 10)
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN
+const MAX_UPLOAD_SIZE = parseInt(process.env.NEXT_PUBLIC_MAX_UPLOAD_SIZE, 10)
 
 export interface ComposeProps {
   discardCallback?: () => void
@@ -49,7 +49,7 @@ const Compose = ({
   initialSubject,
   initialToAddresses,
   references,
-}: ComposeProps): JSX.Element => {
+}: ComposeProps): React.ReactNode => {
   const [attachmentMessage, setAttachmentMessage] = useState<string | undefined>()
   const [attachments, setAttachments] = useState<EmailAttachment[]>(initialAttachments ?? [])
   const [bccAddresses, setBccAddresses] = useState<EmailAddress[]>([])
@@ -63,6 +63,8 @@ const Compose = ({
   const [toAddresses, setToAddresses] = useState<EmailAddress[]>(initialToAddresses ?? [])
 
   const editor = useRef<HTMLDivElement>(null)
+
+  const router = useRouter()
 
   const discardDialogClose = (): void => {
     setIsDiscardDialogOpen(false)
@@ -126,7 +128,7 @@ const Compose = ({
       }
       await postSentEmail(accountId, outboundEmail)
       resetForm(editor)
-      navigate('/outbox')
+      router.push('/outbox')
     } catch (error) {
       console.error('handleSendClick', {
         accountId,

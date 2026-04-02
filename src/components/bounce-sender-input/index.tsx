@@ -40,7 +40,7 @@ const formatRuleDisplay = (rule: string): string => {
   return rule
 }
 
-const BounceSenderInput = ({ label, rules, setRules }: BounceSenderInputProps): JSX.Element => {
+const BounceSenderInput = ({ label, rules, setRules }: BounceSenderInputProps): React.ReactNode => {
   const handleChange = (_event: React.SyntheticEvent, newValue: string[]): void => {
     if (!setRules) return
 

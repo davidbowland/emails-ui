@@ -1,16 +1,16 @@
-import { Link } from 'gatsby'
+import Link from 'next/link'
 import React from 'react'
 
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
-const PrivacyPolicy = (): JSX.Element => {
+const PrivacyPolicy = (): React.ReactNode => {
   return (
     <Stack padding={4} spacing={2}>
       <Typography variant="h5">Email Privacy Policy</Typography>
       <Typography variant="body1">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit{' '}
-        <Link to="/">https://email.dbowland.com</Link> (the &quot;Site&quot;).
+        <Link href="/">https://email.dbowland.com</Link> (the &quot;Site&quot;).
       </Typography>
       <Typography variant="h6">PERSONAL INFORMATION WE COLLECT</Typography>
       <Typography variant="body1">
@@ -26,7 +26,7 @@ const PrivacyPolicy = (): JSX.Element => {
           <li>
             &quot;Cookies&quot; are data files that are placed on your device or computer and often include an anonymous
             unique identifier. For more information about cookies, and how to disable cookies, visit{' '}
-            <Link to="https://www.allaboutcookies.org">https://www.allaboutcookies.org</Link>.
+            <Link href="https://www.allaboutcookies.org">https://www.allaboutcookies.org</Link>.
           </li>
           <li>
             &quot;Log files&quot; track actions occurring on the Site, and collect data including your IP address,
@@ -81,8 +81,8 @@ const PrivacyPolicy = (): JSX.Element => {
       <Typography variant="h6">CONTACT US</Typography>
       <Typography variant="body1">
         For more information about our privacy practices, if you have questions, or if you would like to make a
-        complaint, please contact us by e-mail at <Link to="mailto:privacy@dbowland.com">privacy@dbowland.com</Link> or
-        by mail using the details provided below:
+        complaint, please contact us by e-mail at <Link href="mailto:privacy@dbowland.com">privacy@dbowland.com</Link>{' '}
+        or by mail using the details provided below:
       </Typography>
       <Typography variant="body1">dbowland.com Privacy Department, P.O. Box 81226, Seattle, WA, 98108-1226</Typography>
     </Stack>

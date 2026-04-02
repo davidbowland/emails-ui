@@ -38,7 +38,7 @@ const Mailbox = ({
   getEmailAttachment,
   getEmailContents,
   patchEmail,
-}: MailboxProps): JSX.Element => {
+}: MailboxProps): React.ReactNode => {
   const [email, setEmail] = useState<EmailContents | undefined>()
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isEmailLoading, setIsEmailLoading] = useState(false)
@@ -85,7 +85,7 @@ const Mailbox = ({
     }
   }
 
-  const renderLoading = (): JSX.Element => (
+  const renderLoading = (): React.ReactNode => (
     <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
       <Grid item>
         <CircularProgress />
@@ -93,7 +93,7 @@ const Mailbox = ({
     </Grid>
   )
 
-  const renderReceivedEmails = (receivedEmails: EmailBatch[]): JSX.Element => {
+  const renderReceivedEmails = (receivedEmails: EmailBatch[]): React.ReactNode => {
     if (receivedEmails.length === 0) {
       return (
         <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
@@ -143,7 +143,7 @@ const Mailbox = ({
     emailId?: string,
     email?: EmailContents,
     canBeBounced?: boolean,
-  ): JSX.Element => {
+  ): React.ReactNode => {
     if (email === undefined || emailId === undefined) {
       return (
         <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>

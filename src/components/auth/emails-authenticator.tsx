@@ -9,7 +9,7 @@ export interface EmailsAuthenticatorProps {
   setLoggedInUser: (user: AmplifyUser | undefined) => void
 }
 
-const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): JSX.Element => {
+const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): React.ReactNode => {
   const theme = {
     name: 'dark-mode-theme',
     overrides: [defaultDarkModeOverride],

@@ -1,8 +1,8 @@
+import BadRequest from '@pages/400'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
-import BadRequest, { Head } from './400'
 import Authenticated from '@components/auth'
 import ServerErrorMessage from '@components/server-error-message'
 import Themed from '@components/themed'
@@ -12,6 +12,7 @@ jest.mock('@components/auth')
 jest.mock('@components/server-error-message')
 jest.mock('@components/themed')
 jest.mock('@config/amplify')
+jest.mock('next/head', () => jest.fn().mockImplementation(({ children }) => <>{children}</>))
 
 describe('400 error page', () => {
   beforeAll(() => {
@@ -28,21 +29,12 @@ describe('400 error page', () => {
   it('should render ServerErrorMessage with correct title', () => {
     const expectedTitle = '400: Bad Request'
     render(<BadRequest />)
-    expect(ServerErrorMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ title: expectedTitle }),
-      expect.anything(),
-    )
+    expect(ServerErrorMessage).toHaveBeenCalledWith(expect.objectContaining({ title: expectedTitle }), undefined)
     expect(ServerErrorMessage).toHaveBeenCalledTimes(1)
   })
 
-  it('should return title in Head component', () => {
-    const { container } = render(<Head {...({} as any)} />)
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <title>
-          400: Bad Request | dbowland.com
-        </title>
-      </div>
-    `)
+  it('should return title in Head', () => {
+    render(<BadRequest />)
+    expect(document.title).toBe('400: Bad Request | dbowland.com')
   })
 })

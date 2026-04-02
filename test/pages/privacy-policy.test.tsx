@@ -1,14 +1,15 @@
+import PrivacyPage from '@pages/privacy-policy'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 import React from 'react'
 
-import PrivacyPage, { Head } from './privacy-policy'
 import Authenticated from '@components/auth'
 import PrivacyPolicy from '@components/privacy-policy'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/privacy-policy')
+jest.mock('next/head', () => jest.fn().mockImplementation(({ children }) => <>{children}</>))
 
 describe('Privacy page', () => {
   beforeAll(() => {
@@ -26,14 +27,8 @@ describe('Privacy page', () => {
     expect(PrivacyPolicy).toHaveBeenCalledTimes(1)
   })
 
-  it('should return title in Head component', () => {
-    const { container } = render(<Head {...({} as any)} />)
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <title>
-          Privacy Policy | dbowland.com
-        </title>
-      </div>
-    `)
+  it('should return title in Head', () => {
+    render(<PrivacyPage />)
+    expect(document.title).toBe('Privacy Policy | dbowland.com')
   })
 })

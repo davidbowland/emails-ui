@@ -33,7 +33,7 @@ import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
 import { EmailAddress, EmailContents, SignedUrl } from '@types'
 
-const DOMAIN = process.env.GATSBY_DOMAIN
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 
 type bounceEmailFn = (accountId: string, emailId: string) => Promise<any>
@@ -65,7 +65,7 @@ const EmailViewer = ({
   email,
   emailId,
   getAttachment,
-}: EmailViewerProps): JSX.Element => {
+}: EmailViewerProps): React.ReactNode => {
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
@@ -111,7 +111,7 @@ const EmailViewer = ({
 
   const filterUsersEmail = (address: EmailAddress) => address.address.toLowerCase() !== `${accountId}@${DOMAIN}`
 
-  const renderEmail = (): JSX.Element => {
+  const renderEmail = (): React.ReactNode => {
     const replyTo = email.replyToAddress.display ? email.replyToAddress.value : email.fromAddress.value
     const subject = email.subject ?? 'no subject'
     if (composeMode === ComposeMode.REPLY) {
@@ -260,20 +260,17 @@ const EmailViewer = ({
   }
 
   if (showImages === false) {
-    DOMPurify.addHook(
-      'uponSanitizeElement',
-      (node: Element | any, data: DOMPurify.UponSanitizeElementHookEvent): void => {
-        // Remove external CSS from style tags
-        if (data.tagName.toLowerCase() === 'style') {
-          for (const rule of node.sheet.cssRules) {
-            if (rule.style) {
-              removeExternalCss(rule.style)
-            }
+    DOMPurify.addHook('uponSanitizeElement', (node: Element | any, data: DOMPurify.SanitizeElementHookEvent): void => {
+      // Remove external CSS from style tags
+      if (data.tagName.toLowerCase() === 'style') {
+        for (const rule of node.sheet.cssRules) {
+          if (rule.style) {
+            removeExternalCss(rule.style)
           }
-          node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
         }
-      },
-    )
+        node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
+      }
+    })
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element | any): void => {
       // Remove any attributes that leak HTTP calls

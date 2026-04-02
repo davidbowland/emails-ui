@@ -58,28 +58,28 @@ describe('Email viewer component', () => {
           addresses: emailContents.toAddress?.value,
           label: 'To:',
         },
-        {},
+        undefined,
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.ccAddress?.value,
           label: 'CC:',
         },
-        {},
+        undefined,
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.bccAddress?.value,
           label: 'BCC:',
         },
-        {},
+        undefined,
       )
       expect(AddressLine).toHaveBeenCalledWith(
         {
           addresses: emailContents.fromAddress.value,
           label: 'From:',
         },
-        {},
+        undefined,
       )
     })
 
@@ -120,7 +120,7 @@ describe('Email viewer component', () => {
         <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />,
       )
 
-      expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, {})
+      expect(AddressLine).toHaveBeenCalledWith({ addresses: [], label: 'To:' }, undefined)
     })
 
     it('should display attachments when present', async () => {
@@ -132,7 +132,10 @@ describe('Email viewer component', () => {
         <EmailViewer accountId={accountId} email={emailNoToAddress} emailId={emailId} getAttachment={getAttachment} />,
       )
 
-      expect(AttachmentViewer).toHaveBeenCalledWith(expect.objectContaining({ accountId, attachments, emailId }), {})
+      expect(AttachmentViewer).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId, attachments, emailId }),
+        undefined,
+      )
     })
   })
 
@@ -294,7 +297,7 @@ describe('Email viewer component', () => {
           inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
-        {},
+        undefined,
       )
     })
 
@@ -329,7 +332,7 @@ describe('Email viewer component', () => {
           ],
           inReplyTo: emailContents.id,
         }),
-        {},
+        undefined,
       )
     })
 
@@ -383,7 +386,7 @@ describe('Email viewer component', () => {
           initialToAddresses: [{ address: 'another@domain.com', name: '' }],
           inReplyTo: emailContents.id,
         }),
-        {},
+        undefined,
       )
     })
 
@@ -410,12 +413,12 @@ describe('Email viewer component', () => {
           inReplyTo: emailContents.id,
           references: emailContents.references,
         }),
-        {},
+        undefined,
       )
     })
 
     it('should remove Compose component when discarding', async () => {
-      jest.mocked(Compose).mockImplementationOnce(({ discardCallback }): JSX.Element => {
+      jest.mocked(Compose).mockImplementationOnce(({ discardCallback }): React.ReactNode => {
         discardCallback && discardCallback()
         return <>Compose</>
       })

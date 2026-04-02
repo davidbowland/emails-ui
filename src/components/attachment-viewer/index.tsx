@@ -21,7 +21,12 @@ export interface AttachmentViewerProps {
   getAttachment: getAttachmentFn
 }
 
-const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: AttachmentViewerProps): JSX.Element => {
+const AttachmentViewer = ({
+  accountId,
+  attachments,
+  emailId,
+  getAttachment,
+}: AttachmentViewerProps): React.ReactNode => {
   const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>()
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
 

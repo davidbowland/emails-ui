@@ -1,6 +1,6 @@
 # Emails UI
 
-Gatsby and Amplify implementation of emails-email-api. Example: <https://email.dbowland.com/>
+Next.js and Amplify implementation of emails-email-api. Example: <https://email.dbowland.com/>
 
 ## Static Site
 
@@ -11,7 +11,7 @@ Gatsby and Amplify implementation of emails-email-api. Example: <https://email.d
 
 ### Local Development
 
-The Gatsby development server automatically re-renders in the browser when the source code changes. Start the local development server with:
+The Next.js development server automatically re-renders in the browser when the source code changes. Start the local development server with:
 
 ```bash
 npm run start
@@ -27,7 +27,7 @@ Then view the server at <http://localhost:3000/>
 
 ### Unit Tests
 
-[Jest](https://jestjs.io/) tests are run automatically on commit and push. If the test coverage threshold is not met, the push will fail. See `jest.config.ts` for coverage threshold.
+[Jest](https://jestjs.io/) tests are run automatically on commit and push. If the test coverage threshold is not met, the push will fail. See `jest.config.js` for coverage threshold.
 
 Manually run tests with:
 
@@ -73,19 +73,13 @@ npm run workflow
 
 ## Additional Documentation
 
-### Additional Gatsby Documentation
+### Additional Next.js Documentation
 
-- [Documentation](https://www.gatsbyjs.com/docs/)
+- [Documentation](https://nextjs.org/docs)
 
-- [Tutorials](https://www.gatsbyjs.com/tutorial/)
+- [Pages Router](https://nextjs.org/docs/pages)
 
-- [Guides](https://www.gatsbyjs.com/guides/)
-
-- [API Reference](https://www.gatsbyjs.com/docs/api-reference/)
-
-- [Plugin Library](https://www.gatsbyjs.com/plugins)
-
-- [Cheat Sheet](https://www.gatsbyjs.com/docs/cheat-sheet/)
+- [Static Exports](https://nextjs.org/docs/pages/building-your-application/deploying/static-exports)
 
 ### Additional Deploy Documentation
 

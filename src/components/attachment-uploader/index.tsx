@@ -27,7 +27,7 @@ export interface AttachmentUploaderProps {
   setAttachments: setAttachmentsFn
 }
 
-const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): JSX.Element => {
+const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): React.ReactNode => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [uploadingFilename, setUploadingFilename] = useState<string | undefined>()
 
@@ -65,7 +65,7 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
     setAttachments(attachments.filter((attachment) => attachment.id !== id))
   }
 
-  const renderDisplay = (attachment: EmailAttachment): JSX.Element => (
+  const renderDisplay = (attachment: EmailAttachment): React.ReactNode => (
     <Grid container>
       <Grid item p={1} xs>
         {attachment.filename}

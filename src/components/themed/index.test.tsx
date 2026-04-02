@@ -61,7 +61,7 @@ describe('Themed component', () => {
         mode: 'light',
       },
     })
-    expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ theme }), {})
+    expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ theme }), undefined)
   })
 
   it('expect rendering Themed uses dark theme when reqeusted', () => {
@@ -77,6 +77,6 @@ describe('Themed component', () => {
         mode: 'dark',
       },
     })
-    expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ theme }), {})
+    expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ theme }), undefined)
   })
 })

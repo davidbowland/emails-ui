@@ -1,9 +1,9 @@
 import { Amplify, Auth } from 'aws-amplify'
 
-const appClientId = process.env.GATSBY_COGNITO_APP_CLIENT_ID
-const userPoolId = process.env.GATSBY_COGNITO_USER_POOL_ID
-const identityPoolId = process.env.GATSBY_IDENTITY_POOL_ID
-export const baseUrl = process.env.GATSBY_EMAILS_API_BASE_URL
+const appClientId = process.env.NEXT_PUBLIC_COGNITO_APP_CLIENT_ID
+const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID
+const identityPoolId = process.env.NEXT_PUBLIC_IDENTITY_POOL_ID
+export const baseUrl = process.env.NEXT_PUBLIC_EMAILS_API_BASE_URL
 
 // Authorization
 

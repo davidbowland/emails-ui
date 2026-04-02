@@ -1,4 +1,4 @@
-import { HeadFC } from 'gatsby'
+import Head from 'next/head'
 import React from 'react'
 
 import Grid from '@mui/material/Grid'
@@ -15,28 +15,31 @@ import {
   postBounceEmail,
 } from '@services/emails'
 
-const InboxPage = (): JSX.Element => {
+const InboxPage = (): React.ReactNode => {
   return (
-    <main style={{ height: '100%' }}>
-      <Authenticated>
-        <Grid container sx={{ padding: '0px 10px' }}>
-          <Grid item xs>
-            <Mailbox
-              bounceEmail={postBounceEmail}
-              deleteEmail={deleteReceivedEmail}
-              getAllEmails={getAllReceivedEmails}
-              getEmailAttachment={getReceivedAttachment}
-              getEmailContents={getReceivedEmailContents}
-              patchEmail={patchReceivedEmail}
-            />
+    <>
+      <Head>
+        <title>Email | dbowland.com</title>
+      </Head>
+      <main style={{ height: '100%' }}>
+        <Authenticated>
+          <Grid container sx={{ padding: '0px 10px' }}>
+            <Grid item xs>
+              <Mailbox
+                bounceEmail={postBounceEmail}
+                deleteEmail={deleteReceivedEmail}
+                getAllEmails={getAllReceivedEmails}
+                getEmailAttachment={getReceivedAttachment}
+                getEmailContents={getReceivedEmailContents}
+                patchEmail={patchReceivedEmail}
+              />
+            </Grid>
           </Grid>
-        </Grid>
-      </Authenticated>
-      <PrivacyLink />
-    </main>
+        </Authenticated>
+        <PrivacyLink />
+      </main>
+    </>
   )
 }
-
-export const Head: HeadFC = () => <title>Email | dbowland.com</title>
 
 export default InboxPage

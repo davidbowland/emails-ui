@@ -1,4 +1,4 @@
-import { Link } from 'gatsby'
+import Link from 'next/link'
 import React, { useState } from 'react'
 import Cookies from 'universal-cookie'
 
@@ -8,7 +8,7 @@ import Grid from '@mui/material/Grid'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 
-const Disclaimer = (): JSX.Element => {
+const Disclaimer = (): React.ReactNode => {
   const cookies = new Cookies()
 
   const [open, setOpen] = useState(cookies.get('disclaimer_accept') !== 'true')
@@ -33,7 +33,7 @@ const Disclaimer = (): JSX.Element => {
                     address may appear in our logs for up to 90 days. We never sell your information.
                   </Typography>
                   <Typography variant="body2">
-                    See our <Link to="/privacy-policy">privacy policy</Link> for more information.
+                    See our <Link href="/privacy-policy">privacy policy</Link> for more information.
                   </Typography>
                 </Stack>
               </Grid>

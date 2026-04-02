@@ -3,7 +3,6 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
-import * as gatsby from 'gatsby'
 import React from 'react'
 
 import Compose from './index'
@@ -13,12 +12,17 @@ import HtmlEditor from '@components/html-editor'
 import * as emails from '@services/emails'
 
 jest.mock('aws-amplify')
-jest.mock('gatsby')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
 jest.mock('@components/html-editor')
 jest.mock('@config/amplify')
 jest.mock('@services/emails')
+
+const mockPush = jest.fn()
+const mockReplace = jest.fn()
+jest.mock('next/router', () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+}))
 
 describe('Compose component', () => {
   const discardCallback = jest.fn()
@@ -179,7 +183,7 @@ describe('Compose component', () => {
     })
 
     await waitFor(() => {
-      expect(gatsby.navigate).toHaveBeenCalled()
+      expect(mockPush).toHaveBeenCalled()
     })
     expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, {
       attachments: [
@@ -236,7 +240,7 @@ describe('Compose component', () => {
         },
       ],
     })
-    expect(gatsby.navigate).toHaveBeenCalledWith('/outbox')
+    expect(mockPush).toHaveBeenCalledWith('/outbox')
   })
 
   it('should use "no subject" when subject is empty', async () => {
@@ -280,21 +284,15 @@ describe('Compose component', () => {
         ],
         label: 'To:',
       }),
-      expect.anything(),
+      undefined,
     )
-    expect(AddressLine).toHaveBeenCalledWith(
-      expect.objectContaining({ addresses: [], label: 'CC:' }),
-      expect.anything(),
-    )
-    expect(AddressLine).toHaveBeenCalledWith(
-      expect.objectContaining({ addresses: [], label: 'BCC:' }),
-      expect.anything(),
-    )
-    expect(HtmlEditor).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), expect.anything())
+    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'CC:' }), undefined)
+    expect(AddressLine).toHaveBeenCalledWith(expect.objectContaining({ addresses: [], label: 'BCC:' }), undefined)
+    expect(HtmlEditor).toHaveBeenCalledWith(expect.objectContaining({ initialBody: body }), undefined)
     await waitFor(() => {
       expect(AttachmentUploader).toHaveBeenCalledWith(
         expect.objectContaining({ accountId, attachments: [] }),
-        expect.anything(),
+        undefined,
       )
     })
   })

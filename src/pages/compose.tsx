@@ -1,8 +1,6 @@
 import Head from 'next/head'
 import React from 'react'
 
-import Grid from '@mui/material/Grid'
-
 import Authenticated from '@components/auth'
 import Compose from '@components/compose'
 import PrivacyLink from '@components/privacy-link'
@@ -15,11 +13,9 @@ const ComposePage = (): React.ReactNode => {
       </Head>
       <main style={{ height: '100%' }}>
         <Authenticated>
-          <Grid container sx={{ padding: '0px 10px' }}>
-            <Grid item xs>
-              <Compose />
-            </Grid>
-          </Grid>
+          <div className="px-2">
+            <Compose />
+          </div>
         </Authenticated>
         <PrivacyLink />
       </main>

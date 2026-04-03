@@ -2,20 +2,11 @@ import { Auth } from 'aws-amplify'
 import jsonpatch from 'fast-json-patch'
 import React, { useEffect, useState } from 'react'
 
-import SaveIcon from '@mui/icons-material/Save'
-import Alert from '@mui/material/Alert'
-import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
-import Snackbar from '@mui/material/Snackbar'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
-
+import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
+import ErrorSnackbar from '@components/error-snackbar'
+import LoadingSpinner from '@components/loading-spinner'
 import { getAccount, patchAccount } from '@services/emails'
 import { Account, AmplifyUser, EmailAddress } from '@types'
 
@@ -46,26 +37,17 @@ const AccountSettings = (): React.ReactNode => {
     setIsSaving(false)
   }
 
-  const renderLoading = (): React.ReactNode => (
-    <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
-      <Grid item>
-        <CircularProgress />
-      </Grid>
-    </Grid>
-  )
-
   const renderSettings = (): React.ReactNode => (
-    <Stack padding={2} spacing={2}>
-      <Typography component="div" variant="h4">
-        Account Settings
-      </Typography>
-      <Divider />
+    <div className="flex flex-col gap-4 p-4">
+      <SettingsTitle />
+      <SettingsDivider />
       <label>
-        <TextField
+        <input
+          aria-label="From name"
+          className="w-full rounded border px-3 py-2 dark:bg-[#121212]"
           disabled={account === undefined || isSaving}
-          fullWidth
-          label="From name"
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+          placeholder="From name"
           value={name}
         />
       </label>
@@ -75,30 +57,22 @@ const AccountSettings = (): React.ReactNode => {
       {account !== undefined && (
         <>
           <BounceSenderInput label="Bounce emails from senders:" rules={bounceSenders} setRules={setBounceSenders} />
-          <Typography color="text.secondary" variant="body2">
+          <p className="text-sm text-gray-500">
             Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all senders.
             Automatically bounced emails will <b>NOT</b> be forwarded.
-          </Typography>
+          </p>
         </>
       )}
-      <Grid container>
-        <Grid item order={{ md: 1, xs: 2 }} xs></Grid>
-        <Grid item md={3} order={{ md: 2, xs: 1 }} padding={2} xs={12}>
-          {loggedInUser?.username && account && (
-            <Button
-              disabled={isSaving}
-              fullWidth
-              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
-              startIcon={isSaving ? <CircularProgress size={14} /> : <SaveIcon />}
-              variant="contained"
-            >
-              Save
-            </Button>
-          )}
-        </Grid>
-        <Grid item order={{ xs: 3 }} xs></Grid>
-      </Grid>
-    </Stack>
+      <div className="flex justify-end p-2">
+        {loggedInUser?.username && account && (
+          <SaveButton
+            disabled={isSaving}
+            isSaving={isSaving}
+            onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+          />
+        )}
+      </div>
+    </div>
   )
 
   const snackbarErrorClose = (): void => {
@@ -139,14 +113,8 @@ const AccountSettings = (): React.ReactNode => {
 
   return (
     <>
-      <Card sx={{ height: '100%', width: '100%' }} variant="outlined">
-        {isLoading ? renderLoading() : renderSettings()}
-      </Card>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+      <SettingsCard>{isLoading ? <LoadingSpinner /> : renderSettings()}</SettingsCard>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

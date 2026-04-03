@@ -1,3 +1,13 @@
+@import '@heroui/styles';
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+}
+
 @media (prefers-color-scheme: dark) {
   a {
     color: #66b3ff;

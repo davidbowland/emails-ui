@@ -1,9 +1,6 @@
+import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
-
-import MenuIcon from '@mui/icons-material/Menu'
-import IconButton from '@mui/material/IconButton'
-import Typography from '@mui/material/Typography'
 
 import { AmplifyUser } from '@types'
 
@@ -16,23 +13,19 @@ export interface LoggedInBarProps {
 const LoggedInBar = ({ loggedInUser, navMenuOpen, openMenu }: LoggedInBarProps): React.ReactNode => {
   return (
     <>
-      <IconButton
+      <button
         aria-label="Open navigation menu"
-        edge="start"
+        className={`mr-5 rounded p-1 hover:bg-white/10 ${navMenuOpen ? 'hidden' : ''}`}
         onClick={openMenu}
-        sx={{
-          marginRight: 5,
-          ...(navMenuOpen && { display: 'none' }),
-        }}
       >
-        <MenuIcon />
-      </IconButton>
-      <Typography sx={{ flexGrow: 1 }} variant="h6">
+        <Menu size={24} />
+      </button>
+      <h6 className="flex-1 text-xl font-medium">
         <Link href="/" style={{ color: '#fff', textDecoration: 'none' }}>
           Email
         </Link>
-      </Typography>
-      <Typography component="div">{loggedInUser.username}</Typography>
+      </h6>
+      <div>{loggedInUser.username}</div>
     </>
   )
 }

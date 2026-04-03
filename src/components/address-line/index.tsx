@@ -1,11 +1,6 @@
 import React from 'react'
 
-import Autocomplete from '@mui/material/Autocomplete'
-import Chip from '@mui/material/Chip'
-import Grid from '@mui/material/Grid'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
-
+import { AddressChip, TagInput } from './elements'
 import { EmailAddress } from '@types'
 
 type AddressSetter = (value: EmailAddress[]) => void
@@ -17,49 +12,33 @@ export interface AddressLineProps {
 }
 
 const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): React.ReactNode => {
-  const handleChange = (event: React.SyntheticEvent, newValue: string[]): void => {
+  const handleAdd = (value: string): void => {
     if (!setAddresses) return
+    const trimmed = value.trim()
+    if (trimmed === '') return
+    setAddresses([...addresses.map((a) => ({ address: a.address, name: '' })), { address: trimmed, name: '' }])
+  }
 
-    const emailAddresses = newValue
-      .filter((addr) => addr.trim() !== '')
-      .map((addr) => ({ address: addr.trim(), name: '' }))
-
-    setAddresses(emailAddresses)
+  const handleDelete = (index: number): void => {
+    if (!setAddresses) return
+    const updated = addresses.filter((_, i) => i !== index).map((a) => ({ address: a.address, name: '' }))
+    setAddresses(updated)
   }
 
   return (
-    <Grid alignItems="center" container padding={2} paddingBottom={1} paddingTop={1} spacing={1}>
-      <Grid item padding={1} xs="auto">
-        <Typography paddingTop={1} variant="body1">
-          {label}
-        </Typography>
-      </Grid>
-      <Grid item xs>
-        <Autocomplete
-          freeSolo
-          multiple
-          onChange={handleChange}
-          options={[]}
-          renderInput={(params) => (
-            <TextField {...params} disabled={!setAddresses} label="Email address" size="small" />
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((address, index) => {
-              const { key, ...tagProps } = getTagProps({ index })
-
-              // Remove delete functionality when read-only
-              if (!setAddresses) {
-                const { onDelete: _, ...readOnlyTagProps } = tagProps
-                return <Chip key={key} label={address} variant="outlined" {...readOnlyTagProps} />
-              }
-
-              return <Chip key={key} label={address} variant="outlined" {...tagProps} />
-            })
-          }
-          value={addresses.map((addr) => addr.address)}
-        />
-      </Grid>
-    </Grid>
+    <div className="flex flex-wrap items-center gap-2 px-4 py-1">
+      <span className="pt-1">{label}</span>
+      <div className="flex flex-1 flex-wrap items-center gap-1">
+        {addresses.map((addr, index) => (
+          <AddressChip
+            key={index}
+            label={addr.address}
+            onDelete={setAddresses ? () => handleDelete(index) : undefined}
+          />
+        ))}
+        {setAddresses && <TagInput disabled={false} label="Email address" onAdd={handleAdd} />}
+      </div>
+    </div>
   )
 }
 

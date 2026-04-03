@@ -1,18 +1,26 @@
+import '@fontsource/roboto'
 import type { AppProps } from 'next/app'
-import React from 'react'
+import React, { useEffect } from 'react'
 
-import Paper from '@mui/material/Paper'
-
-import Themed from '@components/themed'
+import '@assets/css/index.css'
+import Disclaimer from '@components/disclaimer'
 import '@config/amplify'
 
 const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e: MediaQueryListEvent): void => {
+      document.documentElement.classList.toggle('dark', e.matches)
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   return (
-    <Themed>
-      <Paper elevation={3}>
-        <Component {...pageProps} />
-      </Paper>
-    </Themed>
+    <div className="min-h-screen bg-[#ededed] text-black dark:bg-[#121212] dark:text-white">
+      <Component {...pageProps} />
+      <Disclaimer />
+    </div>
   )
 }
 

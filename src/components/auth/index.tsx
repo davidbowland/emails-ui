@@ -2,40 +2,11 @@ import '@aws-amplify/ui-react/styles.css'
 import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
 
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
-import Box from '@mui/material/Box'
-import { styled } from '@mui/material/styles'
-import Toolbar from '@mui/material/Toolbar'
-
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
 import LoggedInBar from './logged-in-bar'
 import LoggedOutBar from './logged-out-bar'
 import { AmplifyUser } from '@types'
-
-const drawerWidth = parseInt(process.env.NEXT_PUBLIC_DRAWER_WIDTH, 10)
-
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean
-}
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme, open }) => ({
-  transition: theme.transitions.create(['width', 'margin'], {
-    duration: theme.transitions.duration.leavingScreen,
-    easing: theme.transitions.easing.sharp,
-  }),
-  zIndex: theme.zIndex.drawer + 1,
-  ...(open && {
-    marginLeft: drawerWidth,
-    transition: theme.transitions.create(['width', 'margin'], {
-      duration: theme.transitions.duration.enteringScreen,
-      easing: theme.transitions.easing.sharp,
-    }),
-    width: `calc(100% - ${drawerWidth}px)`,
-  }),
-}))
 
 export interface AuthenticatedProps {
   children: React.ReactNode
@@ -61,7 +32,6 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
           closeMenu={closeMenu}
           loggedInUser={loggedInUser}
           navMenuOpen={navMenuOpen}
-          openMenu={openMenu}
           setLoggedInUser={setLoggedInUser}
         >
           {children}
@@ -74,7 +44,6 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
     return <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
   }
 
-  // Set user if already logged in
   useEffect(() => {
     Auth.currentAuthenticatedUser()
       .then(setLoggedInUser)
@@ -82,18 +51,16 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
   }, [])
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar open={navMenuOpen} position="fixed">
-        <Toolbar>
-          {loggedInUser ? (
-            <LoggedInBar loggedInUser={loggedInUser} navMenuOpen={navMenuOpen} openMenu={openMenu} />
-          ) : (
-            <LoggedOutBar />
-          )}
-        </Toolbar>
-      </AppBar>
+    <div className="flex">
+      <nav className="fixed top-0 right-0 left-0 z-50 flex items-center bg-blue-700 px-4 py-2 text-white">
+        {loggedInUser ? (
+          <LoggedInBar loggedInUser={loggedInUser} navMenuOpen={navMenuOpen} openMenu={openMenu} />
+        ) : (
+          <LoggedOutBar />
+        )}
+      </nav>
       {renderChildren()}
-    </Box>
+    </div>
   )
 }
 

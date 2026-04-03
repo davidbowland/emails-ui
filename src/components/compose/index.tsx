@@ -2,26 +2,11 @@ import { Auth } from 'aws-amplify'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import SendIcon from '@mui/icons-material/Send'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
-import Snackbar from '@mui/material/Snackbar'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
-
+import { ComposeCard, ComposeDivider, DiscardButton, SendButton } from './elements'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
+import ConfirmDialog from '@components/confirm-dialog'
+import ErrorSnackbar from '@components/error-snackbar'
 import HtmlEditor from '@components/html-editor'
 import { postSentEmail } from '@services/emails'
 import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
@@ -169,33 +154,27 @@ const Compose = ({
 
   return (
     <>
-      <Card
-        sx={{ minHeight: { md: '80vh', xs: '40vh' }, overflow: 'scroll', paddingTop: '0.5em', width: '100%' }}
-        variant="outlined"
-      >
+      <ComposeCard>
         <AddressLine addresses={toAddresses} label="To:" setAddresses={setToAddresses} />
         <AddressLine addresses={ccAddresses} label="CC:" setAddresses={setCcAddresses} />
         <AddressLine addresses={bccAddresses} label="BCC:" setAddresses={setBccAddresses} />
-        {recipientMessage && (
-          <Typography color="error" padding={2} variant="caption">
-            {recipientMessage}
-          </Typography>
-        )}
-        <Box padding={2} paddingTop={1}>
+        {recipientMessage && <p className="px-4 text-xs text-red-500">{recipientMessage}</p>}
+        <div className="px-4 pt-2">
           <label>
-            <TextField
-              fullWidth
-              label="Subject"
+            <input
+              aria-label="Subject"
+              className="w-full rounded border px-3 py-2 dark:bg-[#121212]"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSubject(event.target.value)}
+              placeholder="Subject"
               value={subject}
             />
           </label>
-        </Box>
-        <Divider />
-        <Box padding={2}>
+        </div>
+        <ComposeDivider />
+        <div className="p-4">
           <HtmlEditor initialBody={initialBody} inputRef={editor} />
-        </Box>
-        <Divider />
+        </div>
+        <ComposeDivider />
         {loggedInUser?.username && (
           <AttachmentUploader
             accountId={loggedInUser?.username}
@@ -203,73 +182,35 @@ const Compose = ({
             setAttachments={setAttachments}
           />
         )}
-        {attachmentMessage && (
-          <Typography color="error" padding={2} variant="caption">
-            {attachmentMessage}
-          </Typography>
-        )}
-        <Grid container>
-          <Grid item order={{ md: 1, xs: 3 }} xs></Grid>
-          <Grid item md={3} order={{ xs: 2 }} padding={2} xs={12}>
-            <Button
+        {attachmentMessage && <p className="px-4 text-xs text-red-500">{attachmentMessage}</p>}
+        <div className="flex flex-col gap-2 p-4 sm:flex-row sm:justify-end">
+          <DiscardButton disabled={isSubmitting} onClick={() => setIsDiscardDialogOpen(true)} />
+          {loggedInUser?.username && editor.current && (
+            <SendButton
               disabled={isSubmitting}
-              fullWidth
-              onClick={() => setIsDiscardDialogOpen(true)}
-              startIcon={<DeleteOutlineIcon />}
-              variant="outlined"
-            >
-              Discard
-            </Button>
-          </Grid>
-          <Grid item order={{ md: 3, xs: 4 }} xs></Grid>
-          <Grid item md={3} order={{ md: 4, xs: 1 }} padding={2} xs={12}>
-            {loggedInUser?.username && editor.current && (
-              <Button
-                disabled={isSubmitting}
-                fullWidth
-                onClick={() =>
-                  loggedInUser?.username && editor.current && handleSendClick(loggedInUser.username, editor.current)
-                }
-                startIcon={isSubmitting ? <CircularProgress size={14} /> : <SendIcon />}
-                variant="contained"
-              >
-                Send
-              </Button>
-            )}
-          </Grid>
-          <Grid item order={{ xs: 5 }} xs></Grid>
-        </Grid>
-      </Card>
-      <Dialog
-        aria-describedby="Are you sure you want to discard this message?"
-        aria-labelledby="Discard message dialog"
-        onClose={discardDialogClose}
+              isSubmitting={isSubmitting}
+              onClick={() =>
+                loggedInUser?.username && editor.current && handleSendClick(loggedInUser.username, editor.current)
+              }
+            />
+          )}
+        </div>
+      </ComposeCard>
+      <ConfirmDialog
+        cancelLabel="Keep editing"
+        confirmLabel="Discard"
+        onCancel={discardDialogClose}
+        onConfirm={() => {
+          editor.current && resetForm(editor.current)
+          discardDialogClose()
+          discardCallback && discardCallback()
+        }}
         open={isDiscardDialogOpen}
+        title="Discard message?"
       >
-        <DialogTitle>Discard message?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>Are you sure you want to discard this message?</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={discardDialogClose}>
-            Keep editing
-          </Button>
-          <Button
-            onClick={() => {
-              editor.current && resetForm(editor.current)
-              discardDialogClose()
-              discardCallback && discardCallback()
-            }}
-          >
-            Discard
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+        Are you sure you want to discard this message?
+      </ConfirmDialog>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

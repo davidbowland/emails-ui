@@ -1,8 +1,6 @@
 import Head from 'next/head'
 import React from 'react'
 
-import Grid from '@mui/material/Grid'
-
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
 import PrivacyLink from '@components/privacy-link'
@@ -22,17 +20,15 @@ const OutboxPage = (): React.ReactNode => {
       </Head>
       <main style={{ height: '100%' }}>
         <Authenticated>
-          <Grid container sx={{ padding: '0px 10px' }}>
-            <Grid item xs>
-              <Mailbox
-                deleteEmail={deleteSentEmail}
-                getAllEmails={getAllSentEmails}
-                getEmailAttachment={getSentAttachment}
-                getEmailContents={getSentEmailContents}
-                patchEmail={patchSentEmail}
-              />
-            </Grid>
-          </Grid>
+          <div className="px-2">
+            <Mailbox
+              deleteEmail={deleteSentEmail}
+              getAllEmails={getAllSentEmails}
+              getEmailAttachment={getSentAttachment}
+              getEmailContents={getSentEmailContents}
+              patchEmail={patchSentEmail}
+            />
+          </div>
         </Authenticated>
         <PrivacyLink />
       </main>

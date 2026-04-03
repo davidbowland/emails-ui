@@ -10,7 +10,9 @@ Its purpose is to manage email accounts and handle both received and sent emails
 
 - **Next.js 15** - Static site generator and React framework (Pages Router, static export)
 - **React 19** - UI library with functional components
-- **Material-UI (@mui/material)** - Primary component library with built-in styling
+- **HeroUI v3 (@heroui/react)** - Primary component library (Card, Button, Chip, Separator, Spinner)
+- **Tailwind CSS v4** - Utility-first CSS framework (included via @heroui/styles)
+- **lucide-react** - Icon library
 - **AWS Amplify** - Authentication and API client
 - **TypeScript** - Type safety
 - **Jest & React Testing Library** - Testing framework

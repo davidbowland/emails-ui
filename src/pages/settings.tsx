@@ -1,8 +1,6 @@
 import Head from 'next/head'
 import React from 'react'
 
-import Grid from '@mui/material/Grid'
-
 import AccountSettings from '@components/account-settings'
 import Authenticated from '@components/auth'
 import PrivacyLink from '@components/privacy-link'
@@ -15,11 +13,9 @@ const SettingsPage = (): React.ReactNode => {
       </Head>
       <main style={{ height: '100%' }}>
         <Authenticated>
-          <Grid container sx={{ padding: '0px 10px' }}>
-            <Grid item xs>
-              <AccountSettings />
-            </Grid>
-          </Grid>
+          <div className="px-2">
+            <AccountSettings />
+          </div>
         </Authenticated>
         <PrivacyLink />
       </main>

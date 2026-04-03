@@ -28,6 +28,8 @@ const config = {
     '^@types$': '<rootDir>/src/types',
     '^uuid$': '<rootDir>/__mocks__/file-mock.js',
     '@fontsource/(.*)$': '<rootDir>/__mocks__/file-mock.js',
+    '@heroui/react': '<rootDir>/__mocks__/@heroui/react.js',
+    'lucide-react': '<rootDir>/__mocks__/lucide-react.js',
   },
   setupFiles: ['<rootDir>/jest.polyfills.js', '<rootDir>/jest.setup-test-env.js'],
   testEnvironment: 'jsdom',

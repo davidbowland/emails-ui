@@ -5,6 +5,20 @@ import React from 'react'
 import HtmlEditor from './index'
 
 jest.mock('aws-amplify')
+jest.mock('@components/confirm-dialog', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
+    React.createElement(
+      'div',
+      { style: open ? undefined : { display: 'none' } },
+      React.createElement('span', null, title),
+      children,
+      React.createElement('button', { onClick: onCancel }, cancelLabel),
+      React.createElement('button', { onClick: onConfirm }, confirmLabel),
+    )
+})
 
 describe('HtmlEditor component', () => {
   const execCommand = jest.fn()

@@ -1,15 +1,13 @@
 import Link from 'next/link'
 import React from 'react'
 
-import Typography from '@mui/material/Typography'
-
 const LoggedOutBar = (): React.ReactNode => {
   return (
-    <Typography sx={{ flexGrow: 1 }} variant="h6">
+    <h6 className="flex-1 text-xl font-medium">
       <Link href="/" style={{ color: '#fff', textDecoration: 'none' }}>
         Email
       </Link>
-    </Typography>
+    </h6>
   )
 }
 

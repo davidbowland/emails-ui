@@ -1,6 +1,5 @@
 export { AmplifyUser } from '@aws-amplify/ui'
 export { Operation as PatchOperation } from 'fast-json-patch'
-export { Theme } from '@mui/material/styles'
 
 export interface StringObject {
   [key: string]: string

@@ -14,6 +14,34 @@ import * as emails from '@services/emails'
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
+jest.mock('@components/confirm-dialog', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
+    React.createElement(
+      'div',
+      { style: open ? undefined : { display: 'none' } },
+      React.createElement('span', null, title),
+      children,
+      React.createElement('button', { onClick: onCancel }, cancelLabel),
+      React.createElement('button', { onClick: onConfirm }, confirmLabel),
+    )
+})
+jest.mock('@components/error-snackbar', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ message, onClose }: any) =>
+    message
+      ? React.createElement(
+        'div',
+        { role: 'alert' },
+        message,
+        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+      )
+      : null
+})
 jest.mock('@components/html-editor')
 jest.mock('@config/amplify')
 jest.mock('@services/emails')
@@ -83,7 +111,7 @@ describe('Compose component', () => {
   it('should call discardCallback when discard is confirmed', async () => {
     render(<Compose discardCallback={discardCallback} />)
 
-    const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
+    const discardButton = (await screen.findAllByText(/Discard/i, { selector: 'button' }))[0] as HTMLButtonElement
     await act(async () => {
       await userEvent.click(discardButton)
     })
@@ -99,7 +127,7 @@ describe('Compose component', () => {
   it('should not call discardCallback when discard is cancelled', async () => {
     render(<Compose discardCallback={discardCallback} />)
 
-    const discardButton = (await screen.findByText(/Discard/i, { selector: 'button' })) as HTMLButtonElement
+    const discardButton = (await screen.findAllByText(/Discard/i, { selector: 'button' }))[0] as HTMLButtonElement
     await act(async () => {
       await userEvent.click(discardButton)
     })

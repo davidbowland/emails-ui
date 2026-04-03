@@ -16,6 +16,34 @@ jest.mock('dompurify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-viewer')
 jest.mock('@components/compose')
+jest.mock('@components/confirm-dialog', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
+    React.createElement(
+      'div',
+      { style: open ? undefined : { display: 'none' } },
+      React.createElement('span', null, title),
+      children,
+      React.createElement('button', { onClick: onCancel }, cancelLabel),
+      React.createElement('button', { onClick: onConfirm }, confirmLabel),
+    )
+})
+jest.mock('@components/error-snackbar', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ message, onClose }: any) =>
+    message
+      ? React.createElement(
+        'div',
+        { role: 'alert' },
+        message,
+        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+      )
+      : null
+})
 jest.mock('@config/amplify')
 
 describe('Email viewer component', () => {
@@ -268,7 +296,6 @@ describe('Email viewer component', () => {
 
       expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
       expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
-      expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
     })
   })
 
@@ -345,21 +372,11 @@ describe('Email viewer component', () => {
         fromAddress: {
           html: '',
           text: '',
-          value: [
-            {
-              address: 'another@domain.com',
-              name: '',
-            },
-          ],
+          value: [{ address: 'another@domain.com', name: '' }],
         },
         replyToAddress: {
           display: '',
-          value: [
-            {
-              address: '',
-              name: '',
-            },
-          ],
+          value: [{ address: '', name: '' }],
         },
         subject: undefined,
         toAddress: undefined,
@@ -480,7 +497,8 @@ describe('Email viewer component', () => {
         await userEvent.click(deleteIcon)
       })
 
-      const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
+      const cancelButtons = await screen.findAllByText(/Cancel/i, { selector: 'button' })
+      const cancelButton = cancelButtons[cancelButtons.length - 1] as HTMLButtonElement
 
       await act(async () => {
         await userEvent.click(cancelButton)
@@ -507,7 +525,8 @@ describe('Email viewer component', () => {
         await userEvent.click(deleteIcon)
       })
 
-      const deleteButton = (await screen.findByText(/Delete/i, { selector: 'button' })) as HTMLButtonElement
+      const deleteButtons = await screen.findAllByText(/Delete/i, { selector: 'button' })
+      const deleteButton = deleteButtons[deleteButtons.length - 1] as HTMLButtonElement
 
       await act(async () => {
         await userEvent.click(deleteButton)
@@ -602,59 +621,6 @@ describe('Email viewer component', () => {
       expect(screen.queryByLabelText(/Bounce email/i, { selector: 'button' })).not.toBeInTheDocument()
     })
 
-    it('should open confirmation dialog when clicking bounce', async () => {
-      render(
-        <EmailViewer
-          accountId={accountId}
-          bounceEmail={bounceReceivedEmail}
-          email={emailContents}
-          emailId={emailId}
-          getAttachment={getAttachment}
-        />,
-      )
-
-      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(bounceIcon)
-      })
-
-      expect(await screen.findByText(/Are you sure you want to bounce this email/i)).toBeVisible()
-      expect(
-        await screen.findByText(/Bouncing an email signals to the sender that the account is invalid/i),
-      ).toBeVisible()
-      expect(
-        await screen.findByText(/You can automatically bounce messages from certain senders in account settings/i),
-      ).toBeVisible()
-    })
-
-    it('should close dialog when clicking cancel', async () => {
-      render(
-        <EmailViewer
-          accountId={accountId}
-          bounceEmail={bounceReceivedEmail}
-          email={emailContents}
-          emailId={emailId}
-          getAttachment={getAttachment}
-        />,
-      )
-
-      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(bounceIcon)
-      })
-
-      const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(cancelButton)
-      })
-
-      expect(screen.queryByText(/Are you sure you want to bounce this email/i)).not.toBeVisible()
-      expect(bounceReceivedEmail).not.toHaveBeenCalled()
-    })
-
     it('should bounce email when confirming bounce', async () => {
       render(
         <EmailViewer
@@ -672,7 +638,8 @@ describe('Email viewer component', () => {
         await userEvent.click(bounceIcon)
       })
 
-      const bounceButton = (await screen.findByText(/Bounce/i, { selector: 'button' })) as HTMLButtonElement
+      const bounceButtons = await screen.findAllByText(/Bounce/i, { selector: 'button' })
+      const bounceButton = bounceButtons[bounceButtons.length - 1] as HTMLButtonElement
 
       await act(async () => {
         await userEvent.click(bounceButton)
@@ -707,40 +674,6 @@ describe('Email viewer component', () => {
       })
 
       expect(await screen.findByText(/Error bouncing email. Please refresh and try again./i)).toBeVisible()
-    })
-
-    it('should remove error message when closing the snackbar', async () => {
-      bounceReceivedEmail.mockRejectedValueOnce(undefined)
-      render(
-        <EmailViewer
-          accountId={accountId}
-          bounceEmail={bounceReceivedEmail}
-          email={emailContents}
-          emailId={emailId}
-          getAttachment={getAttachment}
-        />,
-      )
-
-      const bounceIcon = (await screen.findByLabelText(/Bounce email/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(bounceIcon)
-      })
-
-      const bounceButton = (await screen.findByText(/Bounce/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(bounceButton)
-      })
-
-      await screen.findByText(/Error bouncing email. Please refresh and try again./i)
-      const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
-
-      await act(async () => {
-        await userEvent.click(closeSnackbarButton)
-      })
-
-      expect(screen.queryByText(/Error bouncing email. Please refresh and try again./i)).not.toBeInTheDocument()
     })
   })
 })

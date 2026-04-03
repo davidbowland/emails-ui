@@ -1,6 +1,6 @@
 import '@aws-amplify/ui-react/styles.css'
 import { Auth } from 'aws-amplify'
-import { ChevronLeft, LogOut, Mail, Pencil, Send, Settings, Shield, Trash2 } from 'lucide-react'
+import { ChevronLeft, LogOut, Mail, Menu, Pencil, Send, Settings, Shield, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 
@@ -13,18 +13,19 @@ export interface IconDrawerProps {
   closeMenu: () => void
   loggedInUser: AmplifyUser
   navMenuOpen: boolean
+  openMenu: () => void
   setLoggedInUser: (user?: AmplifyUser) => void
 }
 
 const navItems = [
-  { icon: <Pencil size={20} />, label: 'Compose', path: '/compose' },
-  { icon: <Mail size={20} />, label: 'Inbox', path: '/inbox' },
-  { icon: <Send size={20} />, label: 'Sent', path: '/outbox' },
+  { icon: <Pencil size={18} />, label: 'Compose', path: '/compose' },
+  { icon: <Mail size={18} />, label: 'Inbox', path: '/inbox' },
+  { icon: <Send size={18} />, label: 'Sent', path: '/outbox' },
 ]
 
 const settingsItems = [
-  { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
-  { icon: <Shield size={20} />, label: 'Privacy policy', path: '/privacy-policy' },
+  { icon: <Settings size={18} />, label: 'Settings', path: '/settings' },
+  { icon: <Shield size={18} />, label: 'Privacy policy', path: '/privacy-policy' },
 ]
 
 const IconDrawer = ({
@@ -32,6 +33,7 @@ const IconDrawer = ({
   closeMenu,
   loggedInUser,
   navMenuOpen,
+  openMenu,
   setLoggedInUser,
 }: IconDrawerProps): React.ReactNode => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -58,70 +60,209 @@ const IconDrawer = ({
     })
   }
 
+  const isActive = (path: string): boolean => Boolean(pathname.match(new RegExp(`${path}/?$`)))
+
+  const sidebarWidth = navMenuOpen ? 'var(--sidebar-expanded)' : 'var(--sidebar-collapsed)'
+
   const renderNavItem = (
     item: { icon: React.ReactNode; label: string; path: string },
+    index: number,
+  ): React.ReactNode => {
+    const active = isActive(item.path)
+    return (
+      <li key={index}>
+        <button
+          className="group relative flex w-full items-center gap-3 py-2.5 transition-colors"
+          onClick={() => router.push(item.path)}
+          style={{
+            padding: navMenuOpen ? '10px 16px' : '10px 0',
+            justifyContent: navMenuOpen ? 'flex-start' : 'center',
+            borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
+            background: active ? 'var(--accent-subtle)' : 'transparent',
+            color: active ? 'var(--accent)' : 'var(--text-muted)',
+          }}
+          title={navMenuOpen ? undefined : item.label}
+        >
+          <span
+            className="flex-shrink-0 transition-colors"
+            style={{
+              marginLeft: navMenuOpen ? '0' : 'auto',
+              marginRight: navMenuOpen ? '0' : 'auto',
+              color: active ? 'var(--accent)' : 'var(--text-muted)',
+            }}
+          >
+            {item.icon}
+          </span>
+          <span
+            className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all"
+            style={{
+              maxWidth: navMenuOpen ? '160px' : '0',
+              opacity: navMenuOpen ? 1 : 0,
+              fontFamily: 'Outfit, sans-serif',
+              letterSpacing: '0.01em',
+            }}
+          >
+            {item.label}
+          </span>
+        </button>
+      </li>
+    )
+  }
+
+  const renderDangerItem = (
+    icon: React.ReactNode,
+    label: string,
+    onClick: () => void,
     index: number,
   ): React.ReactNode => (
     <li key={index}>
       <button
-        className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 ${
-          pathname.match(new RegExp(`${item.path}/?$`)) ? 'bg-gray-200 dark:bg-gray-700' : ''
-        }`}
-        onClick={() => router.push(item.path)}
+        className="group flex w-full items-center gap-3 py-2.5 transition-colors"
+        onClick={onClick}
+        style={{
+          padding: navMenuOpen ? '10px 16px' : '10px 0',
+          justifyContent: navMenuOpen ? 'flex-start' : 'center',
+          color: 'var(--text-muted)',
+          borderLeft: '2px solid transparent',
+        }}
+        title={navMenuOpen ? undefined : label}
       >
-        {item.icon}
-        <span className={navMenuOpen ? 'opacity-100' : 'opacity-0'}>{item.label}</span>
+        <span
+          className="flex-shrink-0 transition-colors"
+          style={{
+            marginLeft: navMenuOpen ? '0' : 'auto',
+            marginRight: navMenuOpen ? '0' : 'auto',
+          }}
+        >
+          {icon}
+        </span>
+        <span
+          className="overflow-hidden whitespace-nowrap text-sm transition-all"
+          style={{
+            maxWidth: navMenuOpen ? '160px' : '0',
+            opacity: navMenuOpen ? 1 : 0,
+            fontFamily: 'Outfit, sans-serif',
+          }}
+        >
+          {label}
+        </span>
       </button>
     </li>
   )
 
   return (
     <>
-      <div
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-white transition-all dark:bg-[#121212] ${navMenuOpen ? 'w-60' : 'w-14'}`}
+      {/* Sidebar */}
+      <aside
+        className="relative flex h-full flex-shrink-0 flex-col overflow-hidden transition-all duration-300"
+        style={{
+          width: sidebarWidth,
+          background: 'var(--shell-bg)',
+          borderRight: '1px solid var(--shell-border)',
+          zIndex: 20,
+        }}
       >
-        <div className="flex h-16 items-center justify-end px-2">
-          <button
-            aria-label="Close navigation menu"
-            className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
-            onClick={closeMenu}
-          >
-            <ChevronLeft size={20} />
-          </button>
-        </div>
-        <hr />
-        <ul className="list-none p-0">{navItems.map(renderNavItem)}</ul>
-        <hr />
-        <ul className="list-none p-0">
-          {settingsItems.map(renderNavItem)}
-          <li>
+        {/* Top: toggle + logo */}
+        <div
+          className="flex h-14 flex-shrink-0 items-center"
+          style={{
+            borderBottom: '1px solid var(--shell-border)',
+            padding: navMenuOpen ? '0 12px 0 16px' : '0',
+            justifyContent: navMenuOpen ? 'space-between' : 'center',
+          }}
+        >
+          {navMenuOpen ? (
+            <>
+              <span
+                className="font-display text-base tracking-tight"
+                style={{ color: 'var(--accent)', fontWeight: 700 }}
+              >
+                Email
+              </span>
+              <button
+                aria-label="Close navigation menu"
+                className="rounded p-1.5 transition-colors"
+                onClick={closeMenu}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : (
             <button
-              className="flex w-full items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => {
+              aria-label="Open navigation menu"
+              className="rounded p-1.5 transition-colors"
+              onClick={openMenu}
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Menu size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+          <ul className="list-none p-0 m-0">{navItems.map(renderNavItem)}</ul>
+
+          <div className="my-2 mx-3" style={{ height: '1px', background: 'var(--shell-border)' }} />
+
+          <ul className="list-none p-0 m-0">{settingsItems.map(renderNavItem)}</ul>
+        </nav>
+
+        {/* Bottom: user + sign out */}
+        <div style={{ borderTop: '1px solid var(--shell-border)' }}>
+          <ul className="list-none p-0 m-0">
+            {renderDangerItem(
+              <LogOut size={18} />,
+              'Sign out',
+              () => {
                 closeMenu()
                 setLoggedInUser(undefined)
                 Auth.signOut().then(() => window.location.reload())
+              },
+              0,
+            )}
+            {renderDangerItem(<Trash2 size={18} />, 'Delete account', () => setShowDeleteDialog(true), 1)}
+          </ul>
+
+          {/* User avatar / name */}
+          <div
+            className="flex items-center gap-2 overflow-hidden transition-all"
+            style={{
+              padding: navMenuOpen ? '10px 16px' : '10px 0',
+              justifyContent: navMenuOpen ? 'flex-start' : 'center',
+              borderTop: '1px solid var(--shell-border)',
+            }}
+          >
+            <div
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+              style={{
+                background: 'var(--accent-subtle)',
+                border: '1px solid var(--accent-border)',
+                color: 'var(--accent)',
+                fontFamily: 'Outfit, sans-serif',
               }}
             >
-              <LogOut size={20} />
-              <span className={navMenuOpen ? 'opacity-100' : 'opacity-0'}>Sign out</span>
-            </button>
-          </li>
-        </ul>
-        <hr />
-        <ul className="list-none p-0">
-          <li>
-            <button
-              className="flex w-full items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={() => setShowDeleteDialog(true)}
+              {loggedInUser.username?.charAt(0).toUpperCase() ?? '?'}
+            </div>
+            <span
+              className="overflow-hidden whitespace-nowrap text-xs transition-all"
+              style={{
+                maxWidth: navMenuOpen ? '160px' : '0',
+                opacity: navMenuOpen ? 1 : 0,
+                color: 'var(--text-muted)',
+                fontFamily: 'IBM Plex Mono, monospace',
+              }}
             >
-              <Trash2 size={20} />
-              <span className={navMenuOpen ? 'opacity-100' : 'opacity-0'}>Delete account</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-      <main className={`flex-1 p-6 pt-20 transition-all ${navMenuOpen ? 'ml-60' : 'ml-14'}`}>{children}</main>
+              {loggedInUser.username}
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex h-full flex-1 overflow-hidden">{children}</div>
+
       <ConfirmDialog
         cancelLabel="Go back"
         confirmLabel="Continue"

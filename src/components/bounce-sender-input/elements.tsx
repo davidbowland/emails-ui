@@ -1,11 +1,26 @@
-import { Chip } from '@heroui/react'
 import React from 'react'
 
 export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
-  <span className="inline-flex items-center gap-1">
-    <Chip variant="secondary">{label}</Chip>
+  <span
+    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
+    style={{
+      background: 'var(--paper-surface)',
+      border: '1px solid var(--paper-border)',
+      color: 'var(--text-paper-muted)',
+      fontFamily: 'IBM Plex Mono, monospace',
+    }}
+  >
+    <span>{label}</span>
     {onDelete && (
-      <button aria-label={`Remove ${label}`} className="text-xs" data-testid="CancelIcon" onClick={onDelete}>
+      <button
+        aria-label={`Remove ${label}`}
+        className="transition-colors"
+        data-testid="CancelIcon"
+        onClick={onDelete}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-paper-muted)')}
+        style={{ color: 'var(--text-paper-muted)' }}
+      >
         ✕
       </button>
     )}
@@ -32,11 +47,19 @@ export const RuleInput = ({
 
   return (
     <input
-      className="min-w-[200px] flex-1 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-[#121212]"
+      className="rounded-md px-3 py-1.5 text-sm outline-none"
       disabled={disabled}
       onKeyDown={handleKeyDown}
       placeholder="Email, @domain.com, or * for all"
       role="combobox"
+      style={{
+        minWidth: '220px',
+        flex: '1 1 auto',
+        background: 'var(--paper-surface)',
+        border: '1px solid var(--paper-border)',
+        color: 'var(--text-paper)',
+        fontFamily: 'IBM Plex Mono, monospace',
+      }}
       type="text"
     />
   )

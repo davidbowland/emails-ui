@@ -1,16 +1,21 @@
-import { Button, Card, CardContent, Separator, Spinner } from '@heroui/react'
 import { Save } from 'lucide-react'
 import React from 'react'
 
 export const SettingsCard = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-  <Card className="h-full w-full">
-    <CardContent>{children}</CardContent>
-  </Card>
+  <div className="h-full w-full overflow-y-auto" style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}>
+    {children}
+  </div>
 )
 
-export const SettingsTitle = (): React.ReactNode => <h4 className="text-2xl font-normal">Account Settings</h4>
+export const SettingsTitle = (): React.ReactNode => (
+  <h1 className="font-display text-2xl" style={{ color: 'var(--text-paper)', fontWeight: 400 }}>
+    Account Settings
+  </h1>
+)
 
-export const SettingsDivider = (): React.ReactNode => <Separator />
+export const SettingsDivider = (): React.ReactNode => (
+  <div style={{ height: '1px', background: 'var(--paper-border)' }} />
+)
 
 export const SaveButton = ({
   disabled,
@@ -21,8 +26,23 @@ export const SaveButton = ({
   isSaving: boolean
   onClick: () => void
 }): React.ReactNode => (
-  <Button isDisabled={disabled} onPress={onClick} variant="primary">
-    {isSaving ? <Spinner /> : <Save size={14} />}
+  <button
+    className="btn-accent flex items-center gap-2 rounded-md px-5 py-2 text-sm font-medium transition-all"
+    disabled={disabled}
+    onClick={onClick}
+    style={{
+      fontFamily: 'Outfit, sans-serif',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+    }}
+  >
+    {isSaving ? (
+      <span
+        className="h-3.5 w-3.5 animate-spin rounded-full"
+        style={{ border: '1.5px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+      />
+    ) : (
+      <Save size={14} />
+    )}
     Save
-  </Button>
+  </button>
 )

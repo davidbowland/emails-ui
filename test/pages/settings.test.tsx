@@ -5,19 +5,16 @@ import React from 'react'
 
 import AccountSettings from '@components/account-settings'
 import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/account-settings')
 jest.mock('@components/auth')
-jest.mock('@components/privacy-link')
 jest.mock('@config/amplify')
 jest.mock('next/head', () => jest.fn().mockImplementation(({ children }) => <>{children}</>))
 
 describe('Settings page', () => {
   beforeAll(() => {
     jest.mocked(Authenticated).mockImplementation(({ children }) => <>{children}</>)
-    jest.mocked(PrivacyLink).mockReturnValue(<></>)
   })
 
   it('should render AccountSettings component', () => {
@@ -28,11 +25,6 @@ describe('Settings page', () => {
   it('should render Authenticated component', () => {
     render(<SettingsPage />)
     expect(Authenticated).toHaveBeenCalledTimes(1)
-  })
-
-  it('should render PrivacyLink component', () => {
-    render(<SettingsPage />)
-    expect(PrivacyLink).toHaveBeenCalledTimes(1)
   })
 
   it('returns title in Head', () => {

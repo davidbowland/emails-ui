@@ -1,14 +1,10 @@
-import { Button, Card, CardContent, Separator, Spinner } from '@heroui/react'
+import { Spinner } from '@heroui/react'
 import { Send, Trash2 } from 'lucide-react'
 import React from 'react'
 
-export const ComposeCard = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-  <Card className="min-h-[40vh] w-full overflow-auto pt-2 md:min-h-[80vh]">
-    <CardContent>{children}</CardContent>
-  </Card>
+export const ComposeDivider = (): React.ReactNode => (
+  <div style={{ height: '1px', background: 'var(--paper-border)' }} />
 )
-
-export const ComposeDivider = (): React.ReactNode => <Separator />
 
 export const SendButton = ({
   disabled,
@@ -19,15 +15,31 @@ export const SendButton = ({
   isSubmitting: boolean
   onClick: () => void
 }): React.ReactNode => (
-  <Button isDisabled={disabled} onPress={onClick} variant="primary">
-    {isSubmitting ? <Spinner /> : <Send size={14} />}
+  <button
+    className="btn-accent flex items-center gap-2 rounded-md px-5 py-2 text-sm font-medium transition-all"
+    disabled={disabled}
+    onClick={onClick}
+    style={{
+      fontFamily: 'Outfit, sans-serif',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+    }}
+  >
+    {isSubmitting ? <Spinner size="sm" /> : <Send size={14} />}
     Send
-  </Button>
+  </button>
 )
 
 export const DiscardButton = ({ disabled, onClick }: { disabled: boolean; onClick: () => void }): React.ReactNode => (
-  <Button isDisabled={disabled} onPress={onClick} variant="outline">
+  <button
+    className="btn-ghost-paper flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all"
+    disabled={disabled}
+    onClick={onClick}
+    style={{
+      fontFamily: 'Outfit, sans-serif',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+    }}
+  >
     <Trash2 size={14} />
     Discard
-  </Button>
+  </button>
 )

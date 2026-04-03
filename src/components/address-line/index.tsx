@@ -26,13 +26,23 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): Reac
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-1">
-      <span className="pt-1">{label}</span>
-      <div className="flex flex-1 flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1.5 px-4 py-2">
+      <span
+        className="w-10 flex-shrink-0 text-xs font-medium uppercase"
+        style={{
+          color: 'var(--text-paper-muted)',
+          fontFamily: 'Outfit, sans-serif',
+          letterSpacing: '0.06em',
+          paddingTop: '2px',
+        }}
+      >
+        {label}
+      </span>
+      <div className="flex flex-1 flex-wrap items-center gap-1.5">
         {addresses.map((addr, index) => (
           <AddressChip
             key={index}
-            label={addr.address}
+            label={addr.name ? `${addr.name} <${addr.address}>` : addr.address}
             onDelete={setAddresses ? () => handleDelete(index) : undefined}
           />
         ))}

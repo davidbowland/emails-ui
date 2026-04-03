@@ -3,7 +3,6 @@ import React from 'react'
 
 import Authenticated from '@components/auth'
 import Compose from '@components/compose'
-import PrivacyLink from '@components/privacy-link'
 
 const ComposePage = (): React.ReactNode => {
   return (
@@ -11,14 +10,13 @@ const ComposePage = (): React.ReactNode => {
       <Head>
         <title>Email | dbowland.com</title>
       </Head>
-      <main style={{ height: '100%' }}>
+      <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated>
-          <div className="px-2">
+          <div className="h-full overflow-y-auto" style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}>
             <Compose />
           </div>
         </Authenticated>
-        <PrivacyLink />
-      </main>
+      </div>
     </>
   )
 }

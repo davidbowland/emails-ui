@@ -1,5 +1,5 @@
-export { AmplifyUser } from '@aws-amplify/ui'
-export { Operation as PatchOperation } from 'fast-json-patch'
+export type { AmplifyUser } from '@aws-amplify/ui'
+export type { Operation as PatchOperation } from 'fast-json-patch'
 
 export interface StringObject {
   [key: string]: string

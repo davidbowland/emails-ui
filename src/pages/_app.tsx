@@ -1,4 +1,11 @@
-import '@fontsource/roboto'
+import '@fontsource/ibm-plex-mono'
+import '@fontsource/libre-baskerville'
+import '@fontsource/libre-baskerville/700.css'
+import '@fontsource/outfit/300.css'
+import '@fontsource/outfit/400.css'
+import '@fontsource/outfit/500.css'
+import '@fontsource/outfit/600.css'
+import '@fontsource/source-serif-4'
 import type { AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
@@ -17,7 +24,7 @@ const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#ededed] text-black dark:bg-[#121212] dark:text-white">
+    <div className="h-screen overflow-hidden" style={{ background: 'var(--shell-bg)', color: 'var(--text-primary)' }}>
       <Component {...pageProps} />
       <Disclaimer />
     </div>

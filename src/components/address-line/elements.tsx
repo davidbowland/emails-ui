@@ -1,11 +1,23 @@
-import { Chip } from '@heroui/react'
 import React from 'react'
 
 export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
-  <span className="inline-flex items-center gap-1">
-    <Chip variant="secondary">{label}</Chip>
+  <span
+    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
+    style={{
+      background: 'var(--paper-surface)',
+      border: '1px solid var(--paper-border)',
+      color: 'var(--text-paper-muted)',
+      fontFamily: 'IBM Plex Mono, monospace',
+    }}
+  >
+    <span>{label}</span>
     {onDelete && (
-      <button aria-label={`Remove ${label}`} className="text-xs" data-testid="CancelIcon" onClick={onDelete}>
+      <button
+        aria-label={`Remove ${label}`}
+        className="chip-delete flex h-3 w-3 items-center justify-center rounded-full text-xs transition-colors"
+        data-testid="CancelIcon"
+        onClick={onDelete}
+      >
         ✕
       </button>
     )}
@@ -35,11 +47,17 @@ export const TagInput = ({
   return (
     <input
       aria-label={label}
-      className="min-w-[200px] flex-1 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-[#121212]"
+      className="bg-transparent text-xs outline-none"
       disabled={disabled}
       onKeyDown={handleKeyDown}
       placeholder={label}
       role="combobox"
+      style={{
+        minWidth: '160px',
+        color: 'var(--text-paper)',
+        fontFamily: 'IBM Plex Mono, monospace',
+        caretColor: 'var(--accent)',
+      }}
       type="text"
     />
   )

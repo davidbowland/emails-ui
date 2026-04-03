@@ -44,10 +44,16 @@ const AccountSettings = (): React.ReactNode => {
       <label>
         <input
           aria-label="From name"
-          className="w-full rounded border px-3 py-2 dark:bg-[#121212]"
+          className="w-full rounded-md px-3 py-2 outline-none"
           disabled={account === undefined || isSaving}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
           placeholder="From name"
+          style={{
+            background: 'var(--paper-surface)',
+            border: '1px solid var(--paper-border)',
+            color: 'var(--text-paper)',
+            fontFamily: 'Outfit, sans-serif',
+          }}
           value={name}
         />
       </label>

@@ -3,7 +3,6 @@ import React from 'react'
 
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
-import PrivacyLink from '@components/privacy-link'
 import {
   deleteReceivedEmail,
   getAllReceivedEmails,
@@ -19,21 +18,18 @@ const InboxPage = (): React.ReactNode => {
       <Head>
         <title>Email | dbowland.com</title>
       </Head>
-      <main style={{ height: '100%' }}>
+      <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated>
-          <div className="px-2">
-            <Mailbox
-              bounceEmail={postBounceEmail}
-              deleteEmail={deleteReceivedEmail}
-              getAllEmails={getAllReceivedEmails}
-              getEmailAttachment={getReceivedAttachment}
-              getEmailContents={getReceivedEmailContents}
-              patchEmail={patchReceivedEmail}
-            />
-          </div>
+          <Mailbox
+            bounceEmail={postBounceEmail}
+            deleteEmail={deleteReceivedEmail}
+            getAllEmails={getAllReceivedEmails}
+            getEmailAttachment={getReceivedAttachment}
+            getEmailContents={getReceivedEmailContents}
+            patchEmail={patchReceivedEmail}
+          />
         </Authenticated>
-        <PrivacyLink />
-      </main>
+      </div>
     </>
   )
 }

@@ -1,36 +1,55 @@
-import { Chip, Separator, Spinner } from '@heroui/react'
+import { Spinner } from '@heroui/react'
 import { Ban, Eye, EyeOff, Forward, Reply, ReplyAll, Trash2 } from 'lucide-react'
 import React from 'react'
 
 export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: string }): React.ReactNode => (
-  <div className="flex items-center gap-2 px-4 pt-4 pb-2">
-    <h4 className="text-2xl font-normal">{subject}</h4>
+  <div className="flex flex-wrap items-start gap-3 px-8 pt-8 pb-3">
+    <h1
+      className="font-display text-2xl leading-tight"
+      style={{ color: 'var(--text-paper)', fontWeight: 400, flex: '1 1 auto', minWidth: 0 }}
+    >
+      {subject}
+    </h1>
     {bounced && (
-      <Chip color="danger" variant="secondary">
-        Bounced
-      </Chip>
+      <span
+        className="mt-1 inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-medium"
+        style={{
+          background: 'rgba(196, 92, 42, 0.12)',
+          border: '1px solid rgba(196, 92, 42, 0.3)',
+          color: 'var(--accent)',
+          fontFamily: 'IBM Plex Mono, monospace',
+        }}
+      >
+        bounced
+      </span>
     )}
   </div>
 )
 
-export const EmailDivider = (): React.ReactNode => <Separator />
+export const EmailDivider = (): React.ReactNode => (
+  <div className="mx-8 my-3" style={{ height: '1px', background: 'var(--paper-border)' }} />
+)
 
 export const ActionButton = ({
   icon,
   label,
   onClick,
+  variant = 'default',
 }: {
   icon: React.ReactNode
   label: string
   onClick: () => void
+  variant?: 'default' | 'danger'
 }): React.ReactNode => (
   <button
     aria-label={label}
-    className="rounded p-2 hover:bg-gray-200 dark:hover:bg-gray-700"
+    className={`group flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${variant === 'danger' ? 'btn-ghost-danger' : 'btn-ghost-paper'}`}
     onClick={onClick}
+    style={{ fontFamily: 'Outfit, sans-serif' }}
     title={label}
   >
     {icon}
+    <span>{label}</span>
   </button>
 )
 
@@ -42,38 +61,42 @@ export const ShowImagesButton = ({
   showImages: boolean
 }): React.ReactNode => (
   <button
-    className="flex items-center gap-1 rounded px-3 py-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+    className="btn-ghost-paper flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all"
     onClick={onClick}
+    style={{ fontFamily: 'Outfit, sans-serif' }}
   >
-    {showImages ? <EyeOff size={18} /> : <Eye size={18} />}
+    {showImages ? <EyeOff size={13} /> : <Eye size={13} />}
     {showImages ? 'Hide images' : 'Show images'}
   </button>
 )
 
 export const ReplyButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Reply size={18} />} label="Reply" onClick={onClick} />
+  <ActionButton icon={<Reply size={13} />} label="Reply" onClick={onClick} />
 )
 
 export const ReplyAllButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<ReplyAll size={18} />} label="Reply all" onClick={onClick} />
+  <ActionButton icon={<ReplyAll size={13} />} label="Reply all" onClick={onClick} />
 )
 
 export const ForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Forward size={18} />} label="Forward" onClick={onClick} />
+  <ActionButton icon={<Forward size={13} />} label="Forward" onClick={onClick} />
 )
 
 export const BounceButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Ban size={18} />} label="Bounce email" onClick={onClick} />
+  <ActionButton icon={<Ban size={13} />} label="Bounce email" onClick={onClick} variant="danger" />
 )
 
 export const DeleteButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Trash2 size={18} />} label="Delete email" onClick={onClick} />
+  <ActionButton icon={<Trash2 size={13} />} label="Delete email" onClick={onClick} variant="danger" />
 )
 
 export const LoadingOverlay = ({ open }: { open: boolean }): React.ReactNode => {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(245, 240, 232, 0.85)' }}
+    >
       <Spinner />
     </div>
   )

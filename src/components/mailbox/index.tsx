@@ -1,7 +1,7 @@
 import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
 
-import { BouncedChip, EmailListDivider, MailboxCard, NavBackButton, NavForwardButton, ViewerCard } from './elements'
+import { BouncedChip, EmailListDivider, NavBackButton, NavForwardButton } from './elements'
 import EmailViewer from '@components/email-viewer'
 import ErrorSnackbar from '@components/error-snackbar'
 import LoadingSpinner from '@components/loading-spinner'
@@ -70,32 +70,87 @@ const Mailbox = ({
     }
   }
 
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const isToday = date.toDateString() === now.toDateString()
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    return date.toLocaleString()
+  }
+
   const renderReceivedEmails = (receivedEmails: EmailBatch[]): React.ReactNode => {
     if (receivedEmails.length === 0) {
       return (
-        <div className="flex h-full items-center justify-center">
-          <h6 className="p-4 text-center text-xl font-medium">This mailbox is empty</h6>
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div style={{ color: 'var(--text-muted)', fontSize: '2rem' }}>✉</div>
+          <p className="text-center text-sm" style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif' }}>
+            This mailbox is empty
+          </p>
         </div>
       )
     }
     return (
-      <nav>
-        {receivedEmails.map((email, index) => (
-          <React.Fragment key={index}>
-            <button
-              className={`w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-800 ${selectedEmailId === email.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
-              onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
-            >
-              <div className="flex items-center gap-2">
-                <span className={email.data.viewed ? 'font-normal' : 'font-bold'}>{email.data.subject}</span>
-                {email.data.bounced && <BouncedChip />}
-              </div>
-              <div className="mt-1 text-sm text-gray-500 break-words">{email.data.from}</div>
-              <div className="text-sm text-gray-500">{new Date(email.data.timestamp).toLocaleString()}</div>
-            </button>
-            <EmailListDivider />
-          </React.Fragment>
-        ))}
+      <nav className="flex-1 overflow-y-auto">
+        {receivedEmails.map((email, index) => {
+          const isSelected = selectedEmailId === email.id
+          const isUnread = !email.data.viewed
+          return (
+            <React.Fragment key={index}>
+              <button
+                className="email-row animate-fade-in w-full px-4 py-3 text-left transition-colors"
+                onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
+                style={{
+                  background: isSelected ? 'var(--accent-subtle)' : 'transparent',
+                  borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                  paddingLeft: isSelected ? '14px' : '16px',
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {isUnread && (
+                      <div
+                        className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                        style={{ background: 'var(--accent)' }}
+                      />
+                    )}
+                    <span
+                      className="truncate text-sm"
+                      style={{
+                        color: isSelected ? 'var(--accent)' : isUnread ? 'var(--text-primary)' : 'var(--text-muted)',
+                        fontWeight: isUnread ? 600 : 400,
+                        fontFamily: 'Outfit, sans-serif',
+                      }}
+                    >
+                      {email.data.subject}
+                    </span>
+                  </div>
+                  <span
+                    className="flex-shrink-0 text-xs"
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontFamily: 'IBM Plex Mono, monospace',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {formatDate(email.data.timestamp)}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-2" style={{ paddingLeft: isUnread ? '0' : '0' }}>
+                  <span
+                    className="truncate text-xs"
+                    style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif' }}
+                  >
+                    {email.data.from}
+                  </span>
+                  {email.data.bounced && <BouncedChip />}
+                </div>
+              </button>
+              <EmailListDivider />
+            </React.Fragment>
+          )
+        })}
       </nav>
     )
   }
@@ -108,8 +163,14 @@ const Mailbox = ({
   ): React.ReactNode => {
     if (email === undefined || emailId === undefined) {
       return (
-        <div className="flex h-full items-center justify-center">
-          <h6 className="p-4 text-center text-xl font-medium">Select an email to view</h6>
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div style={{ color: 'var(--paper-border)', fontSize: '3rem' }}>✉</div>
+          <p
+            className="text-center text-sm"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}
+          >
+            Select an email to view
+          </p>
         </div>
       )
     }
@@ -168,20 +229,49 @@ const Mailbox = ({
 
   return (
     <>
-      <div className="grid w-full grid-cols-12 gap-2">
-        <div className={`col-span-12 md:col-span-4 lg:col-span-3 ${isViewingEmail ? 'hidden md:block' : ''}`}>
-          <div className="flex justify-end">
+      <div className="flex h-full w-full overflow-hidden">
+        {/* Email list panel */}
+        <div
+          className={`h-full ${isViewingEmail ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}
+          style={{
+            width: 'var(--list-width)',
+            flexShrink: 0,
+            borderRight: '1px solid var(--shell-border)',
+            background: 'var(--shell-surface)',
+          }}
+        >
+          {/* List header */}
+          <div
+            className="flex flex-shrink-0 items-center justify-between px-4 py-3"
+            style={{ borderBottom: '1px solid var(--shell-border)' }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+            >
+              {receivedEmails === undefined ? 'Loading…' : `${receivedEmails.length} messages`}
+            </span>
             <NavForwardButton onClick={() => setIsViewingEmail(true)} />
           </div>
-          <MailboxCard>
-            {receivedEmails === undefined ? <LoadingSpinner /> : renderReceivedEmails(receivedEmails)}
-          </MailboxCard>
+          {/* List body */}
+          {receivedEmails === undefined ? <LoadingSpinner /> : renderReceivedEmails(receivedEmails)}
         </div>
-        <div className={`col-span-12 md:col-span-8 lg:col-span-9 ${isViewingEmail ? '' : 'hidden md:block'}`}>
-          <div>
+
+        {/* Viewer/compose panel */}
+        <div
+          className={`h-full flex-1 overflow-hidden ${isViewingEmail ? 'flex flex-col' : 'hidden md:flex md:flex-col'}`}
+          style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}
+        >
+          {/* Mobile back button */}
+          <div
+            className="flex flex-shrink-0 items-center px-4 py-2 md:hidden"
+            style={{ borderBottom: '1px solid var(--paper-border)' }}
+          >
             <NavBackButton onClick={() => setIsViewingEmail(false)} />
           </div>
-          <ViewerCard>
+
+          {/* Viewer content */}
+          <div className="flex-1 overflow-y-auto">
             {isEmailLoading || loggedInUser?.username === undefined ? (
               <LoadingSpinner />
             ) : (
@@ -192,7 +282,7 @@ const Mailbox = ({
                 receivedEmails?.find((e) => e.id === selectedEmailId)?.data.canBeBounced,
               )
             )}
-          </ViewerCard>
+          </div>
         </div>
       </div>
       <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />

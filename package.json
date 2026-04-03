@@ -30,7 +30,10 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^4.6.5",
-    "@fontsource/roboto": "^4.5.8",
+    "@fontsource/ibm-plex-mono": "^5.0.0",
+    "@fontsource/libre-baskerville": "^5.0.0",
+    "@fontsource/outfit": "^5.0.0",
+    "@fontsource/source-serif-4": "^5.0.0",
     "@heroui/react": "^3.0.1",
     "aws-amplify": "^5.3.33",
     "axios": "^1.14.0",

@@ -3,7 +3,6 @@ import React from 'react'
 
 import AccountSettings from '@components/account-settings'
 import Authenticated from '@components/auth'
-import PrivacyLink from '@components/privacy-link'
 
 const SettingsPage = (): React.ReactNode => {
   return (
@@ -11,14 +10,11 @@ const SettingsPage = (): React.ReactNode => {
       <Head>
         <title>Email | dbowland.com</title>
       </Head>
-      <main style={{ height: '100%' }}>
+      <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated>
-          <div className="px-2">
-            <AccountSettings />
-          </div>
+          <AccountSettings />
         </Authenticated>
-        <PrivacyLink />
-      </main>
+      </div>
     </>
   )
 }

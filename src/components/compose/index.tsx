@@ -2,7 +2,7 @@ import { Auth } from 'aws-amplify'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
-import { ComposeCard, ComposeDivider, DiscardButton, SendButton } from './elements'
+import { ComposeDivider, DiscardButton, SendButton } from './elements'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
 import ConfirmDialog from '@components/confirm-dialog'
@@ -154,48 +154,89 @@ const Compose = ({
 
   return (
     <>
-      <ComposeCard>
-        <AddressLine addresses={toAddresses} label="To:" setAddresses={setToAddresses} />
-        <AddressLine addresses={ccAddresses} label="CC:" setAddresses={setCcAddresses} />
-        <AddressLine addresses={bccAddresses} label="BCC:" setAddresses={setBccAddresses} />
-        {recipientMessage && <p className="px-4 text-xs text-red-500">{recipientMessage}</p>}
-        <div className="px-4 pt-2">
-          <label>
-            <input
-              aria-label="Subject"
-              className="w-full rounded border px-3 py-2 dark:bg-[#121212]"
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSubject(event.target.value)}
-              placeholder="Subject"
-              value={subject}
-            />
-          </label>
+      <div className="flex h-full flex-col" style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}>
+        {/* Header */}
+        <div
+          className="flex flex-shrink-0 items-center justify-between px-8 py-4"
+          style={{ borderBottom: '1px solid var(--paper-border)' }}
+        >
+          <span
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+          >
+            New Message
+          </span>
         </div>
+
+        {/* Address fields */}
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid var(--paper-border)' }}>
+          <AddressLine addresses={toAddresses} label="To:" setAddresses={setToAddresses} />
+          <div style={{ height: '1px', background: 'var(--paper-border)' }} />
+          <AddressLine addresses={ccAddresses} label="CC:" setAddresses={setCcAddresses} />
+          <div style={{ height: '1px', background: 'var(--paper-border)' }} />
+          <AddressLine addresses={bccAddresses} label="BCC:" setAddresses={setBccAddresses} />
+        </div>
+        {recipientMessage && (
+          <p className="px-8 pt-2 text-xs" style={{ color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
+            {recipientMessage}
+          </p>
+        )}
+
+        {/* Subject */}
+        <div className="flex-shrink-0" style={{ borderBottom: '1px solid var(--paper-border)' }}>
+          <input
+            aria-label="Subject"
+            className="w-full bg-transparent px-8 py-3 font-display outline-none"
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSubject(event.target.value)}
+            placeholder="Subject"
+            style={{
+              fontSize: '18px',
+              fontWeight: 400,
+              color: 'var(--text-paper)',
+              fontFamily: 'Libre Baskerville, Georgia, serif',
+            }}
+            value={subject}
+          />
+        </div>
+
         <ComposeDivider />
-        <div className="p-4">
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-8 py-4">
           <HtmlEditor initialBody={initialBody} inputRef={editor} />
         </div>
+
         <ComposeDivider />
-        {loggedInUser?.username && (
-          <AttachmentUploader
-            accountId={loggedInUser?.username}
-            attachments={attachments}
-            setAttachments={setAttachments}
-          />
-        )}
-        {attachmentMessage && <p className="px-4 text-xs text-red-500">{attachmentMessage}</p>}
-        <div className="flex flex-col gap-2 p-4 sm:flex-row sm:justify-end">
-          <DiscardButton disabled={isSubmitting} onClick={() => setIsDiscardDialogOpen(true)} />
-          {loggedInUser?.username && editor.current && (
-            <SendButton
-              disabled={isSubmitting}
-              isSubmitting={isSubmitting}
-              onClick={() =>
-                loggedInUser?.username && editor.current && handleSendClick(loggedInUser.username, editor.current)
-              }
+
+        {/* Footer: attachments + actions */}
+        <div className="flex-shrink-0" style={{ borderTop: '1px solid var(--paper-border)' }}>
+          {loggedInUser?.username && (
+            <AttachmentUploader
+              accountId={loggedInUser?.username}
+              attachments={attachments}
+              setAttachments={setAttachments}
             />
           )}
+          {attachmentMessage && (
+            <p className="px-8 pb-2 text-xs" style={{ color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
+              {attachmentMessage}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-3 px-8 py-4">
+            <DiscardButton disabled={isSubmitting} onClick={() => setIsDiscardDialogOpen(true)} />
+            {loggedInUser?.username && editor.current && (
+              <SendButton
+                disabled={isSubmitting}
+                isSubmitting={isSubmitting}
+                onClick={() =>
+                  loggedInUser?.username && editor.current && handleSendClick(loggedInUser.username, editor.current)
+                }
+              />
+            )}
+          </div>
         </div>
-      </ComposeCard>
+      </div>
+
       <ConfirmDialog
         cancelLabel="Keep editing"
         confirmLabel="Discard"

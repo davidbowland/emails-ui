@@ -138,21 +138,51 @@ const EmailViewer = ({
       )
     }
     return (
-      <>
+      <div className="animate-fade-in">
         <SubjectLine bounced={bounced} subject={subject} />
-        <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
-        {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
-        {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}
-        <AddressLine addresses={email.fromAddress.value} label="From:" />
+
+        {/* Metadata */}
+        <div className="px-8 pb-4">
+          <div
+            className="rounded-md p-3"
+            style={{ background: 'var(--paper-surface)', border: '1px solid var(--paper-border)' }}
+          >
+            <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
+            {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
+            {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}
+            <AddressLine addresses={email.fromAddress.value} label="From:" />
+            {email.date && (
+              <div
+                className="mt-1 px-4 pt-1 text-xs"
+                style={{ color: 'var(--text-paper-muted)', fontFamily: 'IBM Plex Mono, monospace' }}
+              >
+                {new Date(email.date).toLocaleString([], {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Attachments */}
         {email.attachments?.length ? (
-          <AttachmentViewer
-            accountId={accountId}
-            attachments={email.attachments}
-            emailId={emailId}
-            getAttachment={getAttachment}
-          />
+          <div className="px-8 pb-2">
+            <AttachmentViewer
+              accountId={accountId}
+              attachments={email.attachments}
+              emailId={emailId}
+              getAttachment={getAttachment}
+            />
+          </div>
         ) : null}
-        <div className="flex flex-wrap items-center gap-1 px-4 py-1">
+
+        {/* Action bar */}
+        <div className="flex flex-wrap items-center gap-2 px-8 pb-4">
           <ShowImagesButton onClick={() => setShowImages(!showImages)} showImages={showImages} />
           <div className="flex-1" />
           <ReplyButton onClick={() => setComposeMode(ComposeMode.REPLY)} />
@@ -161,9 +191,16 @@ const EmailViewer = ({
           {bounceEmail && <BounceButton onClick={() => setShowBounceDialog(true)} />}
           {deleteEmail && <DeleteButton onClick={() => setShowDeleteDialog(true)} />}
         </div>
+
         <EmailDivider />
-        <div className="p-2" dangerouslySetInnerHTML={{ __html: html }}></div>
-      </>
+
+        {/* Email body */}
+        <div
+          className="px-8 py-6 font-reading text-base leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{ color: 'var(--text-paper)', fontSize: '15px', lineHeight: '1.75' }}
+        />
+      </div>
     )
   }
 
@@ -181,7 +218,7 @@ const EmailViewer = ({
         </div>
         <blockquote
           dangerouslySetInnerHTML={{ __html: html }}
-          style={{ borderLeft: '1px solid rgb(204,204,204)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
+          style={{ borderLeft: '2px solid var(--paper-border)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
         ></blockquote>
       </div>,
     )

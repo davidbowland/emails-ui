@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react'
 
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
-import LoggedInBar from './logged-in-bar'
-import LoggedOutBar from './logged-out-bar'
 import { AmplifyUser } from '@types'
 
 export interface AuthenticatedProps {
@@ -25,41 +23,55 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
     setNavMenuOpen(true)
   }
 
-  const renderChildren = (): React.ReactNode => {
-    if (loggedInUser) {
-      return (
-        <IconDrawer
-          closeMenu={closeMenu}
-          loggedInUser={loggedInUser}
-          navMenuOpen={navMenuOpen}
-          setLoggedInUser={setLoggedInUser}
-        >
-          {children}
-        </IconDrawer>
-      )
-    }
-    if (showContent) {
-      return children
-    }
-    return <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
-  }
-
   useEffect(() => {
     Auth.currentAuthenticatedUser()
       .then(setLoggedInUser)
       .catch(() => null)
   }, [])
 
+  if (loggedInUser) {
+    return (
+      <div className="flex h-full overflow-hidden">
+        <IconDrawer
+          closeMenu={closeMenu}
+          loggedInUser={loggedInUser}
+          navMenuOpen={navMenuOpen}
+          openMenu={openMenu}
+          setLoggedInUser={setLoggedInUser}
+        >
+          {children}
+        </IconDrawer>
+      </div>
+    )
+  }
+
+  if (showContent) {
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <header
+          className="flex flex-shrink-0 items-center px-6 py-4"
+          style={{ borderBottom: '1px solid var(--shell-border)' }}
+        >
+          <span className="font-display text-xl tracking-tight" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+            Email
+          </span>
+        </header>
+        <div className="flex-1 overflow-auto">{children}</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex">
-      <nav className="fixed top-0 right-0 left-0 z-50 flex items-center bg-blue-700 px-4 py-2 text-white">
-        {loggedInUser ? (
-          <LoggedInBar loggedInUser={loggedInUser} navMenuOpen={navMenuOpen} openMenu={openMenu} />
-        ) : (
-          <LoggedOutBar />
-        )}
-      </nav>
-      {renderChildren()}
+    <div className="flex h-full flex-col items-center justify-center">
+      <div className="mb-8 text-center">
+        <div className="mb-2 font-display text-3xl tracking-tight" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+          Email
+        </div>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Sign in to continue
+        </p>
+      </div>
+      <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
     </div>
   )
 }

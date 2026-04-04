@@ -1,5 +1,5 @@
 import { Spinner } from '@heroui/react'
-import { Ban, Eye, EyeOff, Forward, Reply, ReplyAll, Trash2 } from 'lucide-react'
+import { AlertCircle, Ban, Eye, EyeOff, Forward, Reply, ReplyAll, Trash2 } from 'lucide-react'
 import React from 'react'
 
 export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: string }): React.ReactNode => (
@@ -12,7 +12,7 @@ export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: 
     </h1>
     {bounced && (
       <span
-        className="mt-1 inline-flex flex-shrink-0 items-center rounded px-2 py-0.5 text-xs font-medium"
+        className="mt-1 inline-flex flex-shrink-0 items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
         style={{
           background: 'rgba(196, 92, 42, 0.12)',
           border: '1px solid rgba(196, 92, 42, 0.3)',
@@ -20,7 +20,8 @@ export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: 
           fontFamily: 'IBM Plex Mono, monospace',
         }}
       >
-        bounced
+        <AlertCircle size={11} />
+        Bounced
       </span>
     )}
   </div>
@@ -43,13 +44,13 @@ export const ActionButton = ({
 }): React.ReactNode => (
   <button
     aria-label={label}
-    className={`group flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${variant === 'danger' ? 'btn-ghost-danger' : 'btn-ghost-paper'}`}
+    className={`group flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all sm:px-3 ${variant === 'danger' ? 'btn-ghost-danger' : 'btn-ghost-paper'}`}
     onClick={onClick}
     style={{ fontFamily: 'Outfit, sans-serif' }}
     title={label}
   >
     {icon}
-    <span>{label}</span>
+    <span className="hidden sm:inline">{label}</span>
   </button>
 )
 
@@ -61,12 +62,12 @@ export const ShowImagesButton = ({
   showImages: boolean
 }): React.ReactNode => (
   <button
-    className="btn-ghost-paper flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all"
+    className="btn-ghost-paper flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all sm:px-3"
     onClick={onClick}
     style={{ fontFamily: 'Outfit, sans-serif' }}
   >
     {showImages ? <EyeOff size={13} /> : <Eye size={13} />}
-    {showImages ? 'Hide images' : 'Show images'}
+    <span className="hidden sm:inline">{showImages ? 'Hide images' : 'Show images'}</span>
   </button>
 )
 

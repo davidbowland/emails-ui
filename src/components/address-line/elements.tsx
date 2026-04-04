@@ -2,15 +2,16 @@ import React from 'react'
 
 export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
   <span
-    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
+    className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-xs overflow-hidden"
     style={{
       background: 'var(--paper-surface)',
       border: '1px solid var(--paper-border)',
       color: 'var(--text-paper-muted)',
       fontFamily: 'IBM Plex Mono, monospace',
     }}
+    title={label}
   >
-    <span>{label}</span>
+    <span className="truncate">{label}</span>
     {onDelete && (
       <button
         aria-label={`Remove ${label}`}

@@ -80,6 +80,7 @@ const IconDrawer = ({
             borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
             background: active ? 'var(--accent-subtle)' : 'transparent',
             color: active ? 'var(--accent)' : 'var(--text-muted)',
+            cursor: 'pointer',
           }}
           title={navMenuOpen ? undefined : item.label}
         >
@@ -124,6 +125,7 @@ const IconDrawer = ({
           justifyContent: navMenuOpen ? 'flex-start' : 'center',
           color: 'var(--text-muted)',
           borderLeft: '2px solid transparent',
+          cursor: 'pointer',
         }}
         title={navMenuOpen ? undefined : label}
       >

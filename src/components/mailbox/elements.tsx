@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import React from 'react'
 
 export const MailboxPanel = ({ children }: { children: React.ReactNode }): React.ReactNode => (
@@ -30,15 +30,17 @@ export const EmailListDivider = (): React.ReactNode => (
 
 export const BouncedChip = (): React.ReactNode => (
   <span
-    className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
+    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium"
     style={{
       background: 'rgba(196, 92, 42, 0.12)',
       border: '1px solid rgba(196, 92, 42, 0.3)',
       color: 'var(--accent)',
       fontFamily: 'IBM Plex Mono, monospace',
+      flexShrink: 0,
     }}
   >
-    bounced
+    <AlertCircle size={10} />
+    Bounced
   </span>
 )
 

@@ -38,7 +38,7 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): Reac
       >
         {label}
       </span>
-      <div className="flex flex-1 flex-wrap items-center gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
         {addresses.map((addr, index) => (
           <AddressChip
             key={index}

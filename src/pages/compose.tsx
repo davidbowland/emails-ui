@@ -12,7 +12,7 @@ const ComposePage = (): React.ReactNode => {
       </Head>
       <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated>
-          <div className="h-full overflow-y-auto" style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}>
+          <div className="h-full overflow-hidden" style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}>
             <Compose />
           </div>
         </Authenticated>

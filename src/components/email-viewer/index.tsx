@@ -182,14 +182,15 @@ const EmailViewer = ({
         ) : null}
 
         {/* Action bar */}
-        <div className="flex flex-wrap items-center gap-2 px-8 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-8 pb-4">
           <ShowImagesButton onClick={() => setShowImages(!showImages)} showImages={showImages} />
-          <div className="flex-1" />
-          <ReplyButton onClick={() => setComposeMode(ComposeMode.REPLY)} />
-          <ReplyAllButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)} />
-          <ForwardButton onClick={() => setComposeMode(ComposeMode.FORWARD)} />
-          {bounceEmail && <BounceButton onClick={() => setShowBounceDialog(true)} />}
-          {deleteEmail && <DeleteButton onClick={() => setShowDeleteDialog(true)} />}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ReplyButton onClick={() => setComposeMode(ComposeMode.REPLY)} />
+            <ReplyAllButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)} />
+            <ForwardButton onClick={() => setComposeMode(ComposeMode.FORWARD)} />
+            {bounceEmail && <BounceButton onClick={() => setShowBounceDialog(true)} />}
+            {deleteEmail && <DeleteButton onClick={() => setShowDeleteDialog(true)} />}
+          </div>
         </div>
 
         <EmailDivider />

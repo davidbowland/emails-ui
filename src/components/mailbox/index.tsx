@@ -232,10 +232,8 @@ const Mailbox = ({
       <div className="flex h-full w-full overflow-hidden">
         {/* Email list panel */}
         <div
-          className={`h-full ${isViewingEmail ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}
+          className={`h-full flex-shrink-0 ${isViewingEmail ? 'hidden md:flex md:w-[var(--list-width)] md:flex-col' : 'flex w-full flex-col md:w-[var(--list-width)]'}`}
           style={{
-            width: 'var(--list-width)',
-            flexShrink: 0,
             borderRight: '1px solid var(--shell-border)',
             background: 'var(--shell-surface)',
           }}

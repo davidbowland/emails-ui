@@ -38,45 +38,92 @@ const AccountSettings = (): React.ReactNode => {
   }
 
   const renderSettings = (): React.ReactNode => (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="mx-auto max-w-2xl px-6 py-10">
       <SettingsTitle />
-      <SettingsDivider />
-      <label>
-        <input
-          aria-label="From name"
-          className="w-full rounded-md px-3 py-2 outline-none"
-          disabled={account === undefined || isSaving}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-          placeholder="From name"
-          style={{
-            background: 'var(--paper-surface)',
-            border: '1px solid var(--paper-border)',
-            color: 'var(--text-paper)',
-            fontFamily: 'Outfit, sans-serif',
-          }}
-          value={name}
-        />
-      </label>
-      {account !== undefined && (
-        <AddressLine addresses={forwardAddresses} label="Forward targets:" setAddresses={setForwardAddresses} />
-      )}
-      {account !== undefined && (
-        <>
-          <BounceSenderInput label="Bounce emails from senders:" rules={bounceSenders} setRules={setBounceSenders} />
-          <p className="text-sm text-gray-500">
-            Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all senders.
-            Automatically bounced emails will <b>NOT</b> be forwarded.
-          </p>
-        </>
-      )}
-      <div className="flex justify-end p-2">
-        {loggedInUser?.username && account && (
-          <SaveButton
-            disabled={isSaving}
-            isSaving={isSaving}
-            onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+      <p className="mt-1 mb-8 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+        Manage your email account preferences
+      </p>
+
+      <div className="flex flex-col gap-8">
+        {/* Display name */}
+        <section>
+          <div
+            className="mb-2 text-xs font-semibold uppercase"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+          >
+            Display name
+          </div>
+          <input
+            aria-label="From name"
+            className="w-full rounded-md px-3 py-2.5 outline-none"
+            disabled={account === undefined || isSaving}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+            placeholder="Your display name"
+            style={{
+              background: 'var(--paper-surface)',
+              border: '1px solid var(--paper-border)',
+              color: 'var(--text-paper)',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '14px',
+            }}
+            value={name}
           />
+        </section>
+
+        <SettingsDivider />
+
+        {/* Forward targets */}
+        {account !== undefined && (
+          <section>
+            <div
+              className="mb-1 text-xs font-semibold uppercase"
+              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+            >
+              Forward emails to
+            </div>
+            <p className="mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+              Received emails will be forwarded to these addresses.
+            </p>
+            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+              <AddressLine addresses={forwardAddresses} label="To:" setAddresses={setForwardAddresses} />
+            </div>
+          </section>
         )}
+
+        {account !== undefined && <SettingsDivider />}
+
+        {/* Bounce rules */}
+        {account !== undefined && (
+          <section>
+            <div
+              className="mb-1 text-xs font-semibold uppercase"
+              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+            >
+              Bounce rules
+            </div>
+            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+              <BounceSenderInput
+                label="Bounce emails from senders:"
+                rules={bounceSenders}
+                setRules={setBounceSenders}
+              />
+            </div>
+            <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+              Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all
+              senders. Automatically bounced emails will <b>NOT</b> be forwarded.
+            </p>
+          </section>
+        )}
+
+        <div className="flex justify-end pt-2">
+          {loggedInUser?.username && account && (
+            <SaveButton
+              disabled={isSaving}
+              isSaving={isSaving}
+              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

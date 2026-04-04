@@ -47,8 +47,20 @@ const BounceSenderInput = ({ label, rules, setRules }: BounceSenderInputProps): 
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-1">
-      <span className="pt-1">{label}</span>
+    <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+      {label && (
+        <span
+          className="flex-shrink-0 text-xs font-medium uppercase"
+          style={{
+            color: 'var(--text-paper-muted)',
+            fontFamily: 'Outfit, sans-serif',
+            letterSpacing: '0.06em',
+            paddingTop: '2px',
+          }}
+        >
+          {label}
+        </span>
+      )}
       <div className="flex flex-1 flex-wrap items-center gap-1">
         {rules.map((rule, index) => (
           <RuleChip

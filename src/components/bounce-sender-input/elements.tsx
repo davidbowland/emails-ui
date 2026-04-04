@@ -14,12 +14,9 @@ export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => 
     {onDelete && (
       <button
         aria-label={`Remove ${label}`}
-        className="transition-colors"
+        className="chip-delete transition-colors"
         data-testid="CancelIcon"
         onClick={onDelete}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-paper-muted)')}
-        style={{ color: 'var(--text-paper-muted)' }}
       >
         ✕
       </button>
@@ -53,7 +50,7 @@ export const RuleInput = ({
       placeholder="Email, @domain.com, or * for all"
       role="combobox"
       style={{
-        minWidth: '220px',
+        minWidth: '180px',
         flex: '1 1 auto',
         background: 'var(--paper-surface)',
         border: '1px solid var(--paper-border)',

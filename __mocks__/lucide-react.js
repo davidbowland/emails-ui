@@ -7,6 +7,7 @@ const createIcon = (name) => {
 }
 
 module.exports = {
+  AlertCircle: createIcon('AlertCircle'),
   AlignCenter: createIcon('AlignCenter'),
   AlignLeft: createIcon('AlignLeft'),
   AlignRight: createIcon('AlignRight'),

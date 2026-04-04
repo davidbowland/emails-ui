@@ -10,6 +10,26 @@ import EmailViewer from '@components/email-viewer'
 
 jest.mock('aws-amplify')
 jest.mock('@components/email-viewer')
+jest.mock('@components/error-snackbar', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ message, onClose }: any) =>
+    message
+      ? React.createElement(
+        'div',
+        { role: 'alert' },
+        message,
+        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+      )
+      : null
+})
+jest.mock('@components/loading-spinner', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'Loading...')
+})
 jest.mock('@config/amplify')
 
 describe('Mailbox component', () => {
@@ -141,7 +161,7 @@ describe('Mailbox component', () => {
     expect(await screen.findByText(/Email contents/i)).toBeVisible()
     expect(EmailViewer).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: user.username, bounced: undefined, email: emailContents, emailId }),
-      {},
+      undefined,
     )
     expect(patchEmail).toHaveBeenCalledWith(user.username, emailId, [{ op: 'replace', path: '/viewed', value: true }])
   })

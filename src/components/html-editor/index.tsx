@@ -1,37 +1,27 @@
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  IndentDecrease,
+  IndentIncrease,
+  Italic,
+  Link,
+  Link2Off,
+  List,
+  ListOrdered,
+  Palette,
+  RemoveFormatting,
+  Strikethrough,
+  Subscript,
+  Superscript,
+  Type,
+  Underline,
+} from 'lucide-react'
 import React, { RefObject, useEffect, useState } from 'react'
 
-import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter'
-import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft'
-import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight'
-import FormatBoldIcon from '@mui/icons-material/FormatBold'
-import FormatClearIcon from '@mui/icons-material/FormatClear'
-import FormatColorTextIcon from '@mui/icons-material/FormatColorText'
-import FormatIndentDecreaseIcon from '@mui/icons-material/FormatIndentDecrease'
-import FormatIndentIncreaseIcon from '@mui/icons-material/FormatIndentIncrease'
-import FormatItalicIcon from '@mui/icons-material/FormatItalic'
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered'
-import FormatSizeIcon from '@mui/icons-material/FormatSize'
-import FormatStrikethroughIcon from '@mui/icons-material/FormatStrikethrough'
-import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined'
-import InsertLinkIcon from '@mui/icons-material/InsertLink'
-import LinkOffIcon from '@mui/icons-material/LinkOff'
-import PaletteIcon from '@mui/icons-material/Palette'
-import SubscriptIcon from '@mui/icons-material/Subscript'
-import SuperscriptIcon from '@mui/icons-material/Superscript'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
-import Tooltip from '@mui/material/Tooltip'
+import { ToolbarButton, ToolbarDivider } from './elements'
+import ConfirmDialog from '@components/confirm-dialog'
 
 const fontSizeOptions = [
   { label: 'Extra small', value: '1' },
@@ -44,35 +34,41 @@ const fontSizeOptions = [
 ]
 
 const formatColorButtons = [
-  { command: 'foreColor', icon: <FormatColorTextIcon />, id: 'font-color', label: 'Font color', value: '#000000' },
-  { command: 'backColor', icon: <PaletteIcon />, id: 'background-color', label: 'Background color', value: '#ffffff' },
+  { command: 'foreColor', icon: <Type size={15} />, id: 'font-color', label: 'Font color', value: '#000000' },
+  {
+    command: 'backColor',
+    icon: <Palette size={15} />,
+    id: 'background-color',
+    label: 'Background color',
+    value: '#ffffff',
+  },
 ]
 
 const formatTextButtons = [
-  { command: 'bold', icon: <FormatBoldIcon />, label: 'Bold' },
-  { command: 'italic', icon: <FormatItalicIcon />, label: 'Italic' },
-  { command: 'underline', icon: <FormatUnderlinedIcon />, label: 'Underline' },
-  { command: 'strikeThrough', icon: <FormatStrikethroughIcon />, label: 'Strikethrough' },
-  { command: 'subscript', icon: <SubscriptIcon />, label: 'Subscript' },
-  { command: 'superscript', icon: <SuperscriptIcon />, label: 'Superscript' },
+  { command: 'bold', icon: <Bold size={15} />, label: 'Bold' },
+  { command: 'italic', icon: <Italic size={15} />, label: 'Italic' },
+  { command: 'underline', icon: <Underline size={15} />, label: 'Underline' },
+  { command: 'strikeThrough', icon: <Strikethrough size={15} />, label: 'Strikethrough' },
+  { command: 'subscript', icon: <Subscript size={15} />, label: 'Subscript' },
+  { command: 'superscript', icon: <Superscript size={15} />, label: 'Superscript' },
 ]
 
 const formatParagraphButtons = [
-  { command: 'justifyLeft', icon: <FormatAlignLeftIcon />, label: 'Left align' },
-  { command: 'justifyCenter', icon: <FormatAlignCenterIcon />, label: 'Center align' },
-  { command: 'justifyRight', icon: <FormatAlignRightIcon />, label: 'Right align' },
-  { command: 'outdent', icon: <FormatIndentDecreaseIcon />, label: 'Decrease indent' },
-  { command: 'indent', icon: <FormatIndentIncreaseIcon />, label: 'Increase indent' },
-  { command: 'insertOrderedList', icon: <FormatListNumberedIcon />, label: 'Numbered list' },
-  { command: 'insertUnorderedList', icon: <FormatListBulletedIcon />, label: 'Bulleted list' },
+  { command: 'justifyLeft', icon: <AlignLeft size={15} />, label: 'Left align' },
+  { command: 'justifyCenter', icon: <AlignCenter size={15} />, label: 'Center align' },
+  { command: 'justifyRight', icon: <AlignRight size={15} />, label: 'Right align' },
+  { command: 'outdent', icon: <IndentDecrease size={15} />, label: 'Decrease indent' },
+  { command: 'indent', icon: <IndentIncrease size={15} />, label: 'Increase indent' },
+  { command: 'insertOrderedList', icon: <ListOrdered size={15} />, label: 'Numbered list' },
+  { command: 'insertUnorderedList', icon: <List size={15} />, label: 'Bulleted list' },
 ]
 
 export interface HtmlEditorProps {
   initialBody?: string
-  inputRef: RefObject<HTMLDivElement>
+  inputRef: RefObject<HTMLDivElement | null>
 }
 
-const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => {
+const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode => {
   const [linkErrorMessage, setLinkErrorMessage] = useState<string | undefined>()
   const [linkRange, setLinkRange] = useState<Range | undefined>()
   const [linkTarget, setLinkTarget] = useState('')
@@ -147,24 +143,31 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
 
   return (
     <>
-      <Box>
-        <Box component="span" sx={{ display: { sm: 'inline-block', xs: 'initial' } }}>
+      {/* Toolbar */}
+      <div
+        className="mb-2 flex flex-wrap items-center rounded-md px-1 py-1"
+        style={{
+          background: 'var(--paper-surface)',
+          border: '1px solid var(--paper-border)',
+        }}
+      >
+        <span className="inline-flex">
           {formatTextButtons.map((button, index) => (
-            <Tooltip key={index} title={button.label}>
-              <IconButton onClick={() => handleButtonClick(button.command)}>{button.icon}</IconButton>
-            </Tooltip>
+            <ToolbarButton key={index} label={button.label} onClick={() => handleButtonClick(button.command)}>
+              {button.icon}
+            </ToolbarButton>
           ))}
-        </Box>
-        <Divider component="span" orientation="vertical" />
-        <Box component="span" sx={{ display: { sm: 'inline-block', xs: 'initial' } }}>
+        </span>
+        <ToolbarDivider />
+        <span className="inline-flex">
           {formatParagraphButtons.map((button, index) => (
-            <Tooltip key={index} title={button.label}>
-              <IconButton onClick={() => handleButtonClick(button.command)}>{button.icon}</IconButton>
-            </Tooltip>
+            <ToolbarButton key={index} label={button.label} onClick={() => handleButtonClick(button.command)}>
+              {button.icon}
+            </ToolbarButton>
           ))}
-        </Box>
-        <Divider component="span" orientation="vertical" />
-        <Box component="span" sx={{ display: { sm: 'inline-block', xs: 'initial' } }}>
+        </span>
+        <ToolbarDivider />
+        <span className="inline-flex">
           {formatColorButtons.map((button, index) => (
             <React.Fragment key={index}>
               <input
@@ -175,99 +178,129 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): JSX.Element => 
                 type="color"
                 value={button.value}
               />
-              <Tooltip title={button.label}>
-                <IconButton onClick={() => document.getElementById(button.id)?.click()}>{button.icon}</IconButton>
-              </Tooltip>
+              <ToolbarButton label={button.label} onClick={() => document.getElementById(button.id)?.click()}>
+                {button.icon}
+              </ToolbarButton>
             </React.Fragment>
           ))}
-          <Tooltip title="Font size">
-            <IconButton onClick={(event) => setSizeMenuEl(event.currentTarget)}>
-              <FormatSizeIcon />
-            </IconButton>
-          </Tooltip>
-          <Divider component="span" orientation="vertical" />
-          <Tooltip title="Create link">
-            <IconButton onClick={linkDialogOpen}>
-              <InsertLinkIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Unlink">
-            <IconButton onClick={() => handleButtonClick('unlink')}>
-              <LinkOffIcon />
-            </IconButton>
-          </Tooltip>
-          <Divider component="span" orientation="vertical" />
-          <Tooltip title="Remove format">
-            <IconButton onClick={() => handleButtonClick('removeFormat')}>
-              <FormatClearIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-      <Box border={1} padding={1}>
+          <ToolbarButton label="Font size" onClick={(event: any) => setSizeMenuEl(event.currentTarget)}>
+            <Type size={15} />
+          </ToolbarButton>
+          <ToolbarDivider />
+          <ToolbarButton label="Create link" onClick={linkDialogOpen}>
+            <Link size={15} />
+          </ToolbarButton>
+          <ToolbarButton label="Unlink" onClick={() => handleButtonClick('unlink')}>
+            <Link2Off size={15} />
+          </ToolbarButton>
+          <ToolbarDivider />
+          <ToolbarButton label="Remove format" onClick={() => handleButtonClick('removeFormat')}>
+            <RemoveFormatting size={15} />
+          </ToolbarButton>
+        </span>
+      </div>
+
+      {/* Editor area */}
+      <div
+        className="rounded-md p-4"
+        style={{
+          border: '1px solid var(--paper-border)',
+          background: 'var(--paper-surface)',
+          minHeight: '200px',
+        }}
+      >
         <div
           aria-label="Message contents"
           contentEditable={true}
           onPaste={handlePasteEvent}
           ref={inputRef}
-          style={{ minHeight: '20vh' }}
-        ></div>
-      </Box>
-      <Menu anchorEl={sizeMenuEl} onClose={sizeMenuClose} open={!!sizeMenuEl}>
-        {fontSizeOptions.map((size, index) => (
-          <MenuItem key={index} onClick={() => handleFontSizeSelect(size.value)}>
-            {size.label}
-          </MenuItem>
-        ))}
-      </Menu>
-      <Dialog
-        aria-describedby="What link should the selected text have?"
-        aria-labelledby="Add link to email"
-        onClose={linkDialogClose}
+          style={{ minHeight: '180px', outline: 'none' }}
+        />
+      </div>
+
+      {/* Font size dropdown */}
+      {sizeMenuEl && (
+        <div
+          className="absolute z-50 rounded-lg overflow-hidden"
+          style={{
+            background: 'var(--paper-bg)',
+            border: '1px solid var(--paper-border)',
+            boxShadow: 'var(--shadow-md)',
+            minWidth: '140px',
+          }}
+        >
+          {fontSizeOptions.map((size, index) => (
+            <button
+              className="block w-full px-4 py-2 text-left text-sm transition-colors"
+              key={index}
+              onClick={() => handleFontSizeSelect(size.value)}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--paper-border)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif' }}
+            >
+              {size.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <ConfirmDialog
+        cancelLabel="Cancel"
+        confirmLabel="Link"
+        onCancel={linkDialogClose}
+        onConfirm={handleLinkDialogClick}
         open={showLinkDialog}
+        title="Add link to email"
       >
-        <DialogTitle>Add link to email</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2}>
-            <label>
-              <TextField
-                error={!linkText}
-                fullWidth
-                helperText={linkText ? undefined : 'Link text is required'}
-                label="Link text"
-                name="link-text"
-                onChange={(event) => setLinkText(event.target.value)}
-                sx={{ maxWidth: '100%', width: '450px' }}
-                type="text"
-                value={linkText}
-                variant="filled"
-              />
-            </label>
-            <label>
-              <TextField
-                error={linkErrorMessage !== undefined}
-                fullWidth
-                helperText={linkErrorMessage}
-                label="Link to add"
-                name="link-to-add"
-                onChange={(event) => setLinkTarget(event.target.value)}
-                sx={{ maxWidth: '100%', width: '450px' }}
-                type="text"
-                value={linkTarget}
-                variant="filled"
-              />
-            </label>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={linkDialogClose}>
-            Cancel
-          </Button>
-          <Button disabled={!linkText || linkErrorMessage !== undefined} onClick={handleLinkDialogClick}>
-            Link
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <div className="flex flex-col gap-4">
+          <label>
+            <input
+              aria-label="Link text"
+              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+              name="link-text"
+              onChange={(event) => setLinkText(event.target.value)}
+              placeholder="Link text"
+              style={{
+                background: 'var(--paper-surface)',
+                border: '1px solid var(--paper-border)',
+                color: 'var(--text-paper)',
+                fontFamily: 'Outfit, sans-serif',
+                maxWidth: '450px',
+              }}
+              type="text"
+              value={linkText}
+            />
+            {!linkText && (
+              <p className="mt-1 text-xs" style={{ color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
+                Link text is required
+              </p>
+            )}
+          </label>
+          <label>
+            <input
+              aria-label="Link to add"
+              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+              name="link-to-add"
+              onChange={(event) => setLinkTarget(event.target.value)}
+              placeholder="https://…"
+              style={{
+                background: 'var(--paper-surface)',
+                border: '1px solid var(--paper-border)',
+                color: 'var(--text-paper)',
+                fontFamily: 'IBM Plex Mono, monospace',
+                maxWidth: '450px',
+              }}
+              type="text"
+              value={linkTarget}
+            />
+            {linkErrorMessage && (
+              <p className="mt-1 text-xs" style={{ color: 'var(--accent)', fontFamily: 'Outfit, sans-serif' }}>
+                {linkErrorMessage}
+              </p>
+            )}
+          </label>
+        </div>
+      </ConfirmDialog>
     </>
   )
 }

@@ -1,52 +1,49 @@
-import { Link } from 'gatsby'
-import React, { useState } from 'react'
+import Link from 'next/link'
+import React, { useEffect, useRef, useState } from 'react'
 import Cookies from 'universal-cookie'
 
-import Button from '@mui/material/Button'
-import Drawer from '@mui/material/Drawer'
-import Grid from '@mui/material/Grid'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
+import { AcceptButton, DisclaimerBar, DisclaimerBody, DisclaimerTitle } from './elements'
 
-const Disclaimer = (): JSX.Element => {
-  const cookies = new Cookies()
+const Disclaimer = (): React.ReactNode => {
+  const cookies = useRef(new Cookies()).current
 
-  const [open, setOpen] = useState(cookies.get('disclaimer_accept') !== 'true')
+  // Start open to match SSR, then close via useEffect if cookie is set
+  const [open, setOpen] = useState(true)
+
+  useEffect(() => {
+    if (cookies.get('disclaimer_accept') === 'true') {
+      setOpen(false)
+    }
+  }, [])
 
   const closeDrawer = (): void => {
     setOpen(false)
     cookies.set('disclaimer_accept', 'true', { path: '/', sameSite: 'strict', secure: true })
   }
 
+  if (!open) {
+    return null
+  }
+
   return (
-    <>
-      {open && (
-        <Drawer anchor="bottom" variant="permanent">
-          <Stack spacing={1} sx={{ p: 2 }}>
-            <Typography variant="h6">Cookie and Privacy Disclosure</Typography>
-            <Grid container justifyContent="center" sx={{ width: '100%' }}>
-              <Grid item md sm={12}>
-                <Stack spacing={1}>
-                  <Typography variant="body2">
-                    This site only uses essential cookies such as those used to keep you logged in. We may collect your
-                    phone number simply to prevent fraud and to keep costs low. Depending on your activity, your IP
-                    address may appear in our logs for up to 90 days. We never sell your information.
-                  </Typography>
-                  <Typography variant="body2">
-                    See our <Link to="/privacy-policy">privacy policy</Link> for more information.
-                  </Typography>
-                </Stack>
-              </Grid>
-              <Grid item lg={2} md={3} sm={6} sx={{ p: 1, textAlign: 'center' }} xs={12}>
-                <Button fullWidth onClick={closeDrawer} variant="contained">
-                  Accept &amp; continue
-                </Button>
-              </Grid>
-            </Grid>
-          </Stack>
-        </Drawer>
-      )}
-    </>
+    <DisclaimerBar>
+      <DisclaimerTitle>Cookie and Privacy Disclosure</DisclaimerTitle>
+      <div className="flex w-full flex-col items-center gap-2 sm:flex-row">
+        <div className="flex flex-1 flex-col gap-2">
+          <DisclaimerBody>
+            This site only uses essential cookies such as those used to keep you logged in. We may collect your phone
+            number simply to prevent fraud and to keep costs low. Depending on your activity, your IP address may appear
+            in our logs for up to 90 days. We never sell your information.
+          </DisclaimerBody>
+          <DisclaimerBody>
+            See our <Link href="/privacy-policy">privacy policy</Link> for more information.
+          </DisclaimerBody>
+        </div>
+        <div className="p-1 text-center sm:w-auto">
+          <AcceptButton onPress={closeDrawer} />
+        </div>
+      </div>
+    </DisclaimerBar>
   )
 }
 

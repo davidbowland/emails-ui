@@ -1,8 +1,5 @@
-import { Link } from 'gatsby'
+import Link from 'next/link'
 import React from 'react'
-
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
 
 import PrivacyLink from '@components/privacy-link'
 
@@ -11,24 +8,18 @@ export interface ServerErrorProps {
   title: string
 }
 
-const ServerErrorMessage = ({ children, title }: ServerErrorProps): JSX.Element => {
+const ServerErrorMessage = ({ children, title }: ServerErrorProps): React.ReactNode => {
   return (
-    <>
-      <Grid container justifyContent="center">
-        <Grid container direction="column" item padding={4} spacing={2} sx={{ maxWidth: '900px' }}>
-          <Grid item xs>
-            <Typography variant="h1">{title}</Typography>
-          </Grid>
-          <Grid item xs>
-            {children}
-          </Grid>
-          <Grid item xs>
-            <Link to="/">Go home</Link>
-            <PrivacyLink />
-          </Grid>
-        </Grid>
-      </Grid>
-    </>
+    <div className="flex justify-center">
+      <div className="flex max-w-[900px] flex-col gap-4 p-4">
+        <h1 className="text-6xl font-light">{title}</h1>
+        <div>{children}</div>
+        <div>
+          <Link href="/">Go home</Link>
+          <PrivacyLink />
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -1,10 +1,6 @@
 import React from 'react'
 
-import Autocomplete from '@mui/material/Autocomplete'
-import Chip from '@mui/material/Chip'
-import Grid from '@mui/material/Grid'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
+import { RuleChip, RuleInput } from './elements'
 
 type BounceRuleSetter = (value: string[]) => void
 
@@ -17,18 +13,15 @@ export interface BounceSenderInputProps {
 const validateBounceRule = (input: string): boolean => {
   const trimmed = input.trim()
 
-  // All senders
   if (trimmed === '*') {
     return true
   }
 
-  // Email
   const atIndex = trimmed.indexOf('@')
   if (atIndex > 0) {
     return trimmed.indexOf('.', atIndex) > 0
   }
 
-  // Domain
   return trimmed.indexOf('.') > 0
 }
 
@@ -40,48 +33,45 @@ const formatRuleDisplay = (rule: string): string => {
   return rule
 }
 
-const BounceSenderInput = ({ label, rules, setRules }: BounceSenderInputProps): JSX.Element => {
-  const handleChange = (_event: React.SyntheticEvent, newValue: string[]): void => {
+const BounceSenderInput = ({ label, rules, setRules }: BounceSenderInputProps): React.ReactNode => {
+  const handleAdd = (value: string): void => {
     if (!setRules) return
-
-    const validRules = newValue.filter(validateBounceRule)
+    const allValues = [...rules, value]
+    const validRules = allValues.filter(validateBounceRule)
     setRules(validRules)
   }
 
-  return (
-    <Grid alignItems="center" container padding={2} paddingBottom={1} paddingTop={1} spacing={1}>
-      <Grid item padding={1} xs="auto">
-        <Typography paddingTop={1} variant="body1">
-          {label}
-        </Typography>
-      </Grid>
-      <Grid item xs>
-        <Autocomplete
-          freeSolo
-          multiple
-          onChange={handleChange}
-          options={[]}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              disabled={!setRules}
-              label="Bounce rule"
-              placeholder="Email, @domain.com, or * for all"
-              size="small"
-            />
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((rule, index) => {
-              const { key, ...tagProps } = getTagProps({ index })
-              const displayValue = formatRuleDisplay(rule)
+  const handleDelete = (index: number): void => {
+    if (!setRules) return
+    setRules(rules.filter((_, i) => i !== index))
+  }
 
-              return <Chip key={key} label={displayValue} variant="outlined" {...tagProps} />
-            })
-          }
-          value={rules}
-        />
-      </Grid>
-    </Grid>
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+      {label && (
+        <span
+          className="flex-shrink-0 text-xs font-medium uppercase"
+          style={{
+            color: 'var(--text-paper-muted)',
+            fontFamily: 'Outfit, sans-serif',
+            letterSpacing: '0.06em',
+            paddingTop: '2px',
+          }}
+        >
+          {label}
+        </span>
+      )}
+      <div className="flex flex-1 flex-wrap items-center gap-1">
+        {rules.map((rule, index) => (
+          <RuleChip
+            key={index}
+            label={formatRuleDisplay(rule)}
+            onDelete={setRules ? () => handleDelete(index) : undefined}
+          />
+        ))}
+        {setRules && <RuleInput disabled={false} onAdd={handleAdd} />}
+      </div>
+    </div>
   )
 }
 

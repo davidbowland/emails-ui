@@ -1,15 +1,8 @@
 import axios from 'axios'
 import React, { useRef, useState } from 'react'
 
-import AttachmentIcon from '@mui/icons-material/Attachment'
-import Alert from '@mui/material/Alert'
-import Button from '@mui/material/Button'
-import CircularProgress from '@mui/material/CircularProgress'
-import Grid from '@mui/material/Grid'
-import Snackbar from '@mui/material/Snackbar'
-import Tooltip from '@mui/material/Tooltip'
-import Typography from '@mui/material/Typography'
-
+import { AttachmentButton } from './elements'
+import ErrorSnackbar from '@components/error-snackbar'
 import { EmailAttachment, SignedUrl } from '@types'
 
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
@@ -21,7 +14,12 @@ export interface AttachmentViewerProps {
   getAttachment: getAttachmentFn
 }
 
-const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: AttachmentViewerProps): JSX.Element => {
+const AttachmentViewer = ({
+  accountId,
+  attachments,
+  emailId,
+  getAttachment,
+}: AttachmentViewerProps): React.ReactNode => {
   const [attachmentDownloading, setAttachmentDownloading] = useState<string | undefined>()
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
 
@@ -59,35 +57,23 @@ const AttachmentViewer = ({ accountId, attachments, emailId, getAttachment }: At
 
   return (
     <>
-      <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-        <Grid item padding={1} xs="auto">
-          <Typography variant="body1">Attachments:</Typography>
-        </Grid>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-1">
+        <span>Attachments:</span>
         {attachments.map((attachment, index) => (
-          <Grid item key={index} padding={1} xs="auto">
-            <Tooltip title={`${attachment.size.toLocaleString()} bytes`}>
-              <Button
-                disabled={attachmentDownloading !== undefined}
-                onClick={() =>
-                  anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
-                }
-                startIcon={
-                  attachmentDownloading === attachment.id ? <CircularProgress size={14} /> : <AttachmentIcon />
-                }
-                variant="outlined"
-              >
-                {attachment.filename}
-              </Button>
-            </Tooltip>
-          </Grid>
+          <AttachmentButton
+            disabled={attachmentDownloading !== undefined}
+            filename={attachment.filename}
+            isDownloading={attachmentDownloading === attachment.id}
+            key={index}
+            onClick={() =>
+              anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
+            }
+            sizeLabel={`${attachment.size.toLocaleString()} bytes`}
+          />
         ))}
-      </Grid>
+      </div>
       <a ref={anchorRef} style={{ display: 'none' }}></a>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

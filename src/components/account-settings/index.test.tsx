@@ -12,6 +12,26 @@ import * as emails from '@services/emails'
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
 jest.mock('@components/bounce-sender-input')
+jest.mock('@components/error-snackbar', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return ({ message, onClose }: any) =>
+    message
+      ? React.createElement(
+        'div',
+        { role: 'alert' },
+        message,
+        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+      )
+      : null
+})
+jest.mock('@components/loading-spinner', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'Loading...')
+})
 jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
@@ -105,7 +125,7 @@ describe('AccountSettings component', () => {
         label: 'Bounce emails from senders:',
         rules: ['spam@domain.com'],
       }),
-      {},
+      undefined,
     )
     expect(
       await screen.findByText(

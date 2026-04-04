@@ -1,26 +1,25 @@
-import { HeadFC } from 'gatsby'
+import Head from 'next/head'
 import React from 'react'
-
-import Paper from '@mui/material/Paper'
 
 import Authenticated from '@components/auth'
 import PrivacyPolicy from '@components/privacy-policy'
 import '@config/amplify'
 
-const PrivacyPage = (): JSX.Element => {
+const PrivacyPage = (): React.ReactNode => {
   return (
     <>
-      <main>
+      <Head>
+        <title>Privacy Policy | dbowland.com</title>
+      </Head>
+      <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated showContent={true}>
-          <Paper elevation={3} sx={{ margin: 'auto', maxWidth: '900px' }}>
+          <div className="mx-auto max-w-[900px] overflow-auto shadow-md">
             <PrivacyPolicy />
-          </Paper>
+          </div>
         </Authenticated>
-      </main>
+      </div>
     </>
   )
 }
-
-export const Head: HeadFC = () => <title>Privacy Policy | dbowland.com</title>
 
 export default PrivacyPage

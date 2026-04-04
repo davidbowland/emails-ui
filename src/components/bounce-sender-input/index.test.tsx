@@ -70,7 +70,6 @@ describe('BounceSenderInput component', () => {
   it('should allow adding * rule for all senders', async () => {
     render(<BounceSenderInput label="Bounce:" rules={['spam@domain.com', '*']} setRules={setRules} />)
 
-    // Verify that * rule is displayed as "All senders"
     expect(await screen.findByText(/All senders/i)).toBeVisible()
     expect(await screen.findByText(/spam@domain\.com/i)).toBeVisible()
   })

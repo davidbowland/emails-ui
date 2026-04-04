@@ -2,47 +2,16 @@ import '@aws-amplify/ui-react/styles.css'
 import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
 
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar'
-import Box from '@mui/material/Box'
-import { styled } from '@mui/material/styles'
-import Toolbar from '@mui/material/Toolbar'
-
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
-import LoggedInBar from './logged-in-bar'
-import LoggedOutBar from './logged-out-bar'
 import { AmplifyUser } from '@types'
 
-const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)
-
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean
-}
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme, open }) => ({
-  transition: theme.transitions.create(['width', 'margin'], {
-    duration: theme.transitions.duration.leavingScreen,
-    easing: theme.transitions.easing.sharp,
-  }),
-  zIndex: theme.zIndex.drawer + 1,
-  ...(open && {
-    marginLeft: drawerWidth,
-    transition: theme.transitions.create(['width', 'margin'], {
-      duration: theme.transitions.duration.enteringScreen,
-      easing: theme.transitions.easing.sharp,
-    }),
-    width: `calc(100% - ${drawerWidth}px)`,
-  }),
-}))
-
 export interface AuthenticatedProps {
-  children: JSX.Element | JSX.Element[]
+  children: React.ReactNode
   showContent?: boolean
 }
 
-const Authenticated = ({ children, showContent = false }: AuthenticatedProps): JSX.Element => {
+const Authenticated = ({ children, showContent = false }: AuthenticatedProps): React.ReactNode => {
   const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
   const [navMenuOpen, setNavMenuOpen] = useState(false)
 
@@ -54,9 +23,15 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): J
     setNavMenuOpen(true)
   }
 
-  const renderChildren = (): JSX.Element[] | JSX.Element => {
-    if (loggedInUser) {
-      return (
+  useEffect(() => {
+    Auth.currentAuthenticatedUser()
+      .then(setLoggedInUser)
+      .catch(() => null)
+  }, [])
+
+  if (loggedInUser) {
+    return (
+      <div className="flex h-full overflow-hidden">
         <IconDrawer
           closeMenu={closeMenu}
           loggedInUser={loggedInUser}
@@ -66,34 +41,38 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): J
         >
           {children}
         </IconDrawer>
-      )
-    }
-    if (showContent) {
-      return children
-    }
-    return <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
+      </div>
+    )
   }
 
-  // Set user if already logged in
-  useEffect(() => {
-    Auth.currentAuthenticatedUser()
-      .then(setLoggedInUser)
-      .catch(() => null)
-  }, [])
+  if (showContent) {
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <header
+          className="flex flex-shrink-0 items-center px-6 py-4"
+          style={{ borderBottom: '1px solid var(--shell-border)' }}
+        >
+          <span className="font-display text-xl tracking-tight" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+            Email
+          </span>
+        </header>
+        <div className="flex-1 overflow-auto">{children}</div>
+      </div>
+    )
+  }
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar open={navMenuOpen} position="fixed">
-        <Toolbar>
-          {loggedInUser ? (
-            <LoggedInBar loggedInUser={loggedInUser} navMenuOpen={navMenuOpen} openMenu={openMenu} />
-          ) : (
-            <LoggedOutBar />
-          )}
-        </Toolbar>
-      </AppBar>
-      {renderChildren()}
-    </Box>
+    <div className="flex h-full flex-col items-center justify-center">
+      <div className="mb-8 text-center">
+        <div className="mb-2 font-display text-3xl tracking-tight" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+          Email
+        </div>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Sign in to continue
+        </p>
+      </div>
+      <EmailsAuthenticator setLoggedInUser={setLoggedInUser} />
+    </div>
   )
 }
 

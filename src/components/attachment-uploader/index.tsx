@@ -1,23 +1,10 @@
 import axios from 'axios'
 import React, { useRef, useState } from 'react'
 
-import CloseIcon from '@mui/icons-material/Close'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import CircularProgress from '@mui/material/CircularProgress'
-import Grid from '@mui/material/Grid'
-import IconButton from '@mui/material/IconButton'
-import Snackbar from '@mui/material/Snackbar'
-import { styled } from '@mui/material/styles'
-import Tooltip from '@mui/material/Tooltip'
-import Typography from '@mui/material/Typography'
-
+import { AttachmentTag, UploadArea } from './elements'
+import ErrorSnackbar from '@components/error-snackbar'
 import { postSentAttachment } from '@services/emails'
 import { EmailAttachment } from '@types'
-
-const RoundedBox = styled(Box)(() => ({
-  borderRadius: '15px',
-}))
 
 type setAttachmentsFn = (attachments: EmailAttachment[]) => void
 
@@ -27,7 +14,7 @@ export interface AttachmentUploaderProps {
   setAttachments: setAttachmentsFn
 }
 
-const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): JSX.Element => {
+const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): React.ReactNode => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [uploadingFilename, setUploadingFilename] = useState<string | undefined>()
 
@@ -65,62 +52,28 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
     setAttachments(attachments.filter((attachment) => attachment.id !== id))
   }
 
-  const renderDisplay = (attachment: EmailAttachment): JSX.Element => (
-    <Grid container>
-      <Grid item p={1} xs>
-        {attachment.filename}
-      </Grid>
-      <Grid alignContent="center" item xs="auto">
-        <Tooltip title="Remove attachment">
-          <IconButton
-            aria-label="Remove attachment"
-            onClick={() => removeAttachmentById(attachment.id)}
-            sx={{ marginTop: '0.15em' }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
-      </Grid>
-    </Grid>
-  )
-
   const snackbarErrorClose = (): void => {
     setErrorMessage(undefined)
   }
 
   return (
     <>
-      <Grid alignItems="center" container padding={2} paddingBottom={1} paddingTop={1} spacing={1}>
-        <Grid item padding={1} xs="auto">
-          <Typography variant="body1">Attachments:</Typography>
-        </Grid>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-1">
+        <span>Attachments:</span>
         {attachments.map((attachment, index) => (
-          <Grid item key={index} xs="auto">
-            <RoundedBox sx={{ border: 1 }}>{renderDisplay(attachment)}</RoundedBox>
-          </Grid>
+          <AttachmentTag
+            filename={attachment.filename}
+            key={index}
+            onRemove={() => removeAttachmentById(attachment.id)}
+          />
         ))}
-        <Grid item xs="auto">
-          <RoundedBox sx={{ border: 1, overflow: 'hidden', p: 1, width: { sm: 'initial', xs: '250px' } }}>
-            {uploadingFilename === undefined ? (
-              <input
-                aria-label="Attachment upload"
-                onChange={(event) => event.target.files?.[0] && handleFileUpload(event.target.files[0])}
-                ref={inputRef}
-                type="file"
-              />
-            ) : (
-              <Typography>
-                <CircularProgress size={14} /> Uploading {uploadingFilename}
-              </Typography>
-            )}
-          </RoundedBox>
-        </Grid>
-      </Grid>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+        <UploadArea
+          inputRef={inputRef}
+          onFileSelect={(file) => handleFileUpload(file)}
+          uploadingFilename={uploadingFilename}
+        />
+      </div>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

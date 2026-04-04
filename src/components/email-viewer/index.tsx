@@ -2,38 +2,25 @@ import DOMPurify from 'dompurify'
 import React, { useState } from 'react'
 import ReactDOMServer from 'react-dom/server'
 
-import BlockIcon from '@mui/icons-material/Block'
-import DeleteIcon from '@mui/icons-material/Delete'
-import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox'
-import HideImageIcon from '@mui/icons-material/HideImage'
-import ImageIcon from '@mui/icons-material/Image'
-import ReplyIcon from '@mui/icons-material/Reply'
-import ReplyAllIcon from '@mui/icons-material/ReplyAll'
-import Alert from '@mui/material/Alert'
-import Backdrop from '@mui/material/Backdrop'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
-import IconButton from '@mui/material/IconButton'
-import Snackbar from '@mui/material/Snackbar'
-import Stack from '@mui/material/Stack'
-import Tooltip from '@mui/material/Tooltip'
-import Typography from '@mui/material/Typography'
-
+import {
+  BounceButton,
+  DeleteButton,
+  EmailDivider,
+  ForwardButton,
+  LoadingOverlay,
+  ReplyAllButton,
+  ReplyButton,
+  ShowImagesButton,
+  SubjectLine,
+} from './elements'
 import AddressLine from '@components/address-line'
 import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
+import ConfirmDialog from '@components/confirm-dialog'
+import ErrorSnackbar from '@components/error-snackbar'
 import { EmailAddress, EmailContents, SignedUrl } from '@types'
 
-const DOMAIN = process.env.GATSBY_DOMAIN
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN
 const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 
 type bounceEmailFn = (accountId: string, emailId: string) => Promise<any>
@@ -65,7 +52,7 @@ const EmailViewer = ({
   email,
   emailId,
   getAttachment,
-}: EmailViewerProps): JSX.Element => {
+}: EmailViewerProps): React.ReactNode => {
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
@@ -111,7 +98,7 @@ const EmailViewer = ({
 
   const filterUsersEmail = (address: EmailAddress) => address.address.toLowerCase() !== `${accountId}@${DOMAIN}`
 
-  const renderEmail = (): JSX.Element => {
+  const renderEmail = (): React.ReactNode => {
     const replyTo = email.replyToAddress.display ? email.replyToAddress.value : email.fromAddress.value
     const subject = email.subject ?? 'no subject'
     if (composeMode === ComposeMode.REPLY) {
@@ -151,79 +138,70 @@ const EmailViewer = ({
       )
     }
     return (
-      <>
-        <Stack alignItems="center" direction="row" gap={1} padding={2} paddingBottom={1}>
-          <Typography variant="h4">{subject}</Typography>
-          {bounced && <Chip color="error" label="Bounced" size="small" variant="outlined" />}
-        </Stack>
-        <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
-        {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
-        {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}
-        <AddressLine addresses={email.fromAddress.value} label="From:" />
-        {email.attachments?.length ? (
-          <AttachmentViewer
-            accountId={accountId}
-            attachments={email.attachments}
-            emailId={emailId}
-            getAttachment={getAttachment}
-          />
-        ) : null}
-        <Grid alignItems="center" columnSpacing={1} container paddingLeft={2} paddingRight={1}>
-          <Grid item padding={1} xs="auto">
-            {showImages ? (
-              <Button onClick={() => setShowImages(false)} startIcon={<HideImageIcon />}>
-                Hide images
-              </Button>
-            ) : (
-              <Button onClick={() => setShowImages(true)} startIcon={<ImageIcon />}>
-                Show images
-              </Button>
+      <div className="animate-fade-in">
+        <SubjectLine bounced={bounced} subject={subject} />
+
+        {/* Metadata */}
+        <div className="px-8 pb-4">
+          <div
+            className="rounded-md p-3"
+            style={{ background: 'var(--paper-surface)', border: '1px solid var(--paper-border)' }}
+          >
+            <AddressLine addresses={email.toAddress?.value ?? []} label="To:" />
+            {email.ccAddress?.value.length ? <AddressLine addresses={email.ccAddress.value} label="CC:" /> : null}
+            {email.bccAddress?.value.length ? <AddressLine addresses={email.bccAddress.value} label="BCC:" /> : null}
+            <AddressLine addresses={email.fromAddress.value} label="From:" />
+            {email.date && (
+              <div
+                className="mt-1 px-4 pt-1 text-xs"
+                style={{ color: 'var(--text-paper-muted)', fontFamily: 'IBM Plex Mono, monospace' }}
+              >
+                {new Date(email.date).toLocaleString([], {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
             )}
-          </Grid>
-          <Grid item xs></Grid>
-          <Grid item xs="auto">
-            <Tooltip title="Reply">
-              <IconButton onClick={() => setComposeMode(ComposeMode.REPLY)}>
-                <ReplyIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
-          <Grid item xs="auto">
-            <Tooltip title="Reply all">
-              <IconButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)}>
-                <ReplyAllIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
-          <Grid item xs="auto">
-            <Tooltip title="Forward">
-              <IconButton onClick={() => setComposeMode(ComposeMode.FORWARD)}>
-                <ForwardToInboxIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
-          {bounceEmail && (
-            <Grid item xs="auto">
-              <Tooltip title="Bounce email">
-                <IconButton onClick={() => setShowBounceDialog(true)}>
-                  <BlockIcon />
-                </IconButton>
-              </Tooltip>
-            </Grid>
-          )}
-          {deleteEmail && (
-            <Grid item xs="auto">
-              <Tooltip title="Delete email">
-                <IconButton onClick={() => setShowDeleteDialog(true)}>
-                  <DeleteIcon />
-                </IconButton>
-              </Tooltip>
-            </Grid>
-          )}
-        </Grid>
-        <Divider />
-        <Box dangerouslySetInnerHTML={{ __html: html }} padding={1}></Box>
-      </>
+          </div>
+        </div>
+
+        {/* Attachments */}
+        {email.attachments?.length ? (
+          <div className="px-8 pb-2">
+            <AttachmentViewer
+              accountId={accountId}
+              attachments={email.attachments}
+              emailId={emailId}
+              getAttachment={getAttachment}
+            />
+          </div>
+        ) : null}
+
+        {/* Action bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-8 pb-4">
+          <ShowImagesButton onClick={() => setShowImages(!showImages)} showImages={showImages} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ReplyButton onClick={() => setComposeMode(ComposeMode.REPLY)} />
+            <ReplyAllButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)} />
+            <ForwardButton onClick={() => setComposeMode(ComposeMode.FORWARD)} />
+            {bounceEmail && <BounceButton onClick={() => setShowBounceDialog(true)} />}
+            {deleteEmail && <DeleteButton onClick={() => setShowDeleteDialog(true)} />}
+          </div>
+        </div>
+
+        <EmailDivider />
+
+        {/* Email body */}
+        <div
+          className="px-8 py-6 font-reading text-base leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{ color: 'var(--text-paper)', fontSize: '15px', lineHeight: '1.75' }}
+        />
+      </div>
     )
   }
 
@@ -241,7 +219,7 @@ const EmailViewer = ({
         </div>
         <blockquote
           dangerouslySetInnerHTML={{ __html: html }}
-          style={{ borderLeft: '1px solid rgb(204,204,204)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
+          style={{ borderLeft: '2px solid var(--paper-border)', margin: '0px 0px 0px 0.8ex', paddingLeft: '1ex' }}
         ></blockquote>
       </div>,
     )
@@ -260,34 +238,27 @@ const EmailViewer = ({
   }
 
   if (showImages === false) {
-    DOMPurify.addHook(
-      'uponSanitizeElement',
-      (node: Element | any, data: DOMPurify.UponSanitizeElementHookEvent): void => {
-        // Remove external CSS from style tags
-        if (data.tagName.toLowerCase() === 'style') {
-          for (const rule of node.sheet.cssRules) {
-            if (rule.style) {
-              removeExternalCss(rule.style)
-            }
+    DOMPurify.addHook('uponSanitizeElement', (node: Element | any, data: any): void => {
+      if (data.tagName.toLowerCase() === 'style') {
+        for (const rule of node.sheet.cssRules) {
+          if (rule.style) {
+            removeExternalCss(rule.style)
           }
-          node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
         }
-      },
-    )
+        node.innerText = [...node.sheet.cssRules].reduce((acc: string, curr: any) => `${acc} ${curr.cssText}`, '')
+      }
+    })
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element | any): void => {
-      // Remove any attributes that leak HTTP calls
       for (const attr of HTTP_LEAK_ATTRIBUTES) {
         if (/^data:image\//.test(node.getAttribute(attr)) === false) {
           node.removeAttribute(attr)
         }
       }
-      // Remove external CSS from style attributes
       removeExternalCss(node.style)
     })
   }
   DOMPurify.addHook('afterSanitizeAttributes', (node: Element | any): void => {
-    // Open links in new tabs
     if ('target' in node) {
       node.setAttribute('target', '_blank')
     }
@@ -303,57 +274,29 @@ const EmailViewer = ({
   return (
     <>
       {renderEmail()}
-      <Backdrop open={backdropShown} sx={{ zIndex: (theme: any) => theme.zIndex.drawer + 1 }}>
-        <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
-          <Grid item>
-            <CircularProgress />
-          </Grid>
-        </Grid>
-      </Backdrop>
-      <Dialog
-        aria-describedby="Are you sure you want to bounce the email?"
-        aria-labelledby="Bounce email dialog"
-        onClose={bounceDialogClose}
+      <LoadingOverlay open={backdropShown} />
+      <ConfirmDialog
+        cancelLabel="Cancel"
+        confirmLabel="Bounce"
+        onCancel={bounceDialogClose}
+        onConfirm={() => bounceEmail && bounceEmailClick(bounceEmail)}
         open={showBounceDialog}
+        title="Bounce email"
       >
-        <DialogTitle id="bounce-dialog-title">Bounce email</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="bounce-dialog-description">
-            Are you sure you want to bounce this email? Bouncing an email signals to the sender that the account is
-            invalid. You can automatically bounce messages from certain senders in account settings.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={bounceDialogClose}>
-            Cancel
-          </Button>
-          {bounceEmail && <Button onClick={() => bounceEmailClick(bounceEmail)}>Bounce</Button>}
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        aria-describedby="Are you sure you want to delete the email?"
-        aria-labelledby="Delete email dialog"
-        onClose={deleteDialogClose}
+        Are you sure you want to bounce this email? Bouncing an email signals to the sender that the account is invalid.
+        You can automatically bounce messages from certain senders in account settings.
+      </ConfirmDialog>
+      <ConfirmDialog
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        onCancel={deleteDialogClose}
+        onConfirm={() => deleteEmail && deleteEmailClick(deleteEmail)}
         open={showDeleteDialog}
+        title="Delete email"
       >
-        <DialogTitle id="alert-dialog-title">Delete email</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete this email?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={deleteDialogClose}>
-            Cancel
-          </Button>
-          {deleteEmail && <Button onClick={() => deleteEmailClick(deleteEmail)}>Delete</Button>}
-        </DialogActions>
-      </Dialog>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+        Are you sure you want to delete this email?
+      </ConfirmDialog>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

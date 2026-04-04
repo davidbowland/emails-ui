@@ -1,25 +1,10 @@
 import { Auth } from 'aws-amplify'
 import React, { useEffect, useState } from 'react'
 
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
-import IconButton from '@mui/material/IconButton'
-import List from '@mui/material/List'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemText from '@mui/material/ListItemText'
-import Snackbar from '@mui/material/Snackbar'
-import Stack from '@mui/material/Stack'
-import Tooltip from '@mui/material/Tooltip'
-import Typography from '@mui/material/Typography'
-
+import { BouncedChip, EmailListDivider, NavBackButton, NavForwardButton } from './elements'
 import EmailViewer from '@components/email-viewer'
+import ErrorSnackbar from '@components/error-snackbar'
+import LoadingSpinner from '@components/loading-spinner'
 import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
 
 export interface MailboxProps {
@@ -38,7 +23,7 @@ const Mailbox = ({
   getEmailAttachment,
   getEmailContents,
   patchEmail,
-}: MailboxProps): JSX.Element => {
+}: MailboxProps): React.ReactNode => {
   const [email, setEmail] = useState<EmailContents | undefined>()
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isEmailLoading, setIsEmailLoading] = useState(false)
@@ -85,56 +70,88 @@ const Mailbox = ({
     }
   }
 
-  const renderLoading = (): JSX.Element => (
-    <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
-      <Grid item>
-        <CircularProgress />
-      </Grid>
-    </Grid>
-  )
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const isToday = date.toDateString() === now.toDateString()
+    if (isToday) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    return date.toLocaleString()
+  }
 
-  const renderReceivedEmails = (receivedEmails: EmailBatch[]): JSX.Element => {
+  const renderReceivedEmails = (receivedEmails: EmailBatch[]): React.ReactNode => {
     if (receivedEmails.length === 0) {
       return (
-        <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
-          <Grid item>
-            <Typography p={2} sx={{ textAlign: 'center' }} variant="h6">
-              This mailbox is empty
-            </Typography>
-          </Grid>
-        </Grid>
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div style={{ color: 'var(--text-muted)', fontSize: '2rem' }}>✉</div>
+          <p className="text-center text-sm" style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif' }}>
+            This mailbox is empty
+          </p>
+        </div>
       )
     }
     return (
-      <List component="nav">
-        {receivedEmails.map((email, index) => (
-          <React.Fragment key={index}>
-            <ListItemButton
-              onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
-              selected={selectedEmailId === email.id}
-            >
-              <ListItemText
-                primary={
-                  <Stack alignItems="center" direction="row" spacing={1}>
-                    <Typography sx={{ fontWeight: email.data.viewed ? 'normal' : 'bold' }}>
+      <nav className="flex-1 overflow-y-auto">
+        {receivedEmails.map((email, index) => {
+          const isSelected = selectedEmailId === email.id
+          const isUnread = !email.data.viewed
+          return (
+            <React.Fragment key={index}>
+              <button
+                className="email-row animate-fade-in w-full px-4 py-3 text-left transition-colors"
+                onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
+                style={{
+                  background: isSelected ? 'var(--accent-subtle)' : 'transparent',
+                  borderLeft: isSelected ? '2px solid var(--accent)' : '2px solid transparent',
+                  paddingLeft: isSelected ? '14px' : '16px',
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {isUnread && (
+                      <div
+                        className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                        style={{ background: 'var(--accent)' }}
+                      />
+                    )}
+                    <span
+                      className="truncate text-sm"
+                      style={{
+                        color: isSelected ? 'var(--accent)' : isUnread ? 'var(--text-primary)' : 'var(--text-muted)',
+                        fontWeight: isUnread ? 600 : 400,
+                        fontFamily: 'Outfit, sans-serif',
+                      }}
+                    >
                       {email.data.subject}
-                    </Typography>
-                    {email.data.bounced && <Chip color="error" label="Bounced" size="small" variant="outlined" />}
-                  </Stack>
-                }
-                secondary={
-                  <Stack spacing={1}>
-                    <Box sx={{ wordWrap: 'break-word' }}>{email.data.from}</Box>
-                    <Box>{new Date(email.data.timestamp).toLocaleString()}</Box>
-                  </Stack>
-                }
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-            </ListItemButton>
-            <Divider component="li" />
-          </React.Fragment>
-        ))}
-      </List>
+                    </span>
+                  </div>
+                  <span
+                    className="flex-shrink-0 text-xs"
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontFamily: 'IBM Plex Mono, monospace',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {formatDate(email.data.timestamp)}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-2" style={{ paddingLeft: isUnread ? '0' : '0' }}>
+                  <span
+                    className="truncate text-xs"
+                    style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif' }}
+                  >
+                    {email.data.from}
+                  </span>
+                  {email.data.bounced && <BouncedChip />}
+                </div>
+              </button>
+              <EmailListDivider />
+            </React.Fragment>
+          )
+        })}
+      </nav>
     )
   }
 
@@ -143,16 +160,18 @@ const Mailbox = ({
     emailId?: string,
     email?: EmailContents,
     canBeBounced?: boolean,
-  ): JSX.Element => {
+  ): React.ReactNode => {
     if (email === undefined || emailId === undefined) {
       return (
-        <Grid alignItems="center" container justifyContent="center" sx={{ height: '100%' }}>
-          <Grid item>
-            <Typography p={2} sx={{ textAlign: 'center' }} variant="h6">
-              Select an email to view
-            </Typography>
-          </Grid>
-        </Grid>
+        <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+          <div style={{ color: 'var(--paper-border)', fontSize: '3rem' }}>✉</div>
+          <p
+            className="text-center text-sm"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}
+          >
+            Select an email to view
+          </p>
+        </div>
       )
     }
 
@@ -210,49 +229,61 @@ const Mailbox = ({
 
   return (
     <>
-      <Grid container spacing={1} sx={{ width: '100%' }}>
-        <Grid item lg={3} md={4} sx={{ display: { md: 'initial', xs: isViewingEmail ? 'none' : 'initial' } }} xs={12}>
-          <Grid container>
-            <Grid item xs></Grid>
-            <Grid item xs="auto">
-              <Tooltip sx={{ display: { md: 'none', xs: 'initial' } }} title="Email">
-                <IconButton aria-label="Show selected email" onClick={() => setIsViewingEmail(true)}>
-                  <ArrowForwardIcon />
-                </IconButton>
-              </Tooltip>
-            </Grid>
-          </Grid>
-          <Card sx={{ height: '100%', maxHeight: '80vh', overflowY: 'scroll', width: '100%' }} variant="outlined">
-            {receivedEmails === undefined ? renderLoading() : renderReceivedEmails(receivedEmails)}
-          </Card>
-        </Grid>
-        <Grid item sx={{ display: { md: 'initial', xs: isViewingEmail ? 'initial' : 'none' } }} xs>
-          <Grid container>
-            <Grid item xs="auto">
-              <Tooltip sx={{ display: { md: 'none', xs: 'initial' } }} title="Back">
-                <IconButton aria-label="Back to email list" onClick={() => setIsViewingEmail(false)}>
-                  <ArrowBackIcon />
-                </IconButton>
-              </Tooltip>
-            </Grid>
-          </Grid>
-          <Card sx={{ minHeight: { md: '80vh', xs: '40vh' }, overflow: 'scroll', width: '100%' }} variant="outlined">
-            {isEmailLoading || loggedInUser?.username === undefined
-              ? renderLoading()
-              : renderViewer(
+      <div className="flex h-full w-full overflow-hidden">
+        {/* Email list panel */}
+        <div
+          className={`h-full flex-shrink-0 ${isViewingEmail ? 'hidden md:flex md:w-[var(--list-width)] md:flex-col' : 'flex w-full flex-col md:w-[var(--list-width)]'}`}
+          style={{
+            borderRight: '1px solid var(--shell-border)',
+            background: 'var(--shell-surface)',
+          }}
+        >
+          {/* List header */}
+          <div
+            className="flex flex-shrink-0 items-center justify-between px-4 py-3"
+            style={{ borderBottom: '1px solid var(--shell-border)' }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+            >
+              {receivedEmails === undefined ? 'Loading…' : `${receivedEmails.length} messages`}
+            </span>
+            <NavForwardButton onClick={() => setIsViewingEmail(true)} />
+          </div>
+          {/* List body */}
+          {receivedEmails === undefined ? <LoadingSpinner /> : renderReceivedEmails(receivedEmails)}
+        </div>
+
+        {/* Viewer/compose panel */}
+        <div
+          className={`h-full flex-1 overflow-hidden ${isViewingEmail ? 'flex flex-col' : 'hidden md:flex md:flex-col'}`}
+          style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}
+        >
+          {/* Mobile back button */}
+          <div
+            className="flex flex-shrink-0 items-center px-4 py-2 md:hidden"
+            style={{ borderBottom: '1px solid var(--paper-border)' }}
+          >
+            <NavBackButton onClick={() => setIsViewingEmail(false)} />
+          </div>
+
+          {/* Viewer content */}
+          <div className="flex-1 overflow-y-auto">
+            {isEmailLoading || loggedInUser?.username === undefined ? (
+              <LoadingSpinner />
+            ) : (
+              renderViewer(
                 loggedInUser?.username,
                 selectedEmailId,
                 email,
                 receivedEmails?.find((e) => e.id === selectedEmailId)?.data.canBeBounced,
-              )}
-          </Card>
-        </Grid>
-      </Grid>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

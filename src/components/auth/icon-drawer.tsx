@@ -1,92 +1,32 @@
 import '@aws-amplify/ui-react/styles.css'
 import { Auth } from 'aws-amplify'
-import { navigate } from 'gatsby'
-import React, { useState } from 'react'
+import { ChevronLeft, LogOut, Mail, Menu, Pencil, Send, Settings, Shield, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/router'
+import React, { useEffect, useState } from 'react'
 
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import CreateIcon from '@mui/icons-material/Create'
-import DeleteIcon from '@mui/icons-material/Delete'
-import LogoutIcon from '@mui/icons-material/Logout'
-import InboxIcon from '@mui/icons-material/MoveToInbox'
-import OutboxIcon from '@mui/icons-material/Outbox'
-import PrivacyTipIcon from '@mui/icons-material/PrivacyTip'
-import SettingsIcon from '@mui/icons-material/Settings'
-import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import ListItemText from '@mui/material/ListItemText'
-import Snackbar from '@mui/material/Snackbar'
-import { CSSObject, styled, Theme } from '@mui/material/styles'
-import MuiDrawer from '@mui/material/SwipeableDrawer'
-import Tooltip from '@mui/material/Tooltip'
-
+import ConfirmDialog from '@components/confirm-dialog'
+import ErrorSnackbar from '@components/error-snackbar'
 import { AmplifyUser } from '@types'
 
-const drawerWidth = parseInt(process.env.GATSBY_DRAWER_WIDTH, 10)
-
-const openedMixin = (theme: Theme): CSSObject => ({
-  overflowX: 'hidden',
-  transition: theme.transitions.create('width', {
-    duration: theme.transitions.duration.enteringScreen,
-    easing: theme.transitions.easing.sharp,
-  }),
-  width: drawerWidth,
-})
-
-const closedMixin = (theme: Theme): CSSObject => ({
-  overflowX: 'hidden',
-  transition: theme.transitions.create('width', {
-    duration: theme.transitions.duration.leavingScreen,
-    easing: theme.transitions.easing.sharp,
-  }),
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up('sm')]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
-})
-
-const DrawerHeader = styled('div')(({ theme }) => ({
-  alignItems: 'center',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  padding: theme.spacing(0, 1),
-  ...theme.mixins.toolbar,
-}))
-
-const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(({ theme, open }) => ({
-  boxSizing: 'border-box',
-  flexShrink: 0,
-  whiteSpace: 'nowrap',
-  width: drawerWidth,
-  ...(open && {
-    ...openedMixin(theme),
-    '& .MuiDrawer-paper': openedMixin(theme),
-  }),
-  ...(!open && {
-    ...closedMixin(theme),
-    '& .MuiDrawer-paper': closedMixin(theme),
-  }),
-}))
-
 export interface IconDrawerProps {
-  children: JSX.Element | JSX.Element[]
+  children: React.ReactNode
   closeMenu: () => void
   loggedInUser: AmplifyUser
   navMenuOpen: boolean
   openMenu: () => void
   setLoggedInUser: (user?: AmplifyUser) => void
 }
+
+const navItems = [
+  { icon: <Pencil size={18} />, label: 'Compose', path: '/compose' },
+  { icon: <Mail size={18} />, label: 'Inbox', path: '/inbox' },
+  { icon: <Send size={18} />, label: 'Sent', path: '/outbox' },
+]
+
+const settingsItems = [
+  { icon: <Settings size={18} />, label: 'Settings', path: '/settings' },
+  { icon: <Shield size={18} />, label: 'Privacy policy', path: '/privacy-policy' },
+]
 
 const IconDrawer = ({
   children,
@@ -95,9 +35,16 @@ const IconDrawer = ({
   navMenuOpen,
   openMenu,
   setLoggedInUser,
-}: IconDrawerProps): JSX.Element => {
+}: IconDrawerProps): React.ReactNode => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDeleteErrorSnackbar, setShowDeleteErrorSnackbar] = useState(false)
+
+  const router = useRouter()
+  const [pathname, setPathname] = useState('')
+
+  useEffect(() => {
+    setPathname(window.location.pathname)
+  }, [router.asPath])
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
@@ -113,231 +60,227 @@ const IconDrawer = ({
     })
   }
 
-  const deleteDialogClose = (): void => {
-    setShowDeleteDialog(false)
+  const isActive = (path: string): boolean => Boolean(pathname.match(new RegExp(`${path}/?$`)))
+
+  const sidebarWidth = navMenuOpen ? 'var(--sidebar-expanded)' : 'var(--sidebar-collapsed)'
+
+  const renderNavItem = (
+    item: { icon: React.ReactNode; label: string; path: string },
+    index: number,
+  ): React.ReactNode => {
+    const active = isActive(item.path)
+    return (
+      <li key={index}>
+        <button
+          className="group relative flex w-full items-center gap-3 py-2.5 transition-colors"
+          onClick={() => router.push(item.path)}
+          style={{
+            padding: navMenuOpen ? '10px 16px' : '10px 0',
+            justifyContent: navMenuOpen ? 'flex-start' : 'center',
+            borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
+            background: active ? 'var(--accent-subtle)' : 'transparent',
+            color: active ? 'var(--accent)' : 'var(--text-muted)',
+            cursor: 'pointer',
+          }}
+          title={navMenuOpen ? undefined : item.label}
+        >
+          <span
+            className="flex-shrink-0 transition-colors"
+            style={{
+              marginLeft: navMenuOpen ? '0' : 'auto',
+              marginRight: navMenuOpen ? '0' : 'auto',
+              color: active ? 'var(--accent)' : 'var(--text-muted)',
+            }}
+          >
+            {item.icon}
+          </span>
+          <span
+            className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all"
+            style={{
+              maxWidth: navMenuOpen ? '160px' : '0',
+              opacity: navMenuOpen ? 1 : 0,
+              fontFamily: 'Outfit, sans-serif',
+              letterSpacing: '0.01em',
+            }}
+          >
+            {item.label}
+          </span>
+        </button>
+      </li>
+    )
   }
 
-  const snackbarClose = (): void => {
-    setShowDeleteErrorSnackbar(false)
-  }
+  const renderDangerItem = (
+    icon: React.ReactNode,
+    label: string,
+    onClick: () => void,
+    index: number,
+  ): React.ReactNode => (
+    <li key={index}>
+      <button
+        className="group flex w-full items-center gap-3 py-2.5 transition-colors"
+        onClick={onClick}
+        style={{
+          padding: navMenuOpen ? '10px 16px' : '10px 0',
+          justifyContent: navMenuOpen ? 'flex-start' : 'center',
+          color: 'var(--text-muted)',
+          borderLeft: '2px solid transparent',
+          cursor: 'pointer',
+        }}
+        title={navMenuOpen ? undefined : label}
+      >
+        <span
+          className="flex-shrink-0 transition-colors"
+          style={{
+            marginLeft: navMenuOpen ? '0' : 'auto',
+            marginRight: navMenuOpen ? '0' : 'auto',
+          }}
+        >
+          {icon}
+        </span>
+        <span
+          className="overflow-hidden whitespace-nowrap text-sm transition-all"
+          style={{
+            maxWidth: navMenuOpen ? '160px' : '0',
+            opacity: navMenuOpen ? 1 : 0,
+            fontFamily: 'Outfit, sans-serif',
+          }}
+        >
+          {label}
+        </span>
+      </button>
+    </li>
+  )
 
-  const pathname = (typeof window !== 'undefined' && window.location.pathname) || ''
   return (
     <>
-      <Drawer onClose={closeMenu} onOpen={openMenu} open={navMenuOpen} variant="permanent">
-        <DrawerHeader>
-          <IconButton aria-label="Close navigation menu" onClick={closeMenu}>
-            <ChevronLeftIcon />
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => navigate('/compose')}
-              selected={!!pathname.match(/\/compose\/?$/)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
+      {/* Sidebar */}
+      <aside
+        className="relative flex h-full flex-shrink-0 flex-col overflow-hidden transition-all duration-300"
+        style={{
+          width: sidebarWidth,
+          background: 'var(--shell-bg)',
+          borderRight: '1px solid var(--shell-border)',
+          zIndex: 20,
+        }}
+      >
+        {/* Top: toggle + logo */}
+        <div
+          className="flex h-14 flex-shrink-0 items-center"
+          style={{
+            borderBottom: '1px solid var(--shell-border)',
+            padding: navMenuOpen ? '0 12px 0 16px' : '0',
+            justifyContent: navMenuOpen ? 'space-between' : 'center',
+          }}
+        >
+          {navMenuOpen ? (
+            <>
+              <span
+                className="font-display text-base tracking-tight"
+                style={{ color: 'var(--accent)', fontWeight: 700 }}
+              >
+                Email
+              </span>
+              <button
+                aria-label="Close navigation menu"
+                className="rounded p-1.5 transition-colors"
+                onClick={closeMenu}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : (
+            <button
+              aria-label="Open navigation menu"
+              className="rounded p-1.5 transition-colors"
+              onClick={openMenu}
+              style={{ color: 'var(--text-muted)' }}
             >
-              <Tooltip placement="right" title="Compose">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <CreateIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Compose" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => navigate('/inbox')}
-              selected={!!pathname.match(/\/inbox\/?$/)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
-            >
-              <Tooltip placement="right" title="Inbox">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <InboxIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Inbox" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => navigate('/outbox')}
-              selected={!!pathname.match(/\/outbox\/?$/)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
-            >
-              <Tooltip placement="right" title="Sent">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <OutboxIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Sent" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-        </List>
-        <Divider />
-        <List>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => navigate('/settings')}
-              selected={!!pathname.match(/\/settings\/?$/)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
-            >
-              <Tooltip placement="right" title="Settings">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <SettingsIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Settings" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => navigate('/privacy-policy')}
-              selected={!!pathname.match(/\/privacy-policy\/?$/)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
-            >
-              <Tooltip placement="right" title="Privacy policy">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <PrivacyTipIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Privacy policy" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => {
+              <Menu size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+          <ul className="list-none p-0 m-0">{navItems.map(renderNavItem)}</ul>
+
+          <div className="my-2 mx-3" style={{ height: '1px', background: 'var(--shell-border)' }} />
+
+          <ul className="list-none p-0 m-0">{settingsItems.map(renderNavItem)}</ul>
+        </nav>
+
+        {/* Bottom: user + sign out */}
+        <div style={{ borderTop: '1px solid var(--shell-border)' }}>
+          <ul className="list-none p-0 m-0">
+            {renderDangerItem(
+              <LogOut size={18} />,
+              'Sign out',
+              () => {
                 closeMenu()
                 setLoggedInUser(undefined)
                 Auth.signOut().then(() => window.location.reload())
-              }}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
-              }}
-            >
-              <Tooltip placement="right" title="Sign out">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <LogoutIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Sign out" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-        </List>
-        <Divider />
-        <List>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => setShowDeleteDialog(true)}
-              sx={{
-                justifyContent: navMenuOpen ? 'initial' : 'center',
-                minHeight: 48,
-                px: 2.5,
+              },
+              0,
+            )}
+            {renderDangerItem(<Trash2 size={18} />, 'Delete account', () => setShowDeleteDialog(true), 1)}
+          </ul>
+
+          {/* User avatar / name */}
+          <div
+            className="flex items-center gap-2 overflow-hidden transition-all"
+            style={{
+              padding: navMenuOpen ? '10px 16px' : '10px 0',
+              justifyContent: navMenuOpen ? 'flex-start' : 'center',
+              borderTop: '1px solid var(--shell-border)',
+            }}
+          >
+            <div
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+              style={{
+                background: 'var(--accent-subtle)',
+                border: '1px solid var(--accent-border)',
+                color: 'var(--accent)',
+                fontFamily: 'Outfit, sans-serif',
               }}
             >
-              <Tooltip placement="right" title="Delete account">
-                <ListItemIcon
-                  sx={{
-                    justifyContent: 'center',
-                    minWidth: 0,
-                    mr: navMenuOpen ? 3 : 'auto',
-                  }}
-                >
-                  <DeleteIcon />
-                </ListItemIcon>
-              </Tooltip>
-              <ListItemText primary="Delete account" sx={{ opacity: navMenuOpen ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <DrawerHeader />
-        {children}
-      </Box>
-      <Dialog
-        aria-describedby="Are you sure you want to delete the account?"
-        aria-labelledby="Delete account dialog"
-        onClose={deleteDialogClose}
+              {loggedInUser.username?.charAt(0).toUpperCase() ?? '?'}
+            </div>
+            <span
+              className="overflow-hidden whitespace-nowrap text-xs transition-all"
+              style={{
+                maxWidth: navMenuOpen ? '160px' : '0',
+                opacity: navMenuOpen ? 1 : 0,
+                color: 'var(--text-muted)',
+                fontFamily: 'IBM Plex Mono, monospace',
+              }}
+            >
+              {loggedInUser.username}
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex h-full flex-1 overflow-hidden">{children}</div>
+
+      <ConfirmDialog
+        cancelLabel="Go back"
+        confirmLabel="Continue"
+        onCancel={() => setShowDeleteDialog(false)}
+        onConfirm={deleteAccountClick}
         open={showDeleteDialog}
+        title="Delete account?"
       >
-        <DialogTitle id="alert-dialog-title">Delete account?</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete your account? Some information may remain in log files for up to 90 days.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus onClick={deleteDialogClose}>
-            Go back
-          </Button>
-          <Button onClick={deleteAccountClick}>Continue</Button>
-        </DialogActions>
-      </Dialog>
-      <Snackbar autoHideDuration={6000} onClose={snackbarClose} open={showDeleteErrorSnackbar}>
-        <Alert onClose={snackbarClose} severity="error" sx={{ width: '100%' }} variant="filled">
-          There was a problem deleting your account. Please try again later.
-        </Alert>
-      </Snackbar>
+        Are you sure you want to delete your account? Some information may remain in log files for up to 90 days.
+      </ConfirmDialog>
+      <ErrorSnackbar
+        message={
+          showDeleteErrorSnackbar ? 'There was a problem deleting your account. Please try again later.' : undefined
+        }
+        onClose={() => setShowDeleteErrorSnackbar(false)}
+      />
     </>
   )
 }

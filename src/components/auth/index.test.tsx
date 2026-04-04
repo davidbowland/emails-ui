@@ -4,16 +4,20 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
-import * as gatsby from 'gatsby'
 import React from 'react'
 
 import Authenticated from './index'
 
 jest.mock('aws-amplify')
-jest.mock('gatsby')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 jest.mock('@config/amplify')
+
+const mockPush = jest.fn()
+const mockReplace = jest.fn()
+jest.mock('next/router', () => ({
+  useRouter: () => ({ asPath: '/', push: mockPush, replace: mockReplace }),
+}))
 
 describe('Authenticated component', () => {
   const mockLocationReload = jest.fn()
@@ -21,17 +25,13 @@ describe('Authenticated component', () => {
   beforeAll(() => {
     jest.mocked(Auth.signOut).mockResolvedValue({})
     jest.mocked(Authenticator).mockReturnValue(<></>)
-    jest.mocked(ThemeProvider).mockImplementation(({ children }) => children as unknown as JSX.Element)
+    jest.mocked(ThemeProvider).mockImplementation(({ children }) => children as unknown as React.ReactElement)
 
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { pathname: '', reload: mockLocationReload },
     })
-  })
-
-  beforeEach(() => {
-    window.location.pathname = ''
   })
 
   describe('theme', () => {
@@ -46,7 +46,7 @@ describe('Authenticated component', () => {
         </Authenticated>,
       )
 
-      expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ colorMode: 'system' }), expect.anything())
+      expect(ThemeProvider).toHaveBeenCalledWith(expect.objectContaining({ colorMode: 'system' }), undefined)
     })
   })
 
@@ -146,7 +146,7 @@ describe('Authenticated component', () => {
       })
 
       expect(await screen.findByText(/Sign out/i)).toBeVisible()
-      expect(await screen.findByText(/Delete account/i)).toBeVisible()
+      expect((await screen.findAllByText(/Delete account/i))[0]).toBeVisible()
     })
 
     it('should sign out user when sign out button is clicked', async () => {
@@ -204,7 +204,7 @@ describe('Authenticated component', () => {
         await userEvent.click(selectionButton)
       })
 
-      expect(gatsby.navigate).toHaveBeenCalledWith(path)
+      expect(mockPush).toHaveBeenCalledWith(path)
     })
 
     describe('delete account', () => {
@@ -223,7 +223,7 @@ describe('Authenticated component', () => {
           await userEvent.click(menuButton)
         })
 
-        const deleteAccountMenuOption = (await screen.findByText(/Delete account/i)) as HTMLButtonElement
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(deleteAccountMenuOption)
@@ -257,7 +257,7 @@ describe('Authenticated component', () => {
           await userEvent.click(menuButton)
         })
 
-        const deleteAccountMenuOption = (await screen.findByText(/Delete account/i)) as HTMLButtonElement
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(deleteAccountMenuOption)
@@ -294,7 +294,7 @@ describe('Authenticated component', () => {
           await userEvent.click(menuButton)
         })
 
-        const deleteAccountMenuOption = (await screen.findByText(/Delete account/i)) as HTMLButtonElement
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(deleteAccountMenuOption)
@@ -330,7 +330,7 @@ describe('Authenticated component', () => {
           await userEvent.click(menuButton)
         })
 
-        const deleteAccountMenuOption = (await screen.findByText(/Delete account/i)) as HTMLButtonElement
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(deleteAccountMenuOption)
@@ -350,7 +350,7 @@ describe('Authenticated component', () => {
           await userEvent.click(closeSnackbarButton)
         })
 
-        expect(await screen.findByText(/There was a problem deleting your account/i)).not.toBeVisible()
+        expect(screen.queryByText(/There was a problem deleting your account/i)).not.toBeInTheDocument()
       })
     })
   })

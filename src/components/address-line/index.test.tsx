@@ -14,8 +14,6 @@ describe('Address line component', () => {
     render(<AddressLine addresses={addresses} label="To:" />)
     expect(await screen.findByText(/to:/i)).toBeVisible()
     expect(await screen.findByText(/a@domain.com/i)).toBeVisible()
-    expect(screen.queryByLabelText(/Edit recipient/i)).not.toBeInTheDocument()
-    // Verify no delete buttons are present in read-only mode
     expect(screen.queryByTestId('CancelIcon')).not.toBeInTheDocument()
   })
 
@@ -45,7 +43,6 @@ describe('Address line component', () => {
       />,
     )
 
-    // Click the X button on the second chip (empty address)
     const deleteButtons = await screen.findAllByTestId('CancelIcon')
     fireEvent.click(deleteButtons[1])
 

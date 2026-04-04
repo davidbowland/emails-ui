@@ -1,20 +1,363 @@
-@media (prefers-color-scheme: dark) {
-  a {
-    color: #66b3ff;
+@import '@heroui/styles';
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Shell – warm dark charcoal */
+  --shell-bg: #1a1814;
+  --shell-surface: #201e1a;
+  --shell-surface-hover: #2a2822;
+  --shell-border: #2e2c26;
+
+  /* Paper – warm cream reading surface */
+  --paper-bg: #f5f0e8;
+  --paper-surface: #faf7f2;
+  --paper-border: #ddd8cd;
+
+  /* Text */
+  --text-primary: #cec8bc;
+  --text-muted: #6a6660;
+  --text-paper: #1c1a17;
+  --text-paper-muted: #7a7568;
+
+  /* Accent – terracotta */
+  --accent: #c45c2a;
+  --accent-hover: #d96d38;
+  --accent-subtle: rgba(196, 92, 42, 0.1);
+  --accent-border: rgba(196, 92, 42, 0.3);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-paper: 4px 0 24px rgba(0, 0, 0, 0.2);
+
+  /* Layout */
+  --sidebar-collapsed: 64px;
+  --sidebar-expanded: 224px;
+  --list-width: 300px;
+}
+
+/* ─── Base ───────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Outfit', 'Helvetica Neue', sans-serif;
+  background-color: var(--shell-bg);
+  color: var(--text-primary);
+}
+
+/* ─── Typography Helpers ─────────────────────────────────────── */
+.font-display {
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+
+.font-reading {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+/* ─── Paper Surface ──────────────────────────────────────────── */
+.paper-surface {
+  background-color: var(--paper-bg);
+  color: var(--text-paper);
+}
+
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  [data-amplify-authenticator] {
-    --amplify-components-authenticator-state-inactive-background-color: rgba(255, 255, 255, 0.09);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  [data-amplify-router] {
-    --amplify-components-authenticator-router-background-color: #272727;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  .amplify-button--link {
-    --amplify-components-button-link-color: #66b3ff;
+  to {
+    opacity: 1;
   }
-  .amplify-button--primary {
-    --amplify-components-button-primary-background-color: #90caf9;
-  }
-  .amplify-button--primary:hover {
-    --amplify-components-button-primary-hover-background-color: #42a5f5;
-  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.2s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+/* ─── Staggered list rows ────────────────────────────────────── */
+.email-row:nth-child(1) {
+  animation-delay: 20ms;
+}
+.email-row:nth-child(2) {
+  animation-delay: 40ms;
+}
+.email-row:nth-child(3) {
+  animation-delay: 60ms;
+}
+.email-row:nth-child(4) {
+  animation-delay: 80ms;
+}
+.email-row:nth-child(5) {
+  animation-delay: 100ms;
+}
+.email-row:nth-child(6) {
+  animation-delay: 120ms;
+}
+.email-row:nth-child(7) {
+  animation-delay: 140ms;
+}
+.email-row:nth-child(8) {
+  animation-delay: 160ms;
+}
+.email-row:nth-child(n + 9) {
+  animation-delay: 180ms;
+}
+
+/* ─── AWS Amplify Auth ───────────────────────────────────────── */
+[data-amplify-authenticator] {
+  --amplify-components-authenticator-state-inactive-background-color: rgba(255, 255, 255, 0.06);
+  --amplify-colors-background-primary: var(--shell-bg);
+  --amplify-colors-background-secondary: var(--shell-surface);
+  --amplify-colors-font-primary: var(--text-primary);
+  --amplify-colors-font-secondary: var(--text-muted);
+}
+
+[data-amplify-router] {
+  --amplify-components-authenticator-router-background-color: var(--shell-surface);
+  --amplify-components-authenticator-router-border-color: var(--shell-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.amplify-label {
+  color: var(--text-muted) !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+.amplify-input {
+  background-color: var(--shell-bg) !important;
+  border-color: var(--shell-border) !important;
+  color: var(--text-primary) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+}
+
+.amplify-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-subtle) !important;
+}
+
+/* Password eye toggle — match input border so the group looks cohesive */
+.amplify-field-group__outer-end .amplify-button {
+  background-color: var(--shell-bg) !important;
+  border-color: var(--shell-border) !important;
+  color: var(--text-muted) !important;
+}
+
+/* When the input is focused, extend the accent border to the eye button */
+.amplify-field-group:focus-within .amplify-field-group__outer-end .amplify-button {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-subtle) !important;
+}
+
+/* Remove the double border between input and eye button */
+.amplify-field-group:has(.amplify-field-group__outer-end) .amplify-input {
+  border-right: none !important;
+}
+
+.amplify-field-group:has(.amplify-field-group__outer-end) .amplify-input:focus {
+  border-right: none !important;
+}
+
+.amplify-field-group__outer-end .amplify-button {
+  border-left: none !important;
+}
+
+.amplify-button--primary {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.amplify-button--primary:hover {
+  background-color: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+.amplify-button--link {
+  color: var(--accent) !important;
+}
+
+/* ─── Reusable Button / Chip Patterns ───────────────────────── */
+
+/* Ghost button on paper background */
+.btn-ghost-paper {
+  background: transparent;
+  color: var(--text-paper-muted);
+  border: 1px solid var(--paper-border);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.btn-ghost-paper:hover:not(:disabled) {
+  background: var(--paper-border);
+  color: var(--text-paper);
+}
+.btn-ghost-paper:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary accent button */
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  transition: background 0.12s ease;
+}
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.btn-accent:disabled {
+  background: var(--paper-border);
+  color: var(--text-paper-muted);
+  cursor: not-allowed;
+}
+
+/* Ghost danger button (bounce/delete) */
+.btn-ghost-danger {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(196, 92, 42, 0.3);
+  transition: background 0.12s ease;
+}
+.btn-ghost-danger:hover:not(:disabled) {
+  background: rgba(196, 92, 42, 0.08);
+}
+
+/* Toolbar button in the rich text editor */
+.btn-toolbar {
+  color: var(--text-paper-muted);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.btn-toolbar:hover {
+  background: var(--paper-border);
+  color: var(--text-paper);
+}
+
+/* Shell button (sidebar nav items hover) */
+.btn-shell {
+  color: var(--text-muted);
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+  border-left: 2px solid transparent;
+}
+.btn-shell:hover {
+  color: var(--text-primary);
+  background: var(--shell-surface-hover);
+}
+
+/* Chip delete / close icon */
+.chip-delete {
+  color: var(--text-paper-muted);
+  transition: color 0.12s ease;
+}
+.chip-delete:hover {
+  color: var(--accent);
+}
+
+/* Snackbar close / general close buttons */
+.btn-close {
+  color: var(--text-paper-muted);
+  transition: color 0.12s ease;
+}
+.btn-close:hover {
+  color: var(--accent);
+}
+
+/* Attachment download button */
+.btn-attachment {
+  background: var(--paper-surface);
+  border: 1px solid var(--paper-border);
+  color: var(--text-paper-muted);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.btn-attachment:hover:not(:disabled) {
+  background: var(--paper-border);
+  color: var(--text-paper);
+}
+.btn-attachment:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Accent-themed "Accept" button (disclaimer) */
+.btn-accept {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  transition: background 0.12s ease;
+  white-space: nowrap;
+}
+.btn-accept:hover {
+  background: var(--accent-hover);
+}
+
+/* ─── Scrollbars ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--shell-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Paper surface scrollbars */
+.paper-surface ::-webkit-scrollbar-thumb {
+  background: var(--paper-border);
+}
+
+/* ─── Rich Text Editor content ───────────────────────────────── */
+[aria-label='Message contents'] {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-paper);
+  caret-color: var(--accent);
+  outline: none;
+}
+
+[aria-label='Message contents']:empty::before {
+  content: 'Write your message…';
+  color: var(--text-paper-muted);
+  pointer-events: none;
 }

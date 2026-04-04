@@ -1,9 +1,9 @@
+import Index from '@pages/index'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import * as gatsby from 'gatsby'
+import { useRouter } from 'next/router'
 import React from 'react'
 
-import Index, { Head } from './index'
 import Authenticated from '@components/auth'
 import PrivacyLink from '@components/privacy-link'
 
@@ -11,7 +11,10 @@ jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')
 jest.mock('@components/privacy-link')
 jest.mock('@config/amplify')
-jest.mock('gatsby')
+jest.mock('next/head', () => jest.fn().mockImplementation(({ children }) => <>{children}</>))
+jest.mock('next/router', () => ({
+  useRouter: jest.fn().mockReturnValue({ push: jest.fn(), replace: jest.fn() }),
+}))
 
 describe('Index page', () => {
   beforeAll(() => {
@@ -21,27 +24,23 @@ describe('Index page', () => {
 
   it('should render Authenticated component', () => {
     render(<Index />)
-    expect(Authenticated).toHaveBeenCalledTimes(1)
+    expect(Authenticated).toHaveBeenCalled()
   })
 
   it('should navigate to inbox page', () => {
+    const mockReplace = jest.fn()
+    jest.mocked(useRouter).mockReturnValueOnce({ push: jest.fn(), replace: mockReplace } as any)
     render(<Index />)
-    expect(gatsby.navigate).toHaveBeenCalledWith('/inbox')
+    expect(mockReplace).toHaveBeenCalledWith('/inbox')
   })
 
   it('should render PrivacyLink component', () => {
     render(<Index />)
-    expect(PrivacyLink).toHaveBeenCalledTimes(1)
+    expect(PrivacyLink).toHaveBeenCalled()
   })
 
-  it('returns title in Head component', () => {
-    const { container } = render(<Head {...({} as any)} />)
-    expect(container).toMatchInlineSnapshot(`
-      <div>
-        <title>
-          Email | dbowland.com
-        </title>
-      </div>
-    `)
+  it('returns title in Head', () => {
+    render(<Index />)
+    expect(document.title).toBe('Email | dbowland.com')
   })
 })

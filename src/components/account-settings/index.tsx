@@ -2,24 +2,15 @@ import { Auth } from 'aws-amplify'
 import jsonpatch from 'fast-json-patch'
 import React, { useEffect, useState } from 'react'
 
-import SaveIcon from '@mui/icons-material/Save'
-import Alert from '@mui/material/Alert'
-import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
-import Grid from '@mui/material/Grid'
-import Snackbar from '@mui/material/Snackbar'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
-
+import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
+import ErrorSnackbar from '@components/error-snackbar'
+import LoadingSpinner from '@components/loading-spinner'
 import { getAccount, patchAccount } from '@services/emails'
 import { Account, AmplifyUser, EmailAddress } from '@types'
 
-const AccountSettings = (): JSX.Element => {
+const AccountSettings = (): React.ReactNode => {
   const [account, setAccount] = useState<Account | undefined>()
   const [bounceSenders, setBounceSenders] = useState<string[]>([])
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
@@ -46,59 +37,95 @@ const AccountSettings = (): JSX.Element => {
     setIsSaving(false)
   }
 
-  const renderLoading = (): JSX.Element => (
-    <Grid alignItems="center" container justifyContent="center" sx={{ minHeight: { md: '80vh', xs: '40vh' } }}>
-      <Grid item>
-        <CircularProgress />
-      </Grid>
-    </Grid>
-  )
+  const renderSettings = (): React.ReactNode => (
+    <div className="mx-auto max-w-2xl px-6 py-10">
+      <SettingsTitle />
+      <p className="mt-1 mb-8 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+        Manage your email account preferences
+      </p>
 
-  const renderSettings = (): JSX.Element => (
-    <Stack padding={2} spacing={2}>
-      <Typography component="div" variant="h4">
-        Account Settings
-      </Typography>
-      <Divider />
-      <label>
-        <TextField
-          disabled={account === undefined || isSaving}
-          fullWidth
-          label="From name"
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-          value={name}
-        />
-      </label>
-      {account !== undefined && (
-        <AddressLine addresses={forwardAddresses} label="Forward targets:" setAddresses={setForwardAddresses} />
-      )}
-      {account !== undefined && (
-        <>
-          <BounceSenderInput label="Bounce emails from senders:" rules={bounceSenders} setRules={setBounceSenders} />
-          <Typography color="text.secondary" variant="body2">
-            Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all senders.
-            Automatically bounced emails will <b>NOT</b> be forwarded.
-          </Typography>
-        </>
-      )}
-      <Grid container>
-        <Grid item order={{ md: 1, xs: 2 }} xs></Grid>
-        <Grid item md={3} order={{ md: 2, xs: 1 }} padding={2} xs={12}>
-          {loggedInUser?.username && account && (
-            <Button
-              disabled={isSaving}
-              fullWidth
-              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
-              startIcon={isSaving ? <CircularProgress size={14} /> : <SaveIcon />}
-              variant="contained"
+      <div className="flex flex-col gap-8">
+        {/* Display name */}
+        <section>
+          <div
+            className="mb-2 text-xs font-semibold uppercase"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+          >
+            Display name
+          </div>
+          <input
+            aria-label="From name"
+            className="w-full rounded-md px-3 py-2.5 outline-none"
+            disabled={account === undefined || isSaving}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+            placeholder="Your display name"
+            style={{
+              background: 'var(--paper-surface)',
+              border: '1px solid var(--paper-border)',
+              color: 'var(--text-paper)',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '14px',
+            }}
+            value={name}
+          />
+        </section>
+
+        <SettingsDivider />
+
+        {/* Forward targets */}
+        {account !== undefined && (
+          <section>
+            <div
+              className="mb-1 text-xs font-semibold uppercase"
+              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
             >
-              Save
-            </Button>
+              Forward emails to
+            </div>
+            <p className="mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+              Received emails will be forwarded to these addresses.
+            </p>
+            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+              <AddressLine addresses={forwardAddresses} label="To:" setAddresses={setForwardAddresses} />
+            </div>
+          </section>
+        )}
+
+        {account !== undefined && <SettingsDivider />}
+
+        {/* Bounce rules */}
+        {account !== undefined && (
+          <section>
+            <div
+              className="mb-1 text-xs font-semibold uppercase"
+              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+            >
+              Bounce rules
+            </div>
+            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+              <BounceSenderInput
+                label="Bounce emails from senders:"
+                rules={bounceSenders}
+                setRules={setBounceSenders}
+              />
+            </div>
+            <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+              Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all
+              senders. Automatically bounced emails will <b>NOT</b> be forwarded.
+            </p>
+          </section>
+        )}
+
+        <div className="flex justify-end pt-2">
+          {loggedInUser?.username && account && (
+            <SaveButton
+              disabled={isSaving}
+              isSaving={isSaving}
+              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+            />
           )}
-        </Grid>
-        <Grid item order={{ xs: 3 }} xs></Grid>
-      </Grid>
-    </Stack>
+        </div>
+      </div>
+    </div>
   )
 
   const snackbarErrorClose = (): void => {
@@ -139,14 +166,8 @@ const AccountSettings = (): JSX.Element => {
 
   return (
     <>
-      <Card sx={{ height: '100%', width: '100%' }} variant="outlined">
-        {isLoading ? renderLoading() : renderSettings()}
-      </Card>
-      <Snackbar autoHideDuration={15_000} onClose={snackbarErrorClose} open={errorMessage !== undefined}>
-        <Alert onClose={snackbarErrorClose} severity="error" variant="filled">
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+      <SettingsCard>{isLoading ? <LoadingSpinner /> : renderSettings()}</SettingsCard>
+      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

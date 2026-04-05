@@ -20,7 +20,7 @@ jest.mock('next/router', () => ({
 }))
 
 describe('Authenticated component', () => {
-  const mockLocationReload = jest.fn()
+  const mockLocationHref = jest.fn()
 
   beforeAll(() => {
     jest.mocked(Auth.signOut).mockResolvedValue({})
@@ -30,7 +30,12 @@ describe('Authenticated component', () => {
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { pathname: '', reload: mockLocationReload },
+      value: {
+        pathname: '',
+        set href(url: string) {
+          mockLocationHref(url)
+        },
+      },
     })
   })
 
@@ -173,7 +178,7 @@ describe('Authenticated component', () => {
       expect(user.deleteUser).not.toHaveBeenCalled()
       expect(Auth.signOut).toHaveBeenCalled()
       expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
-      await waitFor(() => expect(mockLocationReload).toHaveBeenCalled())
+      await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
     })
 
     it.each([
@@ -239,7 +244,7 @@ describe('Authenticated component', () => {
         expect(Auth.signOut).not.toHaveBeenCalled()
         expect(screen.queryByText(/Sign in/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/Dave/i)).toBeInTheDocument()
-        expect(mockLocationReload).not.toHaveBeenCalled()
+        expect(mockLocationHref).not.toHaveBeenCalled()
       })
 
       it('should delete account when continue button is clicked', async () => {
@@ -272,7 +277,7 @@ describe('Authenticated component', () => {
         expect(user.deleteUser).toHaveBeenCalled()
         expect(Auth.signOut).toHaveBeenCalled()
         expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
-        await waitFor(() => expect(mockLocationReload).toHaveBeenCalled())
+        await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
       })
 
       it('should show error message when account deletion fails', async () => {

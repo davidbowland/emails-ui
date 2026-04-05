@@ -55,7 +55,7 @@ const IconDrawer = ({
       } else {
         closeMenu()
         setLoggedInUser(undefined)
-        Auth.signOut({ global: true }).then(() => window.location.reload())
+        Auth.signOut({ global: true }).then(() => (window.location.href = '/'))
       }
     })
   }
@@ -220,7 +220,7 @@ const IconDrawer = ({
               () => {
                 closeMenu()
                 setLoggedInUser(undefined)
-                Auth.signOut().then(() => window.location.reload())
+                Auth.signOut().then(() => (window.location.href = '/'))
               },
               0,
             )}

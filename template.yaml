@@ -67,6 +67,30 @@ Resources:
           - 'Access identity for ${Domain}'
           - Domain: !FindInMap [EnvironmentMap, !Ref Environment, domain]
 
+  UiUrlRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          if (uri.endsWith('/')) {
+            request.uri += 'index.html';
+          } else if (!/\.[^/]+$/.test(uri)) {
+            request.uri += '/index.html';
+          }
+          return request;
+        }
+      FunctionConfig:
+        Comment: !Sub
+          - 'URL rewrite for ${Domain} - appends index.html to folder paths'
+          - Domain: !FindInMap [EnvironmentMap, !Ref Environment, domain]
+        Runtime: cloudfront-js-2.0
+      Name: !Sub
+        - '${Environment}-emails-ui-url-rewrite'
+        - Environment: !Ref Environment
+
   UiCloudfrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -94,6 +118,9 @@ Resources:
           CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6' # Managed-CachingOptimized
           Compress: true
           DefaultTTL: 0
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt UiUrlRewriteFunction.FunctionARN
           ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # Managed-SecurityHeadersPolicy
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: 'redirect-to-https'

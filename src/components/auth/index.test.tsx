@@ -60,6 +60,16 @@ describe('Authenticated component', () => {
       jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValue(new Error('Not authenticated'))
     })
 
+    it('should show sign in message when not logged in', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      expect(await screen.findByText(/Sign in to continue/i)).toBeInTheDocument()
+    })
+
     it('should show title and children when showContent is true', async () => {
       render(
         <Authenticated showContent={true}>

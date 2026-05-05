@@ -113,4 +113,24 @@ describe('BounceSenderInput component', () => {
 
     expect(setRules).toHaveBeenCalledWith(['*'])
   })
+
+  it('should commit value on blur', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={testRules} setRules={setRules} />)
+
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'blur@spam.com' } })
+    fireEvent.blur(input)
+
+    expect(setRules).toHaveBeenCalledWith(['spam@domain.com', 'badguys.com', '*', 'blur@spam.com'])
+  })
+
+  it('should not commit empty value on blur', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
+
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+
+    expect(setRules).not.toHaveBeenCalled()
+  })
 })

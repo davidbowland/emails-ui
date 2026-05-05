@@ -34,14 +34,21 @@ export const TagInput = ({
   label: string
   onAdd: (value: string) => void
 }): React.ReactNode => {
+  const commitValue = (input: HTMLInputElement): void => {
+    if (input.value.trim()) {
+      onAdd(input.value)
+      input.value = ''
+    }
+  }
+
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement>): void => {
+    commitValue(event.currentTarget)
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'Enter') {
       event.preventDefault()
-      const input = event.currentTarget
-      if (input.value.trim()) {
-        onAdd(input.value)
-        input.value = ''
-      }
+      commitValue(event.currentTarget)
     }
   }
 
@@ -50,6 +57,7 @@ export const TagInput = ({
       aria-label={label}
       className="bg-transparent text-xs outline-none"
       disabled={disabled}
+      onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder={label}
       role="combobox"

@@ -62,4 +62,28 @@ describe('Address line component', () => {
       { address: 'new@domain.com', name: '' },
     ])
   })
+
+  it('should commit value on blur', async () => {
+    render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'blur@domain.com' } })
+    fireEvent.blur(input)
+
+    expect(setAddresses).toHaveBeenCalledWith([
+      { address: 'a@domain.com', name: '' },
+      { address: 'b@domain.com', name: '' },
+      { address: 'blur@domain.com', name: '' },
+    ])
+  })
+
+  it('should not commit empty value on blur', async () => {
+    render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+
+    expect(setAddresses).not.toHaveBeenCalled()
+  })
 })

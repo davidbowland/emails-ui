@@ -31,14 +31,21 @@ export const RuleInput = ({
   disabled: boolean
   onAdd: (value: string) => void
 }): React.ReactNode => {
+  const commitValue = (input: HTMLInputElement): void => {
+    if (input.value.trim()) {
+      onAdd(input.value)
+      input.value = ''
+    }
+  }
+
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement>): void => {
+    commitValue(event.currentTarget)
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'Enter') {
       event.preventDefault()
-      const input = event.currentTarget
-      if (input.value.trim()) {
-        onAdd(input.value)
-        input.value = ''
-      }
+      commitValue(event.currentTarget)
     }
   }
 
@@ -46,6 +53,7 @@ export const RuleInput = ({
     <input
       className="rounded-md px-3 py-1.5 text-sm outline-none"
       disabled={disabled}
+      onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder="Email, @domain.com, or * for all"
       role="combobox"

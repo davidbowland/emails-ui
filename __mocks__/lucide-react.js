@@ -46,5 +46,6 @@ module.exports = {
   Superscript: createIcon('Superscript'),
   Trash2: createIcon('Trash2'),
   Type: createIcon('Type'),
+  X: createIcon('X'),
   Underline: createIcon('Underline'),
 }

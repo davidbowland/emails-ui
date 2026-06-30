@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
   <span
@@ -26,14 +26,18 @@ export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () 
 )
 
 export const TagInput = ({
+  ariaLabel = 'Email address',
   disabled,
-  label,
+  placeholder = 'Add address…',
   onAdd,
 }: {
+  ariaLabel?: string
   disabled: boolean
-  label: string
+  placeholder?: string
   onAdd: (value: string) => void
 }): React.ReactNode => {
+  const [focused, setFocused] = useState(false)
+
   const commitValue = (input: HTMLInputElement): void => {
     if (input.value.trim()) {
       onAdd(input.value)
@@ -42,6 +46,7 @@ export const TagInput = ({
   }
 
   const handleBlur = (event: React.FocusEvent<HTMLInputElement>): void => {
+    setFocused(false)
     commitValue(event.currentTarget)
   }
 
@@ -54,18 +59,22 @@ export const TagInput = ({
 
   return (
     <input
-      aria-label={label}
+      aria-label={ariaLabel}
       className="bg-transparent text-xs outline-none"
       disabled={disabled}
       onBlur={handleBlur}
+      onFocus={() => setFocused(true)}
       onKeyDown={handleKeyDown}
-      placeholder={label}
-      role="combobox"
+      placeholder={placeholder}
       style={{
-        minWidth: '160px',
+        flex: '1 1 140px',
+        minWidth: '140px',
         color: 'var(--text-paper)',
         fontFamily: 'IBM Plex Mono, monospace',
         caretColor: 'var(--accent)',
+        borderBottom: `1px solid ${focused ? 'var(--accent)' : 'var(--paper-border)'}`,
+        paddingBottom: '2px',
+        transition: 'border-color 0.15s ease',
       }}
       type="text"
     />

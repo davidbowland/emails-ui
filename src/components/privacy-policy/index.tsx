@@ -1,85 +1,138 @@
 import Link from 'next/link'
 import React from 'react'
 
+const Section = ({ heading, children }: { heading: string; children: React.ReactNode }): React.ReactNode => (
+  <>
+    <div style={{ padding: '40px 0 32px' }}>
+      <div
+        style={{
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase' as const,
+          color: 'var(--accent)',
+          marginBottom: '14px',
+        }}
+      >
+        {heading}
+      </div>
+      <div
+        style={{
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: '15px',
+          lineHeight: 1.75,
+          color: 'var(--text-muted)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+    <div style={{ height: '1px', background: 'var(--shell-border)' }} />
+  </>
+)
+
 const PrivacyPolicy = (): React.ReactNode => {
   return (
-    <div className="flex flex-col gap-4 p-8">
-      <h5 className="text-2xl font-normal">Email Privacy Policy</h5>
-      <p>
-        This Privacy Policy describes how your personal information is collected, used, and shared when you visit{' '}
-        <Link href="/">https://email.dbowland.com</Link> (the &quot;Site&quot;).
-      </p>
-      <h6 className="text-xl font-medium">PERSONAL INFORMATION WE COLLECT</h6>
-      <p>
-        When you visit the Site, we automatically collect certain information about your device, including information
-        about your web browser, IP address, time zone, and some of the cookies that are installed on your device.
-        Additionally, as you browse the Site, we collect information about the individual web pages or products that you
-        view, what websites or search terms referred you to the Site, and information about how you interact with the
-        Site. We refer to this automatically-collected information as &quot;Device Information.&quot;
-      </p>
-      <div>
-        We collect Device Information using the following technologies:
-        <ul>
-          <li>
-            &quot;Cookies&quot; are data files that are placed on your device or computer and often include an anonymous
-            unique identifier. For more information about cookies, and how to disable cookies, visit{' '}
-            <Link href="https://www.allaboutcookies.org">https://www.allaboutcookies.org</Link>.
-          </li>
-          <li>
-            &quot;Log files&quot; track actions occurring on the Site, and collect data including your IP address,
-            browser type, Internet service provider, referring/exit pages, and date/time stamps.
-          </li>
-        </ul>
+    <div
+      style={{
+        minHeight: '100%',
+        background: 'var(--shell-bg)',
+        backgroundImage: 'radial-gradient(ellipse 60% 40% at 50% -5%, rgba(124, 93, 244, 0.1) 0%, transparent 70%)',
+        padding: '64px 24px 80px',
+      }}
+    >
+      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+        {/* Eyebrow */}
+        <div
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase' as const,
+            color: 'var(--accent)',
+            marginBottom: '20px',
+          }}
+        >
+          Legal
+        </div>
+
+        {/* Heading */}
+        <h1
+          className="font-display"
+          style={{
+            fontSize: 'clamp(40px, 6vw, 64px)',
+            fontWeight: 700,
+            letterSpacing: '-0.03em',
+            color: 'var(--text-primary)',
+            lineHeight: 1.05,
+            margin: '0 0 24px',
+          }}
+        >
+          Privacy Policy
+        </h1>
+
+        {/* Lead */}
+        <p
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '15px',
+            lineHeight: 1.75,
+            color: 'var(--text-muted)',
+            margin: '0 0 40px',
+          }}
+        >
+          This policy describes how{' '}
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>email.dbowland.com</span> handles your data.
+          The short version: we collect very little, we keep it briefly, and we never sell it.
+        </p>
+
+        {/* Top divider */}
+        <div style={{ height: '1px', background: 'var(--shell-border)' }} />
+
+        <Section heading="What we collect">
+          Our servers automatically log your IP address, browser type, and the pages you visit. When you sign in, we set
+          a session cookie to keep you authenticated — that&apos;s essential for the service to work. If you register a
+          phone number for multi-factor authentication, we store it solely to protect your account.
+        </Section>
+
+        <Section heading="Why we collect it">
+          We use server logs to detect abuse and keep the service running. We process this data under legitimate
+          interests — operating a secure, functional service. We don&apos;t rely on your consent, and we don&apos;t use
+          your data for advertising or profiling.
+        </Section>
+
+        <Section heading="What we don't do">
+          We don&apos;t sell your data. We don&apos;t share it with advertisers. We don&apos;t build profiles. We
+          intentionally collect nothing beyond what&apos;s necessary to operate the service and prevent fraud.
+        </Section>
+
+        <Section heading="When we share your data">
+          We share data only when legally required — for example, in response to a valid court order or law enforcement
+          request.
+        </Section>
+
+        <Section heading="Data retention">
+          Log files may be retained for up to 90 days. Email data and account information is deleted within 30 days of
+          account deletion.
+        </Section>
+
+        <Section heading="Your rights">
+          You may request access to, correction of, or deletion of your personal data at any time. If you are a resident
+          of the European Economic Area, you also have the right to data portability and to lodge a complaint with your
+          local data protection authority.
+        </Section>
+
+        <Section heading="Contact us">
+          <Link
+            href="mailto:privacy@dbowland.com"
+            style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}
+          >
+            privacy@dbowland.com
+          </Link>
+        </Section>
       </div>
-      <p>
-        When we talk about &quot;Personal Information&quot; in this Privacy Policy, we are talking about Device
-        Information.
-      </p>
-      <h6 className="text-xl font-medium">HOW DO WE USE YOUR PERSONAL INFORMATION?</h6>
-      <p>
-        We use the Device Information that we collect to help us screen for potential risk and fraud (in particular,
-        your IP address), and more generally to improve and optimize our Site (for example, by generating analytics
-        about how our customers browse and interact with the Site, and to assess the success of our marketing and
-        advertising campaigns).
-      </p>
-      <p>We do not share your Personal Information with third parties except in the extreme cases defined below.</p>
-      <p>
-        Finally, we may share your Personal Information to comply with applicable laws and regulations, to respond to a
-        subpoena, search warrant or other lawful request for information we receive, or to otherwise protect our rights.
-      </p>
-      <h6 className="text-xl font-medium">DO NOT TRACK</h6>
-      <p>
-        Please note that we do not alter our Site&apos;s data collection and use practices when we see a Do Not Track
-        signal from your browser.
-      </p>
-      <h6 className="text-xl font-medium">YOUR RIGHTS</h6>
-      <p>
-        If you are a European resident, you have the right to access personal information we hold about you and to ask
-        that your personal information be corrected, updated, or deleted. If you would like to exercise this right,
-        please contact us through the contact information below. Additionally, if you are a European resident we note
-        that we are processing your information in order to fulfill contracts we might have with you (for example if you
-        make an order through the Site), or otherwise to pursue our legitimate business interests listed above. Further,
-        please note that your information will be transferred outside of Europe, including to the United States.
-      </p>
-      <h6 className="text-xl font-medium">DATA RETENTION</h6>
-      <p>
-        We may maintain log files for up to 90 days. If you request data you entered into the site to be deleted, it
-        will be removed within 30 days of your request.
-      </p>
-      <h6 className="text-xl font-medium">MINORS</h6>
-      <p>The Site is not intended for individuals under the age of 18.</p>
-      <h6 className="text-xl font-medium">CHANGES</h6>
-      <p>
-        We may update this privacy policy from time to time in order to reflect, for example, changes to our practices
-        or for other operational, legal or regulatory reasons.
-      </p>
-      <h6 className="text-xl font-medium">CONTACT US</h6>
-      <p>
-        For more information about our privacy practices, if you have questions, or if you would like to make a
-        complaint, please contact us by e-mail at <Link href="mailto:privacy@dbowland.com">privacy@dbowland.com</Link>{' '}
-        or by mail using the details provided below:
-      </p>
-      <p>dbowland.com Privacy Department, P.O. Box 81226, Seattle, WA, 98108-1226</p>
     </div>
   )
 }

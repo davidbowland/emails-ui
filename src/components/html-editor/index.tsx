@@ -18,7 +18,7 @@ import {
   Type,
   Underline,
 } from 'lucide-react'
-import React, { RefObject, useEffect, useState } from 'react'
+import React, { RefObject, useEffect, useRef, useState } from 'react'
 
 import { ToolbarButton, ToolbarDivider } from './elements'
 import ConfirmDialog from '@components/confirm-dialog'
@@ -75,6 +75,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
   const [linkText, setLinkText] = useState('')
   const [sizeMenuEl, setSizeMenuEl] = useState<HTMLButtonElement | null>(null)
   const [showLinkDialog, setShowLinkDialog] = useState(false)
+  const sizeMenuRef = useRef<HTMLDivElement>(null)
 
   const handleButtonClick = (command: string): void => {
     document.execCommand(command)
@@ -124,14 +125,26 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
 
   const sizeMenuClose = (): void => {
     setSizeMenuEl(null)
+    sizeMenuEl?.focus()
   }
+
+  useEffect(() => {
+    if (!sizeMenuEl) return
+    const firstOption = sizeMenuRef.current?.querySelector<HTMLElement>('button')
+    firstOption?.focus()
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') sizeMenuClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [sizeMenuEl])
 
   useEffect(() => {
     try {
       new URL(linkTarget)
       setLinkErrorMessage(undefined)
     } catch (error) {
-      setLinkErrorMessage('Invalid URL')
+      setLinkErrorMessage('Enter a valid URL — for example, https://example.com')
     }
   }, [linkTarget])
 
@@ -211,9 +224,11 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
       >
         <div
           aria-label="Message contents"
+          aria-multiline="true"
           contentEditable={true}
           onPaste={handlePasteEvent}
           ref={inputRef}
+          role="textbox"
           style={{ minHeight: '180px', outline: 'none' }}
         />
       </div>
@@ -221,7 +236,10 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
       {/* Font size dropdown */}
       {sizeMenuEl && (
         <div
+          aria-label="Font size"
           className="absolute z-50 rounded-lg overflow-hidden"
+          ref={sizeMenuRef}
+          role="listbox"
           style={{
             background: 'var(--paper-bg)',
             border: '1px solid var(--paper-border)',
@@ -236,6 +254,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
               onClick={() => handleFontSizeSelect(size.value)}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--paper-border)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              role="option"
               style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif' }}
             >
               {size.label}
@@ -246,7 +265,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
 
       <ConfirmDialog
         cancelLabel="Cancel"
-        confirmLabel="Link"
+        confirmLabel="Add link"
         onCancel={linkDialogClose}
         onConfirm={handleLinkDialogClick}
         open={showLinkDialog}

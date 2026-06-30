@@ -46,7 +46,7 @@ const AddressLine = ({ addresses, label, setAddresses }: AddressLineProps): Reac
             onDelete={setAddresses ? () => handleDelete(index) : undefined}
           />
         ))}
-        {setAddresses && <TagInput disabled={false} label="Email address" onAdd={handleAdd} />}
+        {setAddresses && <TagInput disabled={false} onAdd={handleAdd} />}
       </div>
     </div>
   )

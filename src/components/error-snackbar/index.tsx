@@ -24,7 +24,11 @@ const ErrorSnackbar = ({ message, onClose }: ErrorSnackbarProps): React.ReactNod
           whiteSpace: 'nowrap',
         }}
       >
-        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full flex-shrink-0"
+          style={{ background: 'var(--accent)' }}
+        />
         <span style={{ color: 'var(--text-paper)' }}>{message}</span>
         <button
           aria-label="Close"

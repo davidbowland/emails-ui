@@ -12,7 +12,7 @@ export const AttachmentTag = ({ filename, onRemove }: { filename: string; onRemo
   >
     <span>{filename}</span>
     <button
-      aria-label="Remove attachment"
+      aria-label={`Remove ${filename}`}
       className="transition-colors"
       onClick={onRemove}
       onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}

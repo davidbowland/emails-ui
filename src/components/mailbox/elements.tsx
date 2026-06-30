@@ -1,45 +1,36 @@
 import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import React from 'react'
 
-export const MailboxPanel = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-  <div
-    className="flex h-full flex-col overflow-hidden"
-    style={{
-      width: 'var(--list-width)',
-      flexShrink: 0,
-      background: 'var(--shell-surface)',
-      borderRight: '1px solid var(--shell-border)',
-    }}
-  >
-    {children}
-  </div>
-)
-
-export const ViewerPanel = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-  <div
-    className="flex h-full flex-1 flex-col overflow-hidden"
-    style={{ background: 'var(--paper-bg)', color: 'var(--text-paper)' }}
-  >
-    {children}
-  </div>
-)
-
 export const EmailListDivider = (): React.ReactNode => (
-  <div style={{ height: '1px', background: 'var(--shell-border)', marginLeft: '16px' }} />
+  <div
+    style={{
+      height: '1px',
+      background: 'var(--shell-border)',
+      margin: '0 12px',
+      opacity: 0.6,
+    }}
+  />
 )
 
 export const BouncedChip = (): React.ReactNode => (
   <span
-    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium"
     style={{
-      background: 'rgba(196, 92, 42, 0.12)',
-      border: '1px solid rgba(196, 92, 42, 0.3)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '3px',
+      borderRadius: '6px',
+      padding: '2px 6px',
+      background: 'var(--accent-subtle)',
+      border: '1px solid var(--accent-border)',
       color: 'var(--accent)',
       fontFamily: 'IBM Plex Mono, monospace',
+      fontSize: '10px',
+      fontWeight: 500,
       flexShrink: 0,
+      whiteSpace: 'nowrap',
     }}
   >
-    <AlertCircle size={10} />
+    <AlertCircle size={9} strokeWidth={1.5} />
     Bounced
   </span>
 )
@@ -47,22 +38,63 @@ export const BouncedChip = (): React.ReactNode => (
 export const NavForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
   <button
     aria-label="Show selected email"
-    className="rounded-full p-2 transition-colors md:hidden"
+    className="md:hidden"
     onClick={onClick}
-    style={{ color: 'var(--text-muted)' }}
+    onMouseEnter={(e) => {
+      ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
+      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
+    }}
+    onMouseLeave={(e) => {
+      ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+    }}
+    style={{
+      width: '30px',
+      height: '30px',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--text-muted)',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'background 0.15s ease, color 0.15s ease',
+    }}
   >
-    <ArrowRight size={16} />
+    <ArrowRight size={15} strokeWidth={1.5} />
   </button>
 )
 
 export const NavBackButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
   <button
     aria-label="Back to email list"
-    className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors md:hidden"
+    className="md:hidden"
     onClick={onClick}
-    style={{ color: 'var(--text-muted)', fontFamily: 'Outfit, sans-serif' }}
+    onMouseEnter={(e) => {
+      ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
+      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
+    }}
+    onMouseLeave={(e) => {
+      ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+    }}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '6px 10px',
+      borderRadius: '8px',
+      color: 'var(--text-muted)',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'Outfit, sans-serif',
+      fontSize: '13px',
+      transition: 'background 0.15s ease, color 0.15s ease',
+    }}
   >
-    <ArrowLeft size={14} />
+    <ArrowLeft size={13} strokeWidth={1.5} />
     Back
   </button>
 )

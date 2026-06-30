@@ -70,14 +70,14 @@ const Compose = ({
     setAttachmentMessage('')
     setRecipientMessage('')
     if (bccAddresses.length + ccAddresses.length + toAddresses.length === 0) {
-      setRecipientMessage('Please enter recipients.')
+      setRecipientMessage('Add at least one recipient before sending.')
       window.scrollTo(0, 0)
       return
     }
 
     const totalAttachmentSize = attachments.reduce((value, attachment) => attachment.size + value, 0)
     if (totalAttachmentSize >= MAX_UPLOAD_SIZE) {
-      setAttachmentMessage(`Attachments cannot exceed ${MAX_UPLOAD_SIZE.toLocaleString()} bytes.`)
+      setAttachmentMessage(`Attachments cannot exceed ${Math.round(MAX_UPLOAD_SIZE / 1_000_000)} MB.`)
       return
     }
 
@@ -107,7 +107,7 @@ const Compose = ({
         references,
         replyTo: fromAddress,
         sender: fromAddress,
-        subject: subject || 'no subject',
+        subject: subject || '(No subject)',
         text: getTextContent(editor),
         to: toAddresses,
       }
@@ -125,7 +125,7 @@ const Compose = ({
         toAddresses,
         totalAttachmentSize,
       })
-      setErrorMessage('Error sending email. Please try again in a few moments.')
+      setErrorMessage("Couldn't send your email. Please try again.")
     }
     setIsSubmitting(false)
   }
@@ -147,7 +147,7 @@ const Compose = ({
       .then(setLoggedInUser)
       .catch((error: any) => {
         console.error('currentAuthenticatedUser', { error })
-        setErrorMessage('Error authenticating user. Please reload the page to try again.')
+        setErrorMessage("We couldn't sign you in. Reload the page to try again.")
         window.location.reload()
       })
   }, [])
@@ -257,7 +257,7 @@ const Compose = ({
         open={isDiscardDialogOpen}
         title="Discard message?"
       >
-        Are you sure you want to discard this message?
+        Your draft will be permanently deleted.
       </ConfirmDialog>
       <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>

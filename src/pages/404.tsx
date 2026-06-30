@@ -13,8 +13,7 @@ const NotFound = (): React.ReactNode => {
       <Authenticated showContent={true}>
         <div className="main-content">
           <ServerErrorMessage title="404: Not Found">
-            The resource you requested is unavailable. If you feel you have reached this page in error, please contact
-            the webmaster.
+            We couldn&apos;t find that page. If you think something&apos;s wrong, contact us.
           </ServerErrorMessage>
         </div>
       </Authenticated>

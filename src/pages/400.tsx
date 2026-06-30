@@ -12,8 +12,7 @@ const BadRequest = (): React.ReactNode => {
       </Head>
       <Authenticated showContent={true}>
         <ServerErrorMessage title="400: Bad Request">
-          Your request was malformed or otherwise could not be understood by the server. Please modify your request
-          before retrying.
+          Something went wrong with your request. Try going back and refreshing the page.
         </ServerErrorMessage>
       </Authenticated>
     </>

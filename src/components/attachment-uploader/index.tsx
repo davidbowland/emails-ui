@@ -43,7 +43,7 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
       ])
     } catch (error) {
       console.error('handleFileUpload', { accountId, error, file: file.name })
-      setErrorMessage('Error uploading file. Please ensure file is below file size limit and then try again.')
+      setErrorMessage("Couldn't upload this file — it may exceed the size limit. Try a smaller file.")
     }
     setUploadingFilename(undefined)
   }

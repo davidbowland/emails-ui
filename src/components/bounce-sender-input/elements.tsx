@@ -51,12 +51,12 @@ export const RuleInput = ({
 
   return (
     <input
+      aria-label="Sender to block"
       className="rounded-md px-3 py-1.5 text-sm outline-none"
       disabled={disabled}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder="Email, @domain.com, or * for all"
-      role="combobox"
       style={{
         minWidth: '180px',
         flex: '1 1 auto',

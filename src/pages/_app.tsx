@@ -10,7 +10,6 @@ import type { AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
 import '@assets/css/index.css'
-import Disclaimer from '@components/disclaimer'
 import '@config/amplify'
 
 const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
@@ -26,7 +25,6 @@ const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
   return (
     <div className="h-screen overflow-hidden" style={{ background: 'var(--shell-bg)', color: 'var(--text-primary)' }}>
       <Component {...pageProps} />
-      <Disclaimer />
     </div>
   )
 }

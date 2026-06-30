@@ -54,29 +54,25 @@ describe('AccountSettings component', () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
-    expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
+    expect(await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)).toBeVisible()
   })
 
   it('expect closing snackbar removes error', async () => {
     jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
-    await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
+    await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(closeSnackbarButton)
 
-    expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/We couldn't sign you in. Reload the page to try again./i)).not.toBeInTheDocument()
   })
 
   it('expect error message when getAccount rejects', async () => {
     jest.mocked(emails).getAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
-    expect(
-      await screen.findByText(/Error fetching account settings. Please reload the page to try again./i),
-    ).toBeVisible()
+    expect(await screen.findByText(/Couldn't load your settings. Reload the page to try again./i)).toBeVisible()
   })
 
   it('expect error message when patchAccount rejects', async () => {
@@ -122,14 +118,14 @@ describe('AccountSettings component', () => {
     await screen.findByText(/Account Settings/i)
     expect(BounceSenderInput).toHaveBeenCalledWith(
       expect.objectContaining({
-        label: 'Bounce emails from senders:',
+        label: 'Reject emails from:',
         rules: ['spam@domain.com'],
       }),
       undefined,
     )
     expect(
       await screen.findByText(
-        /Bounce senders can be email addresses \(user@domain\.com\), domains \(@domain\.com\), or \* to bounce all senders\./i,
+        /Block senders by address \(user@domain\.com\), domain \(@domain\.com\), or enter \* to block everyone\./i,
       ),
     ).toBeVisible()
   })

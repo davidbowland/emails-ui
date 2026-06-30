@@ -14,7 +14,7 @@ const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): Rea
   }
 
   return (
-    <div className="flex w-full items-center justify-center px-4 pt-10">
+    <div className="flex w-full items-center justify-center">
       <ThemeProvider colorMode="system" theme={theme}>
         <Authenticator hideSignUp={true}>
           {({ user }) => {

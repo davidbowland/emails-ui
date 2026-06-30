@@ -89,23 +89,21 @@ describe('Compose component', () => {
     jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
-    expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
+    expect(await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)).toBeVisible()
   })
 
   it('should remove error message when close button is clicked', async () => {
     jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
-    await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
+    await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
 
     await act(async () => {
       await userEvent.click(closeSnackbarButton)
     })
 
-    expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/We couldn't sign you in. Reload the page to try again./i)).not.toBeInTheDocument()
   })
 
   it('should call discardCallback when discard is confirmed', async () => {
@@ -148,7 +146,7 @@ describe('Compose component', () => {
       await userEvent.click(sendButton)
     })
 
-    expect(await screen.findByText(/Please enter recipients./i)).toBeVisible()
+    expect(await screen.findByText(/Add at least one recipient before sending./i)).toBeVisible()
     expect(emails.postSentEmail).not.toHaveBeenCalled()
   })
 
@@ -161,7 +159,7 @@ describe('Compose component', () => {
       await userEvent.click(sendButton)
     })
 
-    expect(await screen.findByText(/Error sending email. Please try again in a few moments./i)).toBeVisible()
+    expect(await screen.findByText(/Couldn't send your email. Please try again./i)).toBeVisible()
   })
 
   it('should show error message when attachments are too large', async () => {
@@ -185,7 +183,7 @@ describe('Compose component', () => {
       await userEvent.click(sendButton)
     })
 
-    expect(await screen.findByText(/Attachments cannot exceed [\d,]+ bytes./)).toBeVisible()
+    expect(await screen.findByText(/Attachments cannot exceed \d+ MB\./)).toBeVisible()
   })
 
   it('should call postSentEmail and navigate when email is sent successfully', async () => {
@@ -279,7 +277,7 @@ describe('Compose component', () => {
       await userEvent.click(sendButton)
     })
 
-    expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ subject: 'no subject' }))
+    expect(emails.postSentEmail).toHaveBeenCalledWith(accountId, expect.objectContaining({ subject: '(No subject)' }))
   })
 
   it('should use empty text when no selection is available', async () => {

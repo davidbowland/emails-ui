@@ -68,7 +68,11 @@ const AttachmentViewer = ({
             onClick={() =>
               anchorRef?.current && handleAttachmentClick(anchorRef?.current, accountId, emailId, attachment.id)
             }
-            sizeLabel={`${attachment.size.toLocaleString()} bytes`}
+            sizeLabel={
+              attachment.size >= 1_000_000
+                ? `${(attachment.size / 1_000_000).toFixed(1)} MB`
+                : `${Math.round(attachment.size / 1000)} KB`
+            }
           />
         ))}
       </div>

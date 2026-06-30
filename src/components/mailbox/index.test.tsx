@@ -64,7 +64,7 @@ describe('Mailbox component', () => {
       />,
     )
 
-    expect(await screen.findByText(/Error authenticating user. Please reload the page to try again./i)).toBeVisible()
+    expect(await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)).toBeVisible()
   })
 
   it('should remove error when closing snackbar', async () => {
@@ -80,16 +80,14 @@ describe('Mailbox component', () => {
       />,
     )
 
-    await screen.findByText(/Error authenticating user. Please reload the page to try again./i)
+    await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
 
     await act(async () => {
       await userEvent.click(closeSnackbarButton)
     })
 
-    expect(
-      screen.queryByText(/Error authenticating user. Please reload the page to try again./i),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/We couldn't sign you in. Reload the page to try again./i)).not.toBeInTheDocument()
   })
 
   it('should show error message when getAllEmails fails', async () => {
@@ -105,7 +103,7 @@ describe('Mailbox component', () => {
       />,
     )
 
-    expect(await screen.findByText(/Error fetching emails. Please reload the page to try again./i)).toBeVisible()
+    expect(await screen.findByText(/Couldn't load your emails. Reload the page to try again./i)).toBeVisible()
   })
 
   it('should render the email list', async () => {
@@ -186,7 +184,7 @@ describe('Mailbox component', () => {
       await userEvent.click(emailElement)
     })
 
-    expect(await screen.findByText(/Error fetching email. Please try again./i)).toBeVisible()
+    expect(await screen.findByText(/Couldn't load this email. Please try again./i)).toBeVisible()
   })
 
   it('should invoke bounceEmail and refresh email list when bouncing an email', async () => {

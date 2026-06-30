@@ -71,7 +71,7 @@ const EmailViewer = ({
       await bounceEmail(accountId, emailId)
     } catch (error: any) {
       console.error('bounceEmailClick', { accountId, emailId, error })
-      setErrorMessage('Error bouncing email. Please refresh and try again.')
+      setErrorMessage("Couldn't reject this email. Refresh the page and try again.")
     }
     setBackdropShown(false)
   }
@@ -283,8 +283,8 @@ const EmailViewer = ({
         open={showBounceDialog}
         title="Bounce email"
       >
-        Are you sure you want to bounce this email? Bouncing an email signals to the sender that the account is invalid.
-        You can automatically bounce messages from certain senders in account settings.
+        This will send a rejection notice to the sender, telling them this address doesn&apos;t exist. To auto-reject
+        messages from specific senders, go to Settings.
       </ConfirmDialog>
       <ConfirmDialog
         cancelLabel="Cancel"
@@ -294,7 +294,7 @@ const EmailViewer = ({
         open={showDeleteDialog}
         title="Delete email"
       >
-        Are you sure you want to delete this email?
+        This email will be permanently deleted.
       </ConfirmDialog>
       <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>

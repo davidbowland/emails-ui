@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 
 export interface ConfirmDialogProps {
   cancelLabel?: string
@@ -19,16 +19,68 @@ const ConfirmDialog = ({
   open,
   title,
 }: ConfirmDialogProps): React.ReactNode => {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<Element | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      triggerRef.current = document.activeElement
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      focusable?.[0]?.focus()
+    } else {
+      ;(triggerRef.current as HTMLElement | null)?.focus()
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        onCancel()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open, onCancel])
+
   return (
     <div
       aria-labelledby="confirm-dialog-title"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center"
+      ref={dialogRef}
       role="dialog"
       style={open ? undefined : { display: 'none' }}
     >
       <div
+        aria-hidden="true"
         className="absolute inset-0"
         onClick={onCancel}
+        role="presentation"
         style={{ background: 'rgba(26, 24, 20, 0.7)', backdropFilter: 'blur(4px)' }}
       />
       <div

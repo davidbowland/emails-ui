@@ -26,7 +26,7 @@ describe('Attachment uploader component', () => {
   it('should remove attachment when remove button is clicked', async () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
-    const removeButton = (await screen.findAllByLabelText(/Remove attachment/i))[0] as HTMLButtonElement
+    const removeButton = (await screen.findAllByLabelText(/^Remove /i))[0] as HTMLButtonElement
     await act(async () => {
       await userEvent.click(removeButton)
     })
@@ -52,7 +52,7 @@ describe('Attachment uploader component', () => {
     })
 
     expect(
-      await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
+      await screen.findByText(/Couldn't upload this file — it may exceed the size limit. Try a smaller file./i),
     ).toBeVisible()
   })
 
@@ -65,7 +65,7 @@ describe('Attachment uploader component', () => {
       await userEvent.upload(fileUpload, file)
     })
 
-    await screen.findByText(/Error uploading file. Please ensure file is below file size limit and then try again./i)
+    await screen.findByText(/Couldn't upload this file — it may exceed the size limit. Try a smaller file./i)
     const closeSnackbarButton = (await screen.findByLabelText(/Close/i, { selector: 'button' })) as HTMLButtonElement
 
     await act(async () => {
@@ -73,7 +73,7 @@ describe('Attachment uploader component', () => {
     })
 
     expect(
-      screen.queryByText(/Error uploading file. Please ensure file is below file size limit and then try again./i),
+      screen.queryByText(/Couldn't upload this file — it may exceed the size limit. Try a smaller file./i),
     ).not.toBeInTheDocument()
   })
 

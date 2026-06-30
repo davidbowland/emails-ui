@@ -278,7 +278,7 @@ describe('Authenticated component', () => {
           await userEvent.click(deleteAccountMenuOption)
         })
 
-        const continueButton = (await screen.findByText(/Continue/i)) as HTMLButtonElement
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(continueButton)
@@ -315,7 +315,7 @@ describe('Authenticated component', () => {
           await userEvent.click(deleteAccountMenuOption)
         })
 
-        const continueButton = (await screen.findByText(/Continue/i)) as HTMLButtonElement
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(continueButton)
@@ -324,7 +324,7 @@ describe('Authenticated component', () => {
         expect(user.deleteUser).toHaveBeenCalled()
         expect(Auth.signOut).not.toHaveBeenCalled()
         expect(console.error).toHaveBeenCalled()
-        expect(await screen.findByText(/There was a problem deleting your account/i)).toBeVisible()
+        expect(await screen.findByText(/Couldn't delete your account/i)).toBeVisible()
       })
 
       it('should remove error message when close button is clicked', async () => {
@@ -351,7 +351,7 @@ describe('Authenticated component', () => {
           await userEvent.click(deleteAccountMenuOption)
         })
 
-        const continueButton = (await screen.findByText(/Continue/i)) as HTMLButtonElement
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
 
         await act(async () => {
           await userEvent.click(continueButton)
@@ -365,7 +365,7 @@ describe('Authenticated component', () => {
           await userEvent.click(closeSnackbarButton)
         })
 
-        expect(screen.queryByText(/There was a problem deleting your account/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Couldn't delete your account/i)).not.toBeInTheDocument()
       })
     })
   })

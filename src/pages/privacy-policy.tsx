@@ -13,9 +13,7 @@ const PrivacyPage = (): React.ReactNode => {
       </Head>
       <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated showContent={true}>
-          <div className="mx-auto max-w-[900px] overflow-auto shadow-md">
-            <PrivacyPolicy />
-          </div>
+          <PrivacyPolicy />
         </Authenticated>
       </div>
     </>

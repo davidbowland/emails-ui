@@ -82,7 +82,7 @@ const AccountSettings = (): React.ReactNode => {
               Forward emails to
             </div>
             <p className="mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
-              Received emails will be forwarded to these addresses.
+              We&apos;ll forward incoming emails to these addresses.
             </p>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
               <AddressLine addresses={forwardAddresses} label="To:" setAddresses={setForwardAddresses} />
@@ -102,15 +102,11 @@ const AccountSettings = (): React.ReactNode => {
               Bounce rules
             </div>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
-              <BounceSenderInput
-                label="Bounce emails from senders:"
-                rules={bounceSenders}
-                setRules={setBounceSenders}
-              />
+              <BounceSenderInput label="Reject emails from:" rules={bounceSenders} setRules={setBounceSenders} />
             </div>
             <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
-              Bounce senders can be email addresses (user@domain.com), domains (@domain.com), or * to bounce all
-              senders. Automatically bounced emails will <b>NOT</b> be forwarded.
+              Block senders by address (user@domain.com), domain (@domain.com), or enter * to block everyone. Blocked
+              emails won&apos;t be forwarded.
             </p>
           </section>
         )}
@@ -149,7 +145,7 @@ const AccountSettings = (): React.ReactNode => {
         .then(setAccount)
         .catch((error: any) => {
           console.error('getAccount', { error, username: loggedInUser?.username })
-          setErrorMessage('Error fetching account settings. Please reload the page to try again.')
+          setErrorMessage("Couldn't load your settings. Reload the page to try again.")
         })
     }
   }, [loggedInUser])
@@ -159,7 +155,7 @@ const AccountSettings = (): React.ReactNode => {
       .then(setLoggedInUser)
       .catch((error: any) => {
         console.error('currentAuthenticatedUser', { error })
-        setErrorMessage('Error authenticating user. Please reload the page to try again.')
+        setErrorMessage("We couldn't sign you in. Reload the page to try again.")
         window.location.reload()
       })
   }, [])

@@ -20,7 +20,7 @@ describe('Address line component', () => {
   it('should allow editing and saving an address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'c@domain.com' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -52,7 +52,7 @@ describe('Address line component', () => {
   it('should allow adding a new address', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'new@domain.com' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -66,7 +66,7 @@ describe('Address line component', () => {
   it('should commit value on blur', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'blur@domain.com' } })
     fireEvent.blur(input)
 
@@ -80,7 +80,7 @@ describe('Address line component', () => {
   it('should not commit empty value on blur', async () => {
     render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: '   ' } })
     fireEvent.blur(input)
 

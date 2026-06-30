@@ -23,7 +23,7 @@ describe('BounceSenderInput component', () => {
   it('should allow adding a new email rule', async () => {
     render(<BounceSenderInput label="Bounce:" rules={testRules} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'new@spam.com' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -33,7 +33,7 @@ describe('BounceSenderInput component', () => {
   it('should allow adding a new domain rule', async () => {
     render(<BounceSenderInput label="Bounce:" rules={testRules} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'newspam.com' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -77,7 +77,7 @@ describe('BounceSenderInput component', () => {
   it('should reject invalid email addresses', async () => {
     render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'invalid-email' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -87,7 +87,7 @@ describe('BounceSenderInput component', () => {
   it('should reject invalid domain rules', async () => {
     render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'invalid' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -97,7 +97,7 @@ describe('BounceSenderInput component', () => {
   it('should accept valid email with dot after at', async () => {
     render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'user@domain.com' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -107,7 +107,7 @@ describe('BounceSenderInput component', () => {
   it('should accept * as all senders rule', async () => {
     render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: '*' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -117,7 +117,7 @@ describe('BounceSenderInput component', () => {
   it('should commit value on blur', async () => {
     render(<BounceSenderInput label="Bounce:" rules={testRules} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'blur@spam.com' } })
     fireEvent.blur(input)
 
@@ -127,7 +127,7 @@ describe('BounceSenderInput component', () => {
   it('should not commit empty value on blur', async () => {
     render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
 
-    const input = (await screen.findByRole('combobox')) as HTMLInputElement
+    const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: '   ' } })
     fireEvent.blur(input)
 

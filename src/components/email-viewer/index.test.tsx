@@ -266,14 +266,14 @@ describe('Email viewer component', () => {
         <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
       )
 
-      hookMock.mockClear()
+      const callsBefore = hookMock.mock.calls.length
       const showImagesButton = (await screen.findByText(/Show images/i)) as HTMLButtonElement
 
       await act(async () => {
         await userEvent.click(showImagesButton)
       })
 
-      expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
+      expect(hookMock.mock.calls.slice(callsBefore)).toContainEqual(['afterSanitizeAttributes'])
     })
 
     it('should use multiple hooks when hiding images', async () => {
@@ -287,15 +287,16 @@ describe('Email viewer component', () => {
         await userEvent.click(showImagesButton)
       })
 
-      hookMock.mockClear()
+      const callsBefore = hookMock.mock.calls.length
       const hideImagesButton = (await screen.findByText(/Hide images/i)) as HTMLButtonElement
 
       await act(async () => {
         await userEvent.click(hideImagesButton)
       })
 
-      expect(hookMock).toHaveBeenCalledWith('uponSanitizeElement')
-      expect(hookMock).toHaveBeenCalledWith('afterSanitizeAttributes')
+      const callsAfter = hookMock.mock.calls.slice(callsBefore)
+      expect(callsAfter).toContainEqual(['uponSanitizeElement'])
+      expect(callsAfter).toContainEqual(['afterSanitizeAttributes'])
     })
   })
 
@@ -477,7 +478,7 @@ describe('Email viewer component', () => {
         await userEvent.click(deleteIcon)
       })
 
-      expect(await screen.findByText(/Are you sure you want to delete this email/i)).toBeVisible()
+      expect(await screen.findByText(/This email will be permanently deleted/i)).toBeVisible()
     })
 
     it('should close dialog when clicking cancel', async () => {
@@ -504,7 +505,7 @@ describe('Email viewer component', () => {
         await userEvent.click(cancelButton)
       })
 
-      expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
+      expect(screen.queryByText(/This email will be permanently deleted/i)).not.toBeVisible()
       expect(deleteReceivedEmail).not.toHaveBeenCalled()
     })
 
@@ -532,7 +533,7 @@ describe('Email viewer component', () => {
         await userEvent.click(deleteButton)
       })
 
-      expect(screen.queryByText(/Are you sure you want to delete this email/i)).not.toBeVisible()
+      expect(screen.queryByText(/This email will be permanently deleted/i)).not.toBeVisible()
       expect(deleteReceivedEmail).toHaveBeenCalledWith(accountId, emailId)
     })
 
@@ -645,7 +646,7 @@ describe('Email viewer component', () => {
         await userEvent.click(bounceButton)
       })
 
-      expect(screen.queryByText(/Are you sure you want to bounce this email/i)).not.toBeVisible()
+      expect(screen.queryByText(/This will send a rejection notice/i)).not.toBeVisible()
       expect(bounceReceivedEmail).toHaveBeenCalledWith(accountId, emailId)
     })
 
@@ -673,7 +674,7 @@ describe('Email viewer component', () => {
         await userEvent.click(bounceButton)
       })
 
-      expect(await screen.findByText(/Error bouncing email. Please refresh and try again./i)).toBeVisible()
+      expect(await screen.findByText(/Couldn't reject this email. Refresh the page and try again./i)).toBeVisible()
     })
   })
 })

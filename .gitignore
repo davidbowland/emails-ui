@@ -10,7 +10,11 @@ out/
 # Generated artifacts
 public/sitemap*.xml
 public/robots.txt
-public/
+public/*
+!public/favicon.ico
+!public/favicon.svg
+!public/apple-touch-icon.png
+!public/og-image.png
 
 # Compiled Java class files
 *.class

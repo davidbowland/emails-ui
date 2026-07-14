@@ -1,12 +1,14 @@
 # Emails UI
 
+[![Email — a personal mail client at dbowland.com](public/og-image.png)](https://email.dbowland.com/)
+
 Next.js and Amplify implementation of emails-email-api. Example: <https://email.dbowland.com/>
 
 ## Static Site
 
 ### Prerequisites
 
-1. [Node](https://nodejs.org/en/)
+1. [Node](https://nodejs.org/en/) 24.x (see `engines` in `package.json`)
 1. [NPM](https://www.npmjs.com/)
 
 ### Local Development
@@ -65,10 +67,10 @@ Use [act](https://github.com/nektos/act) to test the GitHub workflow. Install it
 brew install act
 ```
 
-When running locally, workflow needs some secret values specified. If the necessary environment variables are declared, the secrets can be specified with:
+The workflow needs several secrets: `GIT_EMAIL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ACCOUNT_ID`, and `AWS_REGION`. Pass each one through from your local environment with:
 
 ```bash
-npm run workflow
+act push -s GIT_EMAIL -s AWS_ACCESS_KEY_ID -s AWS_SECRET_ACCESS_KEY -s AWS_ACCOUNT_ID -s AWS_REGION
 ```
 
 ## Additional Documentation
@@ -83,16 +85,20 @@ npm run workflow
 
 ### Additional Deploy Documentation
 
-- [SSH2 module](https://www.npmjs.com/package/ssh2)
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
 
-- [SFTP stream methods](https://github.com/mscdex/ssh2-streams/blob/master/SFTPStream.md#sftpstream-methods)
+- [aws s3 sync](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html)
 
 ### Additional Workflow Documentation
 
 - [Workflow Syntax for GitHub Actions](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions)
 
-- [actions/setup-node](https://github.com/actions/setup-node)
-
 - [actions/checkout](https://github.com/actions/checkout)
 
-- [ad-m/github-push-action](https://github.com/ad-m/github-push-action)
+- [actions/setup-node](https://github.com/actions/setup-node)
+
+- [actions/setup-python](https://github.com/actions/setup-python)
+
+- [aws-actions/setup-sam](https://github.com/aws-actions/setup-sam)
+
+- [aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials)

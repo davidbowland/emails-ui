@@ -2,7 +2,7 @@
 
 [![Email — a personal mail client at dbowland.com](public/og-image.png)](https://email.dbowland.com/)
 
-Next.js and Amplify implementation of emails-email-api. Example: <https://email.dbowland.com/>
+Next.js and Amplify front-end for emails-email-api. Example: <https://email.dbowland.com/>
 
 ## Static Site
 

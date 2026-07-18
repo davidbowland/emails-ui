@@ -47,8 +47,7 @@
     "react": "^19",
     "react-dom": "^19",
     "tailwindcss": "^4.3.2",
-    "typescript": "^5.9.3",
-    "universal-cookie": "^4.0.4"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",
@@ -56,7 +55,6 @@
     "@testing-library/react": "^15.0.7",
     "@testing-library/user-event": "^14.6.1",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@types/dompurify": "^3.2.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^24",
     "@types/react": "^19",

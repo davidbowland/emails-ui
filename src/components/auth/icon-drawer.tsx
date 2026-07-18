@@ -119,9 +119,9 @@ const IconDrawer = ({
             transition: 'background 0.2s cubic-bezier(0.32,0.72,0,1)',
             ...(navMenuOpen
               ? {
-                opacity: 0,
-                animation: `slideInLeft 0.3s cubic-bezier(0.32,0.72,0,1) ${staggerDelay}ms forwards`,
-              }
+                  opacity: 0,
+                  animation: `slideInLeft 0.3s cubic-bezier(0.32,0.72,0,1) ${staggerDelay}ms forwards`,
+                }
               : {}),
           }}
           title={navMenuOpen ? undefined : item.label}

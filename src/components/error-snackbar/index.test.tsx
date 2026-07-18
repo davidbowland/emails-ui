@@ -1,8 +1,8 @@
-import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 
 import ErrorSnackbar from './index'
+import '@testing-library/jest-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 describe('ErrorSnackbar component', () => {
   const onClose = jest.fn()

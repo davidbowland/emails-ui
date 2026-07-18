@@ -1,11 +1,11 @@
-import InboxPage from '@pages/inbox'
-import '@testing-library/jest-dom'
-import { render } from '@testing-library/react'
 import React from 'react'
 
 import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
+import InboxPage from '@pages/inbox'
 import * as emails from '@services/emails'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

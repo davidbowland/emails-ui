@@ -1,8 +1,8 @@
-import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 
 import BounceSenderInput from './index'
+import '@testing-library/jest-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 jest.mock('aws-amplify')
 

@@ -143,7 +143,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
     try {
       new URL(linkTarget)
       setLinkErrorMessage(undefined)
-    } catch (error) {
+    } catch {
       setLinkErrorMessage('Enter a valid URL — for example, https://example.com')
     }
   }, [linkTarget])

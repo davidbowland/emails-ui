@@ -89,16 +89,16 @@ const Compose = ({
           attachments.length === 0
             ? undefined
             : attachments.map((attachment) => ({
-              cid: attachment.id,
-              content: attachment.key,
-              contentDisposition: 'attachment',
-              contentType: attachment.type,
-              filename: attachment.filename,
-              headerLines: {},
-              headers: {},
-              size: attachment.size,
-              type: 'attachment',
-            })),
+                cid: attachment.id,
+                content: attachment.key,
+                contentDisposition: 'attachment',
+                contentType: attachment.type,
+                filename: attachment.filename,
+                headerLines: {},
+                headers: {},
+                size: attachment.size,
+                type: 'attachment',
+              })),
         bcc: bccAddresses,
         cc: ccAddresses,
         from: fromAddress,
@@ -250,9 +250,11 @@ const Compose = ({
         confirmLabel="Discard"
         onCancel={discardDialogClose}
         onConfirm={() => {
-          editor.current && resetForm(editor.current)
+          if (editor.current) {
+            resetForm(editor.current)
+          }
           discardDialogClose()
-          discardCallback && discardCallback()
+          discardCallback?.()
         }}
         open={isDiscardDialogOpen}
         title="Discard message?"

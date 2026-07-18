@@ -1,12 +1,11 @@
-import '@testing-library/jest-dom'
-import { createEvent, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 
 import HtmlEditor from './index'
+import '@testing-library/jest-dom'
+import { createEvent, fireEvent, render, screen } from '@testing-library/react'
 
 jest.mock('aws-amplify')
 jest.mock('@components/confirm-dialog', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>

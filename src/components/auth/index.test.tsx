@@ -1,12 +1,12 @@
 import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
-import { user } from '@test/__mocks__'
-import '@testing-library/jest-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
 import React from 'react'
 
 import Authenticated from './index'
+import { user } from '@test/__mocks__'
+import '@testing-library/jest-dom'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 jest.mock('aws-amplify')
 jest.mock('@aws-amplify/analytics')

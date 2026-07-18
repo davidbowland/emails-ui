@@ -1,7 +1,3 @@
-import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
-import '@testing-library/jest-dom'
-import { act, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import DOMPurify from 'dompurify'
 import React from 'react'
 
@@ -9,6 +5,10 @@ import EmailViewer from './index'
 import AddressLine from '@components/address-line'
 import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
+import { accountId, attachments, attachmentUrl, emailContents, emailId } from '@test/__mocks__'
+import '@testing-library/jest-dom'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { EmailContents } from '@types'
 
 jest.mock('aws-amplify')
@@ -17,7 +17,6 @@ jest.mock('@components/address-line')
 jest.mock('@components/attachment-viewer')
 jest.mock('@components/compose')
 jest.mock('@components/confirm-dialog', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
@@ -31,17 +30,16 @@ jest.mock('@components/confirm-dialog', () => {
     )
 })
 jest.mock('@components/error-snackbar', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
     message
       ? React.createElement(
-        'div',
-        { role: 'alert' },
-        message,
-        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
-      )
+          'div',
+          { role: 'alert' },
+          message,
+          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+        )
       : null
 })
 jest.mock('@config/amplify')
@@ -437,7 +435,7 @@ describe('Email viewer component', () => {
 
     it('should remove Compose component when discarding', async () => {
       jest.mocked(Compose).mockImplementationOnce(({ discardCallback }): React.ReactNode => {
-        discardCallback && discardCallback()
+        discardCallback?.()
         return <>Compose</>
       })
       render(

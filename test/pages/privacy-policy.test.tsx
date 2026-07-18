@@ -1,10 +1,10 @@
-import PrivacyPage from '@pages/privacy-policy'
-import '@testing-library/jest-dom'
-import { render } from '@testing-library/react'
 import React from 'react'
 
 import Authenticated from '@components/auth'
 import PrivacyPolicy from '@components/privacy-policy'
+import PrivacyPage from '@pages/privacy-policy'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/auth')

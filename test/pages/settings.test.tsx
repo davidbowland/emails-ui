@@ -1,10 +1,10 @@
-import SettingsPage from '@pages/settings'
-import '@testing-library/jest-dom'
-import { render } from '@testing-library/react'
 import React from 'react'
 
 import AccountSettings from '@components/account-settings'
 import Authenticated from '@components/auth'
+import SettingsPage from '@pages/settings'
+import '@testing-library/jest-dom'
+import { render } from '@testing-library/react'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@components/account-settings')

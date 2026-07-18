@@ -1,16 +1,3 @@
-import {
-  account,
-  accountId,
-  attachmentId,
-  attachmentUrl,
-  email,
-  emailBatch,
-  emailContents,
-  emailId,
-  jsonPatchOperations,
-  outboundEmail,
-  postAttachmentResult,
-} from '@test/__mocks__'
 import { CognitoUserSession } from 'amazon-cognito-identity-js'
 import { API, Auth } from 'aws-amplify'
 
@@ -33,6 +20,19 @@ import {
   postSentEmail,
   putAccount,
 } from './emails'
+import {
+  account,
+  accountId,
+  attachmentId,
+  attachmentUrl,
+  email,
+  emailBatch,
+  emailContents,
+  emailId,
+  jsonPatchOperations,
+  outboundEmail,
+  postAttachmentResult,
+} from '@test/__mocks__'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@config/amplify', () => ({

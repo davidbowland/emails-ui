@@ -1,7 +1,3 @@
-import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
-import '@testing-library/jest-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { Auth } from 'aws-amplify'
 import React from 'react'
 
@@ -10,12 +6,15 @@ import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
 import HtmlEditor from '@components/html-editor'
 import * as emails from '@services/emails'
+import { accountId, addresses, attachments, email, user } from '@test/__mocks__'
+import '@testing-library/jest-dom'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 jest.mock('aws-amplify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
 jest.mock('@components/confirm-dialog', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
@@ -29,17 +28,16 @@ jest.mock('@components/confirm-dialog', () => {
     )
 })
 jest.mock('@components/error-snackbar', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
     message
       ? React.createElement(
-        'div',
-        { role: 'alert' },
-        message,
-        React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
-      )
+          'div',
+          { role: 'alert' },
+          message,
+          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+        )
       : null
 })
 jest.mock('@components/html-editor')

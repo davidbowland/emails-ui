@@ -1,11 +1,11 @@
-import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
-import '@testing-library/jest-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import axios from 'axios'
 import React from 'react'
 
 import AttachmentViewer from './index'
+import { accountId, attachments, attachmentUrl, emailId } from '@test/__mocks__'
+import '@testing-library/jest-dom'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 jest.mock('aws-amplify')
 jest.mock('axios')

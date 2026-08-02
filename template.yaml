@@ -30,12 +30,20 @@ Resources:
   UiBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
       BucketName: !FindInMap [EnvironmentMap, !Ref Environment, bucketName]
+      # CloudFront reads through the origin access identity granted by
+      # UiBucketPolicy, so the bucket never needs to be publicly readable.
+      # IgnorePublicAcls also neutralises the public-read ACLs left on objects
+      # uploaded before this change.
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       Tags:
         - Key: 'created-by'
           Value: 'emails-ui'

@@ -83,45 +83,68 @@ const PrivacyPolicy = (): React.ReactNode => {
             margin: '0 0 40px',
           }}
         >
-          This policy describes how{' '}
-          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>email.dbowland.com</span> handles your data.
-          The short version: we collect very little, we keep it briefly, and we never sell it.
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>email.dbowland.com</span> is a private mail
+          client for the personal mailboxes of one operator. There is no public sign-up and no account you can create.
+          This policy is written mainly for the people who matter most here: anyone who sends mail to, or receives mail
+          from, one of those addresses.
         </p>
 
         {/* Top divider */}
         <div style={{ height: '1px', background: 'var(--shell-border)' }} />
 
-        <Section heading="What we collect">
-          Our servers automatically log your IP address, browser type, and the pages you visit. When you sign in, we set
-          a session cookie to keep you authenticated — that&apos;s essential for the service to work. If you register a
-          phone number for multi-factor authentication, we store it solely to protect your account.
+        <Section heading="If you email one of these addresses">
+          Your message is stored so it can be read. That means the whole of it: the sender and recipient addresses, the
+          subject, the full body, every header, and any attachments. This is what an inbox is, but it is worth stating
+          plainly, because your message rests on our storage rather than passing through it.
         </Section>
 
-        <Section heading="Why we collect it">
-          We use server logs to detect abuse and keep the service running. We process this data under legitimate
-          interests — operating a secure, functional service. We don&apos;t rely on your consent, and we don&apos;t use
-          your data for advertising or profiling.
+        <Section heading="How long messages are kept">
+          Attachments are deleted automatically 15 days after they arrive. The message body is deleted automatically
+          five years after it arrives, and is moved to cheaper long-term storage along the way. Messages waiting to be
+          sent or processed are deleted after 30 days.
+        </Section>
+
+        <Section heading="What outlives the message">
+          A short index entry for each message — the account, a message identifier, and a timestamp — has no expiry set
+          and remains after the body is gone. There is no self-service deletion, and no automated process that erases a
+          mailbox on request. If you want your correspondence removed sooner than the schedule above, write to the
+          address below and it will be deleted by hand.
+        </Section>
+
+        <Section heading="If you sign in">
+          Only the operator can sign in. Amazon Cognito holds that account&apos;s email address, and a phone number if
+          multi-factor authentication is switched on. While signed in, the browser keeps the session token in local
+          storage; no cookie is set.
+        </Section>
+
+        <Section heading="What we log">
+          When the browser calls our API, the request is recorded: the IP address, the time, the address requested, and
+          the browser&apos;s user-agent string. We don&apos;t record which pages are viewed — the website itself keeps
+          no access log. Message contents are not written to these logs.
         </Section>
 
         <Section heading="What we don't do">
-          We don&apos;t sell your data. We don&apos;t share it with advertisers. We don&apos;t build profiles. We
-          intentionally collect nothing beyond what&apos;s necessary to operate the service and prevent fraud.
+          We don&apos;t sell your data. We don&apos;t share it with advertisers. We don&apos;t build profiles. We run no
+          analytics. Nothing here is scanned for marketing, and no message is used to train AI models.
+        </Section>
+
+        <Section heading="Who else handles your data">
+          Amazon Web Services hosts the service and stores everything described above; Amazon Simple Email Service
+          receives and sends the mail; Amazon Cognito manages the operator&apos;s sign-in. Log lines recording an error
+          are copied to a separate error-reporting function we run in the same AWS account. Server logs, including those
+          copies, are deleted after 30 days.
         </Section>
 
         <Section heading="When we share your data">
-          We share data only when legally required — for example, in response to a valid court order or law enforcement
-          request.
-        </Section>
-
-        <Section heading="Data retention">
-          Log files may be retained for up to 90 days. Email data and account information is deleted within 30 days of
-          account deletion.
+          Beyond the providers above, we share data only when legally required — for example, in response to a valid
+          court order or law enforcement request. Bear in mind that email is not private in transit: your message passes
+          through your own provider and across the internet before it reaches us.
         </Section>
 
         <Section heading="Your rights">
-          You may request access to, correction of, or deletion of your personal data at any time. If you are a resident
-          of the European Economic Area, you also have the right to data portability and to lodge a complaint with your
-          local data protection authority.
+          You may request access to, correction of, or deletion of your personal data at any time, and we will act on
+          that by hand. If you are a resident of the European Economic Area, you also have the right to data portability
+          and to lodge a complaint with your local data protection authority.
         </Section>
 
         <Section heading="Contact us">
@@ -132,6 +155,18 @@ const PrivacyPolicy = (): React.ReactNode => {
             privacy@dbowland.com
           </Link>
         </Section>
+
+        <div style={{ height: '1px', background: 'var(--shell-border)' }} />
+        <p
+          style={{
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '13px',
+            color: 'var(--text-muted)',
+            margin: '24px 0 0',
+          }}
+        >
+          Effective August 1, 2026
+        </p>
       </div>
     </div>
   )

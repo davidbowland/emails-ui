@@ -120,7 +120,7 @@ describe('Compose component', () => {
     expect(discardCallback).toHaveBeenCalledTimes(1)
   })
 
-  it('should not call discardCallback when discard is cancelled', async () => {
+  it('should not call discardCallback when discard is canceled', async () => {
     render(<Compose discardCallback={discardCallback} />)
 
     const discardButton = (await screen.findAllByText(/Discard/i, { selector: 'button' }))[0] as HTMLButtonElement

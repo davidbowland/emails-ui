@@ -1,10 +1,10 @@
 import '@aws-amplify/ui-react/styles.css'
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
 
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
-import { AmplifyUser } from '@types'
+import { AuthUser } from '@types'
 
 export interface AuthenticatedProps {
   children: React.ReactNode
@@ -12,7 +12,7 @@ export interface AuthenticatedProps {
 }
 
 const Authenticated = ({ children, showContent = false }: AuthenticatedProps): React.ReactNode => {
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [navMenuOpen, setNavMenuOpen] = useState(false)
 
   const closeMenu = (): void => {
@@ -24,7 +24,7 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
   }
 
   useEffect(() => {
-    Auth.currentAuthenticatedUser()
+    getCurrentUser()
       .then(setLoggedInUser)
       .catch(() => null)
   }, [])

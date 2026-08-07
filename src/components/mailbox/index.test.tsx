@@ -1,4 +1,4 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import React from 'react'
 
 import Mailbox from './index'
@@ -8,7 +8,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-jest.mock('aws-amplify')
+jest.mock('aws-amplify/auth')
 jest.mock('@components/email-viewer')
 jest.mock('@components/error-snackbar', () => {
   const React = require('react')
@@ -39,7 +39,7 @@ describe('Mailbox component', () => {
   const patchEmail = jest.fn().mockResolvedValue(undefined)
 
   beforeAll(() => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(getCurrentUser).mockResolvedValue(user)
     jest.mocked(EmailViewer).mockReturnValue(<>Email contents</>)
 
     console.error = jest.fn()
@@ -50,7 +50,7 @@ describe('Mailbox component', () => {
   })
 
   it('should show error message when user is not logged in', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(undefined)
     render(
       <Mailbox
         bounceEmail={bounceEmail}
@@ -66,7 +66,7 @@ describe('Mailbox component', () => {
   })
 
   it('should remove error when closing snackbar', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(undefined)
     render(
       <Mailbox
         bounceEmail={bounceEmail}

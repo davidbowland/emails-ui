@@ -1,4 +1,4 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import jsonpatch from 'fast-json-patch'
 import React, { useEffect, useState } from 'react'
 
@@ -8,7 +8,7 @@ import BounceSenderInput from '@components/bounce-sender-input'
 import ErrorSnackbar from '@components/error-snackbar'
 import LoadingSpinner from '@components/loading-spinner'
 import { getAccount, patchAccount } from '@services/emails'
-import { Account, AmplifyUser, EmailAddress } from '@types'
+import { Account, AuthUser, EmailAddress } from '@types'
 
 const AccountSettings = (): React.ReactNode => {
   const [account, setAccount] = useState<Account | undefined>()
@@ -17,7 +17,7 @@ const AccountSettings = (): React.ReactNode => {
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [name, setName] = useState('')
 
   const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
@@ -151,7 +151,7 @@ const AccountSettings = (): React.ReactNode => {
   }, [loggedInUser])
 
   useEffect(() => {
-    Auth.currentAuthenticatedUser()
+    getCurrentUser()
       .then(setLoggedInUser)
       .catch((error: any) => {
         console.error('currentAuthenticatedUser', { error })

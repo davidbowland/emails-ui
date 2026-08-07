@@ -1,4 +1,4 @@
-export type { AmplifyUser } from '@aws-amplify/ui'
+export type { AuthUser } from 'aws-amplify/auth'
 export type { Operation as PatchOperation } from 'fast-json-patch'
 
 export interface StringObject {

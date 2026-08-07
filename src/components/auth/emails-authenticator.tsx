@@ -1,10 +1,10 @@
 import { Authenticator, defaultDarkModeOverride, ThemeProvider } from '@aws-amplify/ui-react'
 import React from 'react'
 
-import { AmplifyUser } from '@types'
+import { AuthUser } from '@types'
 
 export interface EmailsAuthenticatorProps {
-  setLoggedInUser: (user: AmplifyUser | undefined) => void
+  setLoggedInUser: (user: AuthUser | undefined) => void
 }
 
 const EmailsAuthenticator = ({ setLoggedInUser }: EmailsAuthenticatorProps): React.ReactNode => {

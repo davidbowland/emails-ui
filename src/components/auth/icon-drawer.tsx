@@ -1,20 +1,20 @@
 import '@aws-amplify/ui-react/styles.css'
-import { Auth } from 'aws-amplify'
+import { deleteUser, signOut } from 'aws-amplify/auth'
 import { LogOut, Mail, Menu, Pencil, Send, Settings, Shield, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
 import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
-import { AmplifyUser } from '@types'
+import { AuthUser } from '@types'
 
 export interface IconDrawerProps {
   children: React.ReactNode
   closeMenu: () => void
-  loggedInUser: AmplifyUser
+  loggedInUser: AuthUser
   navMenuOpen: boolean
   openMenu: () => void
-  setLoggedInUser: (user?: AmplifyUser) => void
+  setLoggedInUser: (user?: AuthUser) => void
 }
 
 const navItems = [
@@ -80,16 +80,21 @@ const IconDrawer = ({
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
-    loggedInUser.deleteUser((error: any) => {
-      if (error) {
-        console.error('deleteAccountClick', { error, username: loggedInUser.username })
-        setShowDeleteErrorSnackbar(true)
-      } else {
-        closeMenu()
-        setLoggedInUser(undefined)
-        Auth.signOut({ global: true }).then(() => (window.location.href = '/'))
-      }
-    })
+    // Only `deleteUser` is guarded: v5's callback reported errors from the delete alone, and a
+    // failure after the account is gone must not raise the "couldn't delete" snackbar.
+    try {
+      await deleteUser()
+    } catch (error) {
+      console.error('deleteAccountClick', { error, username: loggedInUser.username })
+      setShowDeleteErrorSnackbar(true)
+      return
+    }
+    closeMenu()
+    setLoggedInUser(undefined)
+    // v6's `deleteUser` already clears local tokens; this revokes any other session and keeps the
+    // redirect. v6's `signOut` swallows revoke failures.
+    await signOut({ global: true })
+    window.location.href = '/'
   }
 
   const isActive = (path: string): boolean => Boolean(pathname.match(new RegExp(`${path}/?$`)))
@@ -449,7 +454,7 @@ const IconDrawer = ({
               () => {
                 closeMenu()
                 setLoggedInUser(undefined)
-                Auth.signOut().then(() => (window.location.href = '/'))
+                signOut().then(() => (window.location.href = '/'))
               },
               0,
             )}

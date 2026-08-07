@@ -1,5 +1,5 @@
 import { Authenticator, ThemeProvider } from '@aws-amplify/ui-react'
-import { Auth } from 'aws-amplify'
+import { deleteUser, getCurrentUser, signOut } from 'aws-amplify/auth'
 import React from 'react'
 
 import Authenticated from './index'
@@ -8,7 +8,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-jest.mock('aws-amplify')
+jest.mock('aws-amplify/auth')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 jest.mock('@config/amplify')
@@ -23,7 +23,7 @@ describe('Authenticated component', () => {
   const mockLocationHref = jest.fn()
 
   beforeAll(() => {
-    jest.mocked(Auth.signOut).mockResolvedValue({})
+    jest.mocked(signOut).mockResolvedValue()
     jest.mocked(Authenticator).mockReturnValue(<></>)
     jest.mocked(ThemeProvider).mockImplementation(({ children }) => children as unknown as React.ReactElement)
 
@@ -41,7 +41,7 @@ describe('Authenticated component', () => {
 
   describe('theme', () => {
     beforeAll(() => {
-      jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValue(new Error('Not authenticated'))
+      jest.mocked(getCurrentUser).mockRejectedValue(new Error('Not authenticated'))
     })
 
     it('should use system color mode', async () => {
@@ -57,7 +57,7 @@ describe('Authenticated component', () => {
 
   describe('signed out', () => {
     beforeAll(() => {
-      jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValue(new Error('Not authenticated'))
+      jest.mocked(getCurrentUser).mockRejectedValue(new Error('Not authenticated'))
     })
 
     it('should show sign in message when not logged in', async () => {
@@ -131,8 +131,8 @@ describe('Authenticated component', () => {
 
   describe('signed in', () => {
     beforeAll(() => {
-      jest.mocked(Auth.currentAuthenticatedUser).mockResolvedValue(user)
-      user.deleteUser = jest.fn().mockImplementation((callback) => callback())
+      jest.mocked(getCurrentUser).mockResolvedValue(user)
+      jest.mocked(deleteUser).mockResolvedValue()
     })
 
     it('should display user name when logged in', async () => {
@@ -185,8 +185,8 @@ describe('Authenticated component', () => {
         await userEvent.click(signOutButton)
       })
 
-      expect(user.deleteUser).not.toHaveBeenCalled()
-      expect(Auth.signOut).toHaveBeenCalled()
+      expect(deleteUser).not.toHaveBeenCalled()
+      expect(signOut).toHaveBeenCalledWith()
       expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
       await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
     })
@@ -250,8 +250,8 @@ describe('Authenticated component', () => {
           await userEvent.click(goBackButton)
         })
 
-        expect(user.deleteUser).not.toHaveBeenCalled()
-        expect(Auth.signOut).not.toHaveBeenCalled()
+        expect(deleteUser).not.toHaveBeenCalled()
+        expect(signOut).not.toHaveBeenCalled()
         expect(screen.queryByText(/Sign in/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/Dave/i)).toBeInTheDocument()
         expect(mockLocationHref).not.toHaveBeenCalled()
@@ -284,16 +284,14 @@ describe('Authenticated component', () => {
           await userEvent.click(continueButton)
         })
 
-        expect(user.deleteUser).toHaveBeenCalled()
-        expect(Auth.signOut).toHaveBeenCalled()
+        expect(deleteUser).toHaveBeenCalled()
+        expect(signOut).toHaveBeenCalledWith({ global: true })
         expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
         await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
       })
 
       it('should show error message when account deletion fails', async () => {
-        jest
-          .mocked(user.deleteUser)
-          .mockImplementationOnce((callback: any) => callback(new Error('Thar be errors here')))
+        jest.mocked(deleteUser).mockRejectedValueOnce(new Error('Thar be errors here'))
 
         render(
           <Authenticated>
@@ -321,16 +319,14 @@ describe('Authenticated component', () => {
           await userEvent.click(continueButton)
         })
 
-        expect(user.deleteUser).toHaveBeenCalled()
-        expect(Auth.signOut).not.toHaveBeenCalled()
+        expect(deleteUser).toHaveBeenCalled()
+        expect(signOut).not.toHaveBeenCalled()
         expect(console.error).toHaveBeenCalled()
         expect(await screen.findByText(/Couldn't delete your account/i)).toBeVisible()
       })
 
       it('should remove error message when close button is clicked', async () => {
-        jest
-          .mocked(user.deleteUser)
-          .mockImplementationOnce((callback: any) => callback(new Error('Thar be errors here')))
+        jest.mocked(deleteUser).mockRejectedValueOnce(new Error('Thar be errors here'))
         render(
           <Authenticated>
             <p>Testing children</p>

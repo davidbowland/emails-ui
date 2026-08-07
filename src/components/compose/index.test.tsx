@@ -1,4 +1,4 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import React from 'react'
 
 import Compose from './index'
@@ -11,7 +11,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-jest.mock('aws-amplify')
+jest.mock('aws-amplify/auth')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
 jest.mock('@components/confirm-dialog', () => {
@@ -60,7 +60,7 @@ describe('Compose component', () => {
   }
 
   beforeAll(() => {
-    jest.mocked(Auth.currentAuthenticatedUser).mockResolvedValue(user)
+    jest.mocked(getCurrentUser).mockResolvedValue(user)
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     jest.mocked(AttachmentUploader).mockReturnValue(<>AttachmentUploader</>)
     jest.mocked(HtmlEditor).mockImplementation(({ inputRef }) => <div ref={inputRef}></div>)
@@ -84,14 +84,14 @@ describe('Compose component', () => {
   })
 
   it('should show error message when user is not logged in', async () => {
-    jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
     expect(await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)).toBeVisible()
   })
 
   it('should remove error message when close button is clicked', async () => {
-    jest.mocked(Auth.currentAuthenticatedUser).mockRejectedValueOnce(new Error('Not authenticated'))
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(new Error('Not authenticated'))
     render(<Compose />)
 
     await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)

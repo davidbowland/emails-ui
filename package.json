@@ -29,13 +29,13 @@
     "update": "npx update-browserslist-db@latest && ncu --doctor --target minor --upgrade && npm audit fix --audit-level=none && npm run test && npm dedupe"
   },
   "dependencies": {
-    "@aws-amplify/ui-react": "^4.6.5",
+    "@aws-amplify/ui-react": "^6.8.0",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/libre-baskerville": "^5.2.10",
     "@fontsource/outfit": "^5.2.8",
     "@fontsource/source-serif-4": "^5.2.9",
     "@heroui/react": "^3.2.2",
-    "aws-amplify": "^5.3.38",
+    "aws-amplify": "^6",
     "axios": "^1.18.1",
     "dompurify": "^3.4.12",
     "fast-json-patch": "^3.1.1",

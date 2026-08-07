@@ -1,4 +1,4 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import React from 'react'
 
 import AccountSettings from './index'
@@ -9,7 +9,7 @@ import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 
-jest.mock('aws-amplify')
+jest.mock('aws-amplify/auth')
 jest.mock('@components/address-line')
 jest.mock('@components/bounce-sender-input')
 jest.mock('@components/error-snackbar', () => {
@@ -35,7 +35,7 @@ jest.mock('@services/emails')
 
 describe('AccountSettings component', () => {
   beforeAll(() => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockResolvedValue(user)
+    jest.mocked(getCurrentUser).mockResolvedValue(user)
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     jest.mocked(BounceSenderInput).mockReturnValue(<>BounceSenderInput</>)
     jest.mocked(emails).getAccount.mockResolvedValue(account)
@@ -49,14 +49,14 @@ describe('AccountSettings component', () => {
   })
 
   it('expect error message when user not logged in', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     expect(await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)).toBeVisible()
   })
 
   it('expect closing snackbar removes error', async () => {
-    jest.mocked(Auth).currentAuthenticatedUser.mockRejectedValueOnce(undefined)
+    jest.mocked(getCurrentUser).mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     await screen.findByText(/We couldn't sign you in. Reload the page to try again./i)

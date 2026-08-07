@@ -1,7 +1,7 @@
 import {
   Account,
   AccountBatch,
-  AmplifyUser,
+  AuthUser,
   Email,
   EmailAddress,
   EmailAttachment,
@@ -193,36 +193,11 @@ export const postAttachmentResult: PostSignedUrl = {
   url: 'http://localhost/emails-service-storage-test',
 }
 
-export const user: AmplifyUser = {
+export const user: AuthUser = {
+  userId: '178300fb-3ab6-41e2-bab6-231964026e42',
   username: accountId,
-  pool: {
-    userPoolId: 'us-east-2_xqxzyIOz4',
-    clientId: '135qlssf7st66v1vl5dtopfeks',
-    client: { endpoint: 'https://cognito-idp.us-east-2.amazonaws.com/', fetchOptions: {} },
-    advancedSecurityDataCollectionFlag: true,
-    storage: {},
+  signInDetails: {
+    authFlowType: 'USER_SRP_AUTH',
+    loginId: accountId,
   },
-  Session: null,
-  client: { endpoint: 'https://cognito-idp.us-east-2.amazonaws.com/', fetchOptions: {} },
-  signInUserSession: {
-    idToken: {
-      jwtToken: 'id-jwt',
-    },
-    refreshToken: {
-      token: 'refresh-token',
-    },
-    accessToken: {
-      jwtToken: 'access-token',
-    },
-    clockDrift: 0,
-  },
-  authenticationFlowType: 'USER_SRP_AUTH',
-  storage: {},
-  attributes: {
-    sub: '178300fb-3ab6-41e2-bab6-231964026e42',
-    name: 'Dave',
-    phone_number_verified: 'true',
-    phone_number: '+15551234567',
-  },
-  preferredMFA: 'NOMFA',
-} as any
+}

@@ -1,4 +1,4 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
@@ -9,7 +9,7 @@ import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
 import HtmlEditor from '@components/html-editor'
 import { postSentEmail } from '@services/emails'
-import { AmplifyUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
+import { AuthUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN
 const MAX_UPLOAD_SIZE = parseInt(process.env.NEXT_PUBLIC_MAX_UPLOAD_SIZE, 10)
@@ -42,7 +42,7 @@ const Compose = ({
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [recipientMessage, setRecipientMessage] = useState<string | undefined>()
   const [subject, setSubject] = useState(initialSubject ?? '')
   const [toAddresses, setToAddresses] = useState<EmailAddress[]>(initialToAddresses ?? [])
@@ -143,7 +143,7 @@ const Compose = ({
   }
 
   useEffect(() => {
-    Auth.currentAuthenticatedUser()
+    getCurrentUser()
       .then(setLoggedInUser)
       .catch((error: any) => {
         console.error('currentAuthenticatedUser', { error })

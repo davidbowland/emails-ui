@@ -1,11 +1,11 @@
-import { Auth } from 'aws-amplify'
+import { getCurrentUser } from 'aws-amplify/auth'
 import React, { useEffect, useState } from 'react'
 
 import { BouncedChip, EmailListDivider, NavBackButton, NavForwardButton } from './elements'
 import EmailViewer from '@components/email-viewer'
 import ErrorSnackbar from '@components/error-snackbar'
 import LoadingSpinner from '@components/loading-spinner'
-import { AmplifyUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
+import { AuthUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
 
 export interface MailboxProps {
   bounceEmail?: (accountId: string, emailId: string) => Promise<Email>
@@ -28,7 +28,7 @@ const Mailbox = ({
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [isEmailLoading, setIsEmailLoading] = useState(false)
   const [isViewingEmail, setIsViewingEmail] = useState(false)
-  const [loggedInUser, setLoggedInUser] = useState<AmplifyUser | undefined>()
+  const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>()
   const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>()
 
@@ -346,7 +346,7 @@ const Mailbox = ({
   }, [receivedEmails])
 
   useEffect(() => {
-    Auth.currentAuthenticatedUser()
+    getCurrentUser()
       .then(setLoggedInUser)
       .catch((error: unknown) => {
         console.error('currentAuthenticatedUser', { error })

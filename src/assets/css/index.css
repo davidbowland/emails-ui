@@ -183,12 +183,16 @@ body {
   border: none !important;
 }
 
-.amplify-tabs {
+/* ui-react v6 renamed these: `.amplify-tabs` is now the whole component and the strip of tabs is
+   `.amplify-tabs__list`; `.amplify-tabs-item` is `.amplify-tabs__item`; the selected tab carries
+   `--active` rather than `aria-selected`. Inert while `<Authenticator hideSignUp>` is set, which
+   renders sign-in with no tabs at all, but kept correct for when it is not. */
+.amplify-tabs__list {
   border-bottom: 1px solid var(--shell-border) !important;
   margin-bottom: 20px !important;
 }
 
-.amplify-tabs-item {
+.amplify-tabs__item {
   color: var(--text-muted) !important;
   font-family: 'Outfit', sans-serif !important;
   font-size: 0.8125rem !important;
@@ -202,7 +206,7 @@ body {
     border-color 0.2s ease !important;
 }
 
-.amplify-tabs-item[aria-selected='true'] {
+.amplify-tabs__item--active {
   color: var(--accent) !important;
   border-bottom-color: var(--accent) !important;
 }

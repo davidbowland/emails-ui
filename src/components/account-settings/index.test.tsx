@@ -39,7 +39,7 @@ describe('AccountSettings component', () => {
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     jest.mocked(BounceSenderInput).mockReturnValue(<>BounceSenderInput</>)
     jest.mocked(emails).getAccount.mockResolvedValue(account)
-    jest.mocked(emails).patchAccount.mockResolvedValue(account)
+    jest.mocked(emails).putAccount.mockResolvedValue(account)
 
     console.error = jest.fn()
     Object.defineProperty(window, 'location', {
@@ -73,8 +73,8 @@ describe('AccountSettings component', () => {
     expect(await screen.findByText(/Couldn't load your settings. Reload the page to try again./i)).toBeVisible()
   })
 
-  it('expect error message when patchAccount rejects', async () => {
-    jest.mocked(emails).patchAccount.mockRejectedValueOnce(undefined)
+  it('expect error message when putAccount rejects', async () => {
+    jest.mocked(emails).putAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
@@ -87,16 +87,16 @@ describe('AccountSettings component', () => {
     ).toBeVisible()
   })
 
-  it('expect patchAccount not called when no changes', async () => {
+  it('expect putAccount not called when no changes', async () => {
     render(<AccountSettings />)
 
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(saveButton)
 
-    expect(emails.patchAccount).not.toHaveBeenCalled()
+    expect(emails.putAccount).not.toHaveBeenCalled()
   })
 
-  it('expect patch instructions passed to patchAccount', async () => {
+  it('expect the whole updated account passed to putAccount', async () => {
     render(<AccountSettings />)
 
     const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
@@ -104,10 +104,26 @@ describe('AccountSettings component', () => {
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(saveButton)
 
-    expect(emails.patchAccount).toHaveBeenCalledWith(user.username, [
-      { op: 'test', path: '/name', value: 'Dave' },
-      { op: 'replace', path: '/name', value: 'George' },
-    ])
+    expect(emails.putAccount).toHaveBeenCalledWith(user.username, {
+      bounceSenders: account.bounceSenders,
+      forwardTargets: account.forwardTargets,
+      id: user.username,
+      name: 'George',
+    })
+  })
+
+  it('expect saving twice to send the same account, because a PUT is replay-safe', async () => {
+    render(<AccountSettings />)
+
+    const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
+    fireEvent.change(linkTextInput, { target: { value: 'George' } })
+    const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
+    fireEvent.click(saveButton)
+    await screen.findByText(/Account Settings/i)
+    fireEvent.click(saveButton)
+
+    const calls = jest.mocked(emails).putAccount.mock.calls
+    expect(calls.every((call) => JSON.stringify(call) === JSON.stringify(calls[0]))).toBe(true)
   })
 
   it('expect bounce senders BounceSenderInput rendered', async () => {

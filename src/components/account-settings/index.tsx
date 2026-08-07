@@ -1,5 +1,4 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import jsonpatch from 'fast-json-patch'
 import React, { useEffect, useState } from 'react'
 
 import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
@@ -7,8 +6,16 @@ import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
 import ErrorSnackbar from '@components/error-snackbar'
 import LoadingSpinner from '@components/loading-spinner'
-import { getAccount, patchAccount } from '@services/emails'
+import { getAccount, putAccount } from '@services/emails'
 import { Account, AuthUser, EmailAddress } from '@types'
+
+const sameAddresses = (a: string[], b: string[]): boolean =>
+  a.length === b.length && a.every((value, index) => value === b[index])
+
+const hasChanges = (account: Account, updated: Account): boolean =>
+  account.name !== updated.name ||
+  !sameAddresses(account.forwardTargets, updated.forwardTargets) ||
+  !sameAddresses(account.bounceSenders, updated.bounceSenders)
 
 const AccountSettings = (): React.ReactNode => {
   const [account, setAccount] = useState<Account | undefined>()
@@ -25,9 +32,9 @@ const AccountSettings = (): React.ReactNode => {
     try {
       const forwardTargets = forwardAddresses.map((address) => address.address)
       const updatedAccount: Account = { bounceSenders, forwardTargets, id: accountId, name }
-      const jsonPatchOperations = jsonpatch.compare(account, updatedAccount, true)
-      if (jsonPatchOperations.length > 0) {
-        await patchAccount(accountId, jsonPatchOperations)
+      // PUT sends every field this screen owns, so there is nothing to diff.
+      if (hasChanges(account, updatedAccount)) {
+        await putAccount(accountId, updatedAccount)
         setAccount(updatedAccount)
       }
     } catch (error: any) {

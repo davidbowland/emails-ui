@@ -1,8 +1,6 @@
-import { del, get, patch, post, put } from 'aws-amplify/api'
 import { fetchAuthSession } from 'aws-amplify/auth'
 
 import {
-  deleteAccount,
   deleteReceivedEmail,
   deleteSentEmail,
   getAccount,
@@ -12,7 +10,6 @@ import {
   getReceivedEmailContents,
   getSentAttachment,
   getSentEmailContents,
-  patchAccount,
   patchReceivedEmail,
   patchSentEmail,
   postBounceEmail,
@@ -36,395 +33,306 @@ import {
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@config/amplify', () => ({
-  apiName: 'apiName',
+  baseUrl: 'http://localhost',
 }))
-jest.mock('aws-amplify/api')
 jest.mock('aws-amplify/auth')
 
-const mockResponse = (data: unknown, statusCode = 200): any => ({
-  response: Promise.resolve({ body: { json: () => Promise.resolve(data) }, statusCode }),
+const mockFetch = jest.fn()
+global.fetch = mockFetch as unknown as typeof fetch
+
+const mockResponse = (data: unknown, ok = true, status = 200): unknown => ({
+  json: () => Promise.resolve(data),
+  ok,
+  status,
 })
 
 describe('Emails service', () => {
-  const apiName = 'apiName'
+  const baseUrl = 'http://localhost'
   const authorizedHeaders = { Authorization: 'Bearer mock-jwt-token' }
+  const jsonHeaders = { ...authorizedHeaders, 'Content-Type': 'application/json' }
 
   beforeAll(() => {
     jest.mocked(fetchAuthSession).mockResolvedValue({
       tokens: { idToken: { payload: {}, toString: () => 'mock-jwt-token' } },
     } as any)
+    mockFetch.mockResolvedValue(mockResponse(email))
+  })
+
+  describe('request handling', () => {
+    it('should reject when the response is not ok', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Internal server error' }, false, 500))
+
+      await expect(getAccount(accountId)).rejects.toThrow(`GET /accounts/${accountId} responded with 500`)
+    })
+
+    it('should send no authorization header when the session cannot be fetched', async () => {
+      jest.mocked(fetchAuthSession).mockRejectedValueOnce(new Error('Not signed in'))
+      mockFetch.mockResolvedValueOnce(mockResponse(account))
+
+      await getAccount(accountId)
+
+      expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}`, {
+        headers: {},
+        method: 'GET',
+      })
+    })
+
+    it('should send no authorization header when the session has no token', async () => {
+      jest.mocked(fetchAuthSession).mockResolvedValueOnce({} as any)
+      mockFetch.mockResolvedValueOnce(mockResponse(account))
+
+      await getAccount(accountId)
+
+      expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}`, {
+        headers: {},
+        method: 'GET',
+      })
+    })
+
+    it('should escape path parameters', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(account))
+
+      await getAccount('a b/c')
+
+      expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/a%20b%2Fc`, {
+        headers: authorizedHeaders,
+        method: 'GET',
+      })
+    })
   })
 
   describe('accounts', () => {
-    describe('deleteAccount', () => {
-      beforeAll(() => {
-        jest.mocked(del).mockReturnValue(mockResponse(account))
-      })
-
-      it('should return the result from the API call', async () => {
-        const result = await deleteAccount(accountId)
-
-        expect(del).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}`,
-        })
-        expect(result).toEqual(account)
-      })
-
-      it('should return undefined when the account is already gone', async () => {
-        jest.mocked(del).mockReturnValueOnce(mockResponse(undefined, 204))
-
-        const result = await deleteAccount(accountId)
-
-        expect(result).toBeUndefined()
-      })
-
-      it('should retry, because deleting an account is idempotent', async () => {
-        await deleteAccount(accountId)
-
-        expect(jest.mocked(del).mock.calls[0][0].options?.retryStrategy).toBeUndefined()
-      })
-
-      it('should send empty headers when the session cannot be fetched', async () => {
-        jest.mocked(fetchAuthSession).mockRejectedValueOnce(new Error('Not signed in'))
-
-        const result = await deleteAccount(accountId)
-
-        expect(del).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: {} },
-          path: `/accounts/${accountId}`,
-        })
-        expect(result).toEqual(account)
-      })
-
-      it('should send empty headers when the session has no id token', async () => {
-        jest.mocked(fetchAuthSession).mockResolvedValueOnce({ tokens: undefined } as any)
-
-        await deleteAccount(accountId)
-
-        expect(del).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: {} },
-          path: `/accounts/${accountId}`,
-        })
-      })
-    })
-
     describe('getAccount', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(account))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(account))
+
         const result = await getAccount(accountId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}`, {
+          headers: authorizedHeaders,
+          method: 'GET',
         })
         expect(result).toEqual(account)
-      })
-
-      it('should retry, because reads are idempotent', async () => {
-        await getAccount(accountId)
-
-        expect(jest.mocked(get).mock.calls[0][0].options?.retryStrategy).toBeUndefined()
-      })
-    })
-
-    describe('patchAccount', () => {
-      beforeAll(() => {
-        jest.mocked(patch).mockReturnValue(mockResponse(account))
-      })
-
-      it('should return the result from the API call', async () => {
-        const result = await patchAccount(accountId, jsonPatchOperations)
-
-        expect(patch).toHaveBeenCalledWith({
-          apiName,
-          options: { body: jsonPatchOperations, headers: authorizedHeaders },
-          path: `/accounts/${accountId}`,
-        })
-        expect(result).toEqual(account)
-      })
-
-      it('should retry, because the patch operations are idempotent', async () => {
-        await patchAccount(accountId, jsonPatchOperations)
-
-        expect(jest.mocked(patch).mock.calls[0][0].options?.retryStrategy).toBeUndefined()
       })
     })
 
     describe('putAccount', () => {
-      beforeAll(() => {
-        jest.mocked(put).mockReturnValue(mockResponse(account))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(account))
+
         const result = await putAccount(accountId, account)
 
-        expect(put).toHaveBeenCalledWith({
-          apiName,
-          options: { body: account, headers: authorizedHeaders },
-          path: `/accounts/${accountId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}`, {
+          body: JSON.stringify(account),
+          headers: jsonHeaders,
+          method: 'PUT',
         })
         expect(result).toEqual(account)
-      })
-
-      it('should retry, because a put is idempotent', async () => {
-        await putAccount(accountId, account)
-
-        expect(jest.mocked(put).mock.calls[0][0].options?.retryStrategy).toBeUndefined()
       })
     })
   })
 
   describe('received emails', () => {
     describe('deleteReceivedEmail', () => {
-      beforeAll(() => {
-        jest.mocked(del).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await deleteReceivedEmail(accountId, emailId)
 
-        expect(del).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/received/${emailId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received/${emailId}`, {
+          headers: authorizedHeaders,
+          method: 'DELETE',
         })
         expect(result).toEqual(email)
       })
     })
 
     describe('getAllReceivedEmails', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(emailBatch))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailBatch))
+
         const result = await getAllReceivedEmails(accountId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/received`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received`, {
+          headers: authorizedHeaders,
+          method: 'GET',
         })
         expect(result).toEqual(emailBatch)
       })
     })
 
     describe('getReceivedAttachment', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(attachmentUrl))
-      })
-
       it('should return the attachment URL', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(attachmentUrl))
+
         const result = await getReceivedAttachment(accountId, emailId, attachmentId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/received/${emailId}/attachments/${attachmentId}`,
-        })
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/accounts/${accountId}/emails/received/${emailId}/attachments/${attachmentId}`,
+          { headers: authorizedHeaders, method: 'GET' },
+        )
         expect(result).toEqual(attachmentUrl)
       })
     })
 
     describe('getReceivedEmailContents', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(emailContents))
-      })
-
       it('should return the email contents', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailContents))
+
         const result = await getReceivedEmailContents(accountId, emailId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/received/${emailId}/contents`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received/${emailId}/contents`, {
+          headers: authorizedHeaders,
+          method: 'GET',
         })
         expect(result).toEqual(emailContents)
       })
     })
 
     describe('patchReceivedEmail', () => {
-      beforeAll(() => {
-        jest.mocked(patch).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await patchReceivedEmail(accountId, emailId, jsonPatchOperations)
 
-        expect(patch).toHaveBeenCalledWith({
-          apiName,
-          options: { body: jsonPatchOperations, headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/received/${emailId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received/${emailId}`, {
+          body: JSON.stringify(jsonPatchOperations),
+          headers: jsonHeaders,
+          method: 'PATCH',
         })
         expect(result).toEqual(email)
       })
     })
 
     describe('postBounceEmail', () => {
-      beforeAll(() => {
-        jest.mocked(post).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await postBounceEmail(accountId, emailId)
 
-        expect(post).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders, retryStrategy: { strategy: 'no-retry' } },
-          path: `/accounts/${accountId}/emails/received/${emailId}/bounce`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received/${emailId}/bounce`, {
+          headers: authorizedHeaders,
+          method: 'POST',
         })
         expect(result).toEqual(email)
       })
 
-      it('should not retry, because bouncing an email sends a message', async () => {
+      it('should send the request exactly once', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         await postBounceEmail(accountId, emailId)
 
-        expect(jest.mocked(post).mock.calls[0][0].options?.retryStrategy).toEqual({ strategy: 'no-retry' })
+        expect(mockFetch).toHaveBeenCalledTimes(1)
       })
     })
   })
 
   describe('sent emails', () => {
     describe('deleteSentEmail', () => {
-      beforeAll(() => {
-        jest.mocked(del).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await deleteSentEmail(accountId, emailId)
 
-        expect(del).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/sent/${emailId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent/${emailId}`, {
+          headers: authorizedHeaders,
+          method: 'DELETE',
         })
         expect(result).toEqual(email)
       })
     })
 
     describe('getAllSentEmails', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(emailBatch))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailBatch))
+
         const result = await getAllSentEmails(accountId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/sent`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent`, {
+          headers: authorizedHeaders,
+          method: 'GET',
         })
         expect(result).toEqual(emailBatch)
       })
     })
 
     describe('getSentAttachment', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(attachmentUrl))
-      })
-
       it('should return the attachment URL', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(attachmentUrl))
+
         const result = await getSentAttachment(accountId, emailId, attachmentId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/sent/${emailId}/attachments/${attachmentId}`,
-        })
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/accounts/${accountId}/emails/sent/${emailId}/attachments/${attachmentId}`,
+          { headers: authorizedHeaders, method: 'GET' },
+        )
         expect(result).toEqual(attachmentUrl)
       })
     })
 
     describe('getSentEmailContents', () => {
-      beforeAll(() => {
-        jest.mocked(get).mockReturnValue(mockResponse(emailContents))
-      })
-
       it('should return the email contents', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailContents))
+
         const result = await getSentEmailContents(accountId, emailId)
 
-        expect(get).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/sent/${emailId}/contents`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent/${emailId}/contents`, {
+          headers: authorizedHeaders,
+          method: 'GET',
         })
         expect(result).toEqual(emailContents)
       })
     })
 
     describe('patchSentEmail', () => {
-      beforeAll(() => {
-        jest.mocked(patch).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await patchSentEmail(accountId, emailId, jsonPatchOperations)
 
-        expect(patch).toHaveBeenCalledWith({
-          apiName,
-          options: { body: jsonPatchOperations, headers: authorizedHeaders },
-          path: `/accounts/${accountId}/emails/sent/${emailId}`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent/${emailId}`, {
+          body: JSON.stringify(jsonPatchOperations),
+          headers: jsonHeaders,
+          method: 'PATCH',
         })
         expect(result).toEqual(email)
       })
     })
 
     describe('postSentAttachment', () => {
-      beforeAll(() => {
-        jest.mocked(post).mockReturnValue(mockResponse(postAttachmentResult))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(postAttachmentResult))
+
         const result = await postSentAttachment(accountId)
 
-        expect(post).toHaveBeenCalledWith({
-          apiName,
-          options: { headers: authorizedHeaders, retryStrategy: { strategy: 'no-retry' } },
-          path: `/accounts/${accountId}/emails/sent/attachments`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent/attachments`, {
+          headers: authorizedHeaders,
+          method: 'POST',
         })
         expect(result).toEqual(postAttachmentResult)
-      })
-
-      it('should not retry, because a replay mints a second upload URL', async () => {
-        await postSentAttachment(accountId)
-
-        expect(jest.mocked(post).mock.calls[0][0].options?.retryStrategy).toEqual({ strategy: 'no-retry' })
       })
     })
 
     describe('postSentEmail', () => {
-      beforeAll(() => {
-        jest.mocked(post).mockReturnValue(mockResponse(email))
-      })
-
       it('should return the result from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         const result = await postSentEmail(accountId, outboundEmail)
 
-        expect(post).toHaveBeenCalledWith({
-          apiName,
-          options: {
-            body: outboundEmail,
-            headers: authorizedHeaders,
-            retryStrategy: { strategy: 'no-retry' },
-          },
-          path: `/accounts/${accountId}/emails/sent`,
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/sent`, {
+          body: JSON.stringify(outboundEmail),
+          headers: jsonHeaders,
+          method: 'POST',
         })
         expect(result).toEqual(email)
       })
 
-      it('should not retry, because a replay sends the email twice', async () => {
+      it('should send the request exactly once', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
         await postSentEmail(accountId, outboundEmail)
 
-        expect(jest.mocked(post).mock.calls[0][0].options?.retryStrategy).toEqual({ strategy: 'no-retry' })
+        expect(mockFetch).toHaveBeenCalledTimes(1)
       })
     })
   })

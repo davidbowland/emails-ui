@@ -11,7 +11,6 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { EmailContents } from '@types'
 
-jest.mock('aws-amplify')
 jest.mock('dompurify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-viewer')

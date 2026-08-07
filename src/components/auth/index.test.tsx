@@ -285,7 +285,9 @@ describe('Authenticated component', () => {
         })
 
         expect(deleteUser).toHaveBeenCalled()
-        expect(signOut).toHaveBeenCalledWith({ global: true })
+        // No sign-out: deleteUser already clears the local tokens, and deleting the Cognito user
+        // invalidates every other session.
+        expect(signOut).not.toHaveBeenCalled()
         expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
         await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
       })

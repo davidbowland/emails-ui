@@ -4,8 +4,6 @@ import BounceSenderInput from './index'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 
-jest.mock('aws-amplify')
-
 describe('BounceSenderInput component', () => {
   const setRules = jest.fn()
 

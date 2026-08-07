@@ -5,8 +5,6 @@ import { addresses } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 
-jest.mock('aws-amplify')
-
 describe('Address line component', () => {
   const setAddresses = jest.fn()
 

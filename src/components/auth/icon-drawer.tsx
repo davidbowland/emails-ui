@@ -91,9 +91,9 @@ const IconDrawer = ({
     }
     closeMenu()
     setLoggedInUser(undefined)
-    // v6's `deleteUser` already clears local tokens; this revokes any other session and keeps the
-    // redirect. v6's `signOut` swallows revoke failures.
-    await signOut({ global: true })
+    // No sign-out call here: v6's `deleteUser` ends by clearing the local tokens itself, and
+    // deleting the Cognito user invalidates every other session anyway. A `signOut({ global: true })`
+    // at this point finds no tokens to revoke and does nothing.
     window.location.href = '/'
   }
 

@@ -1,15 +1,21 @@
 # Node artifact files
-node_modules/
+# No trailing slash on node_modules: parallel-agent worktrees symlink it rather
+# than reinstalling, and a trailing slash only matches directories, so `git add -A`
+# in a worktree would stage the symlink.
+node_modules
 dist/
 coverage/
 
 # Next.js
 out/
 .next/
+.swc/
 
-# Generated artifacts
-public/sitemap*.xml
-public/robots.txt
+# AWS SAM
+.aws-sam/
+
+# Generated artifacts (next-sitemap output) — the brand assets below are
+# checked in on purpose
 public/*
 !public/favicon.ico
 !public/favicon.svg
@@ -57,9 +63,9 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Agent, editor, and incremental-build scratch
 .claude/
 .superpowers/
-.swc/
 .vscode
 .worktrees/
 docs/

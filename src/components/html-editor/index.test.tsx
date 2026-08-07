@@ -4,7 +4,6 @@ import HtmlEditor from './index'
 import '@testing-library/jest-dom'
 import { createEvent, fireEvent, render, screen } from '@testing-library/react'
 
-jest.mock('aws-amplify')
 jest.mock('@components/confirm-dialog', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name

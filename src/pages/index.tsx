@@ -20,6 +20,7 @@ const Index = (): React.ReactNode => {
     <>
       <Head>
         <title>Email | dbowland.com</title>
+        <meta content="noindex, nofollow" name="robots" />
       </Head>
       <main style={{ height: '100%' }}>
         <Authenticated>

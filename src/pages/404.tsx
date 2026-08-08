@@ -9,6 +9,7 @@ const NotFound = (): React.ReactNode => {
     <>
       <Head>
         <title>404: Not Found | dbowland.com</title>
+        <meta content="noindex, nofollow" name="robots" />
       </Head>
       <Authenticated showContent={true}>
         <div className="main-content">

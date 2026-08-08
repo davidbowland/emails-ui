@@ -31,4 +31,9 @@ describe('Compose page', () => {
     render(<ComposePage />)
     expect(document.title).toBe('Email | dbowland.com')
   })
+
+  it('should exclude the page from search indexes', () => {
+    render(<ComposePage />)
+    expect(document.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  })
 })

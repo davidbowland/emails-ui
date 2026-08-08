@@ -17,6 +17,7 @@ const InboxPage = (): React.ReactNode => {
     <>
       <Head>
         <title>Email | dbowland.com</title>
+        <meta content="noindex, nofollow" name="robots" />
       </Head>
       <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated>

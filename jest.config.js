@@ -36,7 +36,9 @@ const config = {
   testEnvironmentOptions: {
     customExportConditions: [''],
   },
-  testPathIgnorePatterns: ['node_modules', '\\.cache', '<rootDir>.*/out'],
+  // These are regexes, not globs: the old '<rootDir>.*/out' also matched
+  // test/pages/outbox.test.tsx, so that suite silently never ran.
+  testPathIgnorePatterns: ['node_modules', '\\.cache', '<rootDir>/out/'],
   transformIgnorePatterns: ['node_modules/(?!(.*uuid.*)/)'],
 }
 

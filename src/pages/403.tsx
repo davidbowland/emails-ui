@@ -9,6 +9,7 @@ const Forbidden = (): React.ReactNode => {
     <>
       <Head>
         <title>403: Forbidden | dbowland.com</title>
+        <meta content="noindex, nofollow" name="robots" />
       </Head>
       <Authenticated showContent={true}>
         <ServerErrorMessage title="403: Forbidden">

@@ -38,4 +38,9 @@ describe('404 error page', () => {
     render(<NotFound />)
     expect(document.title).toBe('404: Not Found | dbowland.com')
   })
+
+  it('should exclude the page from search indexes', () => {
+    render(<NotFound />)
+    expect(document.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  })
 })

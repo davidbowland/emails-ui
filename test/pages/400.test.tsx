@@ -34,4 +34,9 @@ describe('400 error page', () => {
     render(<BadRequest />)
     expect(document.title).toBe('400: Bad Request | dbowland.com')
   })
+
+  it('should exclude the page from search indexes', () => {
+    render(<BadRequest />)
+    expect(document.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  })
 })

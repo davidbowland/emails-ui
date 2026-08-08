@@ -31,4 +31,9 @@ describe('Settings page', () => {
     render(<SettingsPage />)
     expect(document.title).toBe('Email | dbowland.com')
   })
+
+  it('should exclude the page from search indexes', () => {
+    render(<SettingsPage />)
+    expect(document.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  })
 })

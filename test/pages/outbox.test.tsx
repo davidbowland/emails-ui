@@ -42,4 +42,9 @@ describe('Outbox page', () => {
     render(<OutboxPage />)
     expect(document.title).toBe('Email | dbowland.com')
   })
+
+  it('should exclude the page from search indexes', () => {
+    render(<OutboxPage />)
+    expect(document.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  })
 })

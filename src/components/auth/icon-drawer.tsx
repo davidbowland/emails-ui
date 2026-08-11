@@ -538,7 +538,7 @@ const IconDrawer = ({
         open={showDeleteDialog}
         title="Delete account?"
       >
-        Deleting your account is permanent. Basic server logs are kept for up to 90 days.
+        Deleting your account is permanent. Basic server logs are kept for up to 30 days.
       </ConfirmDialog>
       <ErrorSnackbar
         message={showDeleteErrorSnackbar ? "Couldn't delete your account. Please try again." : undefined}

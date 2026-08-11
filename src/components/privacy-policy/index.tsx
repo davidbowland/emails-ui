@@ -84,67 +84,26 @@ const PrivacyPolicy = (): React.ReactNode => {
           }}
         >
           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>email.dbowland.com</span> is a private mail
-          client for the personal mailboxes of one operator. There is no public sign-up and no account you can create.
-          This policy is written mainly for the people who matter most here: anyone who sends mail to, or receives mail
-          from, one of those addresses.
+          client for one person&apos;s mailboxes. There is no sign-up and no account you can create. We store your
+          emails for you, and they stay until they are deleted.
         </p>
 
         {/* Top divider */}
         <div style={{ height: '1px', background: 'var(--shell-border)' }} />
 
-        <Section heading="If you email one of these addresses">
-          Your message is stored so it can be read. That means the whole of it: the sender and recipient addresses, the
-          subject, the full body, every header, and any attachments. This is what an inbox is, but it is worth stating
-          plainly, because your message rests on our storage rather than passing through it.
+        <Section heading="Who else holds it">
+          Amazon runs the machines that carry and store the mail. Some of these addresses forward to a second mailbox.
+          Otherwise nobody sees your message but the owner of the mailbox you wrote to.
         </Section>
 
-        <Section heading="How long messages are kept">
-          Attachments are deleted automatically 15 days after they arrive. The message body is deleted automatically
-          five years after it arrives, and is moved to cheaper long-term storage along the way. Messages waiting to be
-          sent or processed are deleted after 30 days.
-        </Section>
-
-        <Section heading="What outlives the message">
-          A short index entry for each message — the account, a message identifier, and a timestamp — has no expiry set
-          and remains after the body is gone. There is no self-service deletion, and no automated process that erases a
-          mailbox on request. If you want your correspondence removed sooner than the schedule above, write to the
-          address below and it will be deleted by hand.
-        </Section>
-
-        <Section heading="If you sign in">
-          Only the operator can sign in. Amazon Cognito holds that account&apos;s email address, and a phone number if
-          multi-factor authentication is switched on. While signed in, the browser keeps the session token in local
-          storage; no cookie is set.
-        </Section>
-
-        <Section heading="What we log">
-          When the browser calls our API, the request is recorded: the IP address, the time, the address requested, and
-          the browser&apos;s user-agent string. We don&apos;t record which pages are viewed — the website itself keeps
-          no access log. Message contents are not written to these logs.
-        </Section>
-
-        <Section heading="What we don't do">
-          We don&apos;t sell your data. We don&apos;t share it with advertisers. We don&apos;t build profiles. We run no
-          analytics. Nothing here is scanned for marketing, and no message is used to train AI models.
-        </Section>
-
-        <Section heading="Who else handles your data">
-          Amazon Web Services hosts the service and stores everything described above; Amazon Simple Email Service
-          receives and sends the mail; Amazon Cognito manages the operator&apos;s sign-in. Log lines recording an error
-          are copied to a separate error-reporting function we run in the same AWS account. Server logs, including those
-          copies, are deleted after 30 days.
-        </Section>
-
-        <Section heading="When we share your data">
-          Beyond the providers above, we share data only when legally required — for example, in response to a valid
-          court order or law enforcement request. Bear in mind that email is not private in transit: your message passes
-          through your own provider and across the internet before it reaches us.
+        <Section heading="Our logs">
+          Our server logs each request for 30 days, including your IP address. We never use those logs to work out who
+          you are. No cookies, no analytics, no ads, and nothing here trains an AI model.
         </Section>
 
         <Section heading="Your rights">
-          You may request access to, correction of, or deletion of your personal data at any time, and we will act on
-          that by hand. If you are a resident of the European Economic Area, you also have the right to data portability
-          and to lodge a complaint with your local data protection authority.
+          Ask us for a copy of what we hold about you, or ask us to correct or delete it. Deleting a message clears the
+          message and its attachments; a record that it arrived stays.
         </Section>
 
         <Section heading="Contact us">
@@ -165,7 +124,7 @@ const PrivacyPolicy = (): React.ReactNode => {
             margin: '24px 0 0',
           }}
         >
-          Effective August 1, 2026
+          Effective August 10, 2026
         </p>
       </div>
     </div>

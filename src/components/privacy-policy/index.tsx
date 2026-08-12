@@ -124,7 +124,7 @@ const PrivacyPolicy = (): React.ReactNode => {
             margin: '24px 0 0',
           }}
         >
-          Effective August 10, 2026
+          Last updated August 10, 2026
         </p>
       </div>
     </div>

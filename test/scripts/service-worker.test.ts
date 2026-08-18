@@ -344,7 +344,10 @@ const dispatchNotificationClick = async (sw: ReturnType<typeof loadSw>, clients:
   return { notification }
 }
 
-describe.each([['sw-src.js', source]])('%s push handling', (_name, workerSource) => {
+describe.each([
+  ['sw-src.js', source],
+  ['sw-killswitch.js', killSwitchSource],
+])('%s push handling', (_name, workerSource) => {
   it('draws the sender and the subject when both are sent', async () => {
     const sw = loadSw(workerSource)
 
@@ -484,6 +487,31 @@ describe.each([['sw-src.js', source]])('%s push handling', (_name, workerSource)
   })
 })
 
+// A behavioural suite over two files proves behavioural equivalence, not textual identity: a
+// reworded but equivalent handler would pass every case above. This is what makes the claim
+// "byte-for-byte identical" true.
+describe('push region identity', () => {
+  const REGION_START = '// #region push'
+  const REGION_END = '// #endregion push'
+
+  const pushRegion = (text: string): string =>
+    text.slice(text.indexOf(REGION_START), text.indexOf(REGION_END) + REGION_END.length)
+
+  it('finds a real region in sw-src.js', () => {
+    expect(pushRegion(source)).toContain("self.addEventListener('push'")
+    expect(pushRegion(source)).toContain("self.addEventListener('notificationclick'")
+  })
+
+  it('finds a real region in sw-killswitch.js', () => {
+    expect(pushRegion(killSwitchSource)).toContain("self.addEventListener('push'")
+    expect(pushRegion(killSwitchSource)).toContain("self.addEventListener('notificationclick'")
+  })
+
+  it('keeps the two regions byte-for-byte identical', () => {
+    expect(pushRegion(killSwitchSource)).toBe(pushRegion(source))
+  })
+})
+
 const loadKillSwitch = () => {
   const sw = loadSw(killSwitchSource)
   sw.caches.seed('emails-ui-abc', {})
@@ -516,12 +544,12 @@ describe('sw-killswitch activate', () => {
     expect([...sw.caches.stores.keys()]).toEqual([])
   })
 
-  it('unregisters itself', async () => {
+  it('stays registered, because a PushSubscription belongs to the registration', async () => {
     const sw = loadKillSwitch()
 
     await dispatchLifecycle(sw, 'activate')
 
-    expect(sw.self.registration.unregister).toHaveBeenCalled()
+    expect(sw.self.registration.unregister).not.toHaveBeenCalled()
   })
 
   it('claims open clients', async () => {

@@ -75,6 +75,19 @@ body {
   color: var(--text-paper);
 }
 
+/* ─── Install offer focus ────────────────────────────────────── */
+/* The install-offer banner is a programmatic focus target: re-expanding it moves focus
+   inside the region so a keyboard user is not stranded. Show a ring only for keyboard
+   focus (`:focus-visible`), never for the pointer — a mouse user never sees it and never
+   needs it. --accent-hover is 5.88:1 on the shell, well past the 3:1 UI-component bar. */
+.install-offer-region {
+  outline: none;
+}
+.install-offer-region:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+
 /* ─── Animations ─────────────────────────────────────────────── */
 @keyframes fadeSlideUp {
   from {

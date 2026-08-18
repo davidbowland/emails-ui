@@ -1,6 +1,7 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
 
 import {
+  deletePushSubscription,
   deleteReceivedEmail,
   deleteSentEmail,
   getAccount,
@@ -10,9 +11,11 @@ import {
   getReceivedEmailContents,
   getSentAttachment,
   getSentEmailContents,
+  getVapidPublicKey,
   patchReceivedEmail,
   patchSentEmail,
   postBounceEmail,
+  postPushSubscription,
   postSentAttachment,
   postSentEmail,
   putAccount,
@@ -29,6 +32,8 @@ import {
   jsonPatchOperations,
   outboundEmail,
   postAttachmentResult,
+  pushEndpoint,
+  pushSubscription,
 } from '@test/__mocks__'
 
 jest.mock('@aws-amplify/analytics')
@@ -44,6 +49,14 @@ const mockResponse = (data: unknown, ok = true, status = 200): unknown => ({
   json: () => Promise.resolve(data),
   ok,
   status,
+})
+
+// A real 204 has no body, so `.json()` rejects. Rejecting here is what proves
+// requestNoContent never reads one.
+const noContentResponse = (): unknown => ({
+  json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+  ok: true,
+  status: 204,
 })
 
 describe('Emails service', () => {
@@ -128,6 +141,69 @@ describe('Emails service', () => {
           method: 'PUT',
         })
         expect(result).toEqual(account)
+      })
+    })
+  })
+
+  describe('push subscriptions', () => {
+    describe('getVapidPublicKey', () => {
+      it('should unwrap the public key from the response', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse({ publicKey: 'BPublicKey123' }))
+
+        const result = await getVapidPublicKey()
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/vapid-public-key`, {
+          headers: authorizedHeaders,
+          method: 'GET',
+        })
+        expect(result).toEqual('BPublicKey123')
+      })
+    })
+
+    describe('postPushSubscription', () => {
+      it('should send the subscription wrapped in a subscription key', async () => {
+        mockFetch.mockResolvedValueOnce(noContentResponse())
+
+        await postPushSubscription(accountId, pushSubscription)
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/push-subscriptions`, {
+          body: JSON.stringify({ subscription: pushSubscription }),
+          headers: jsonHeaders,
+          method: 'POST',
+        })
+      })
+
+      it('should resolve without reading a body from a 204', async () => {
+        mockFetch.mockResolvedValueOnce(noContentResponse())
+
+        await expect(postPushSubscription(accountId, pushSubscription)).resolves.toBeUndefined()
+      })
+
+      it('should reject when the response is not ok', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Bad request' }, false, 400))
+
+        await expect(postPushSubscription(accountId, pushSubscription)).rejects.toThrow(
+          `POST /accounts/${accountId}/push-subscriptions responded with 400`,
+        )
+      })
+    })
+
+    describe('deletePushSubscription', () => {
+      it('should send the endpoint as a URL-encoded query parameter', async () => {
+        mockFetch.mockResolvedValueOnce(noContentResponse())
+
+        await deletePushSubscription(accountId, pushEndpoint)
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/accounts/${accountId}/push-subscriptions?endpoint=${encodeURIComponent(pushEndpoint)}`,
+          { headers: authorizedHeaders, method: 'DELETE' },
+        )
+      })
+
+      it('should resolve without reading a body from a 204', async () => {
+        mockFetch.mockResolvedValueOnce(noContentResponse())
+
+        await expect(deletePushSubscription(accountId, pushEndpoint)).resolves.toBeUndefined()
       })
     })
   })

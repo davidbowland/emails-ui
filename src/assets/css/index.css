@@ -26,6 +26,9 @@
      which fails WCAG AA for normal text; white on --accent-deep is 5.34:1, and it reads
      4.70:1 on the paper surface. --accent stays for borders, glows, focus rings, marks. */
   --accent-deep: #6f4ee8;
+  /* The lighter end of a filled button's gradient. --accent-hover is too light to sit under
+     white text (3.40:1); this reads 4.79:1, so both ends of the gradient clear AA. */
+  --accent-deep-hover: #7757ee;
   --accent-subtle: rgba(124, 93, 244, 0.08);
   --accent-border: rgba(124, 93, 244, 0.22);
 
@@ -283,7 +286,12 @@ body {
 }
 
 .amplify-button--primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%) !important;
+  /* Amplify paints this button's label with `font-inverse`, which its dark-mode override flips
+     to near-black — so the label's colour tracked the OS colour scheme (white at 4.44:1, black
+     at 3.94:1; both fail AA). Pin it to white and let the deeper gradient carry it: 5.34:1 at
+     the dark end, 4.79:1 at the light one, in either colour mode. */
+  color: #fff !important;
   border: none !important;
   border-radius: 10px !important;
   font-family: 'Outfit', sans-serif !important;
@@ -304,6 +312,20 @@ body {
 
 .amplify-button--primary:active {
   transform: scale(0.98) !important;
+}
+
+/* While the sign-in request is in flight Amplify swaps the button to its loading tokens, which
+   grey the label out to `font-disabled` and expect a transparent background to go with it. Our
+   `background` shorthand keeps the violet gradient, so "Signing in" landed at 1.4:1 — invisible.
+   Hold the resting appearance instead, and give the spinner a white arc (5.3:1, clearing the
+   3:1 that WCAG asks of meaningful graphics) over a faint white track. */
+.amplify-button--primary.amplify-button--loading,
+.amplify-button--primary.amplify-button--loading:hover,
+.amplify-button--primary.amplify-button--loading:focus,
+.amplify-button--primary.amplify-button--loading:active {
+  color: #fff !important;
+  --amplify-components-loader-stroke-filled: #fff;
+  --amplify-components-loader-stroke-empty: rgba(255, 255, 255, 0.32);
 }
 
 .amplify-button--link {
@@ -337,7 +359,8 @@ body {
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  /* Same reason as .amplify-button--primary: white needs the deep stops to clear AA. */
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -440,7 +463,8 @@ body {
 }
 
 .btn-accept {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  /* Deep stops, as .btn-accent — white needs them to clear AA. */
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;

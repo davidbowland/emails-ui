@@ -187,7 +187,7 @@ export const CollapsedLink = React.forwardRef<HTMLButtonElement, { onClick: () =
         fontSize: '13px',
         gap: '8px',
         minHeight: '26px',
-        padding: '3px 8px 3px 0',
+        padding: '3px 8px',
         textDecoration: 'underline',
         textUnderlineOffset: '3px',
       }}
@@ -196,7 +196,7 @@ export const CollapsedLink = React.forwardRef<HTMLButtonElement, { onClick: () =
       <span aria-hidden="true" style={{ color: tokens.iconAccent, display: 'inline-flex' }}>
         <DownloadIcon />
       </span>
-      Install this mailbox
+      Install Email
     </button>
   ),
 )

@@ -286,7 +286,7 @@ describe('InstallOffer', () => {
       jest.mocked(installDismissal.isInstallCollapsed).mockReturnValueOnce(true)
       await renderState('promptable', { dismissible: true })
 
-      const link = await screen.findByRole('button', { name: 'Install this mailbox' })
+      const link = await screen.findByRole('button', { name: 'Install Email' })
       expect(link).toBeVisible()
       expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
 
@@ -295,7 +295,7 @@ describe('InstallOffer', () => {
       })
 
       expect(installDismissal.setInstallCollapsed).toHaveBeenCalledWith(false)
-      expect(await screen.findByRole('heading', { name: 'Install this mailbox' })).toBeVisible()
+      expect(await screen.findByRole('heading', { name: 'Install Email' })).toBeVisible()
       expect(screen.getByRole('button', { name: 'Install' })).toBeVisible()
     })
 
@@ -308,14 +308,14 @@ describe('InstallOffer', () => {
       })
 
       expect(installDismissal.setInstallCollapsed).toHaveBeenCalledWith(true)
-      expect(screen.getByRole('button', { name: 'Install this mailbox' })).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Install Email' })).toBeVisible()
     })
 
     it('starts collapsed to the link when defaultCollapsed is set and nothing is stored', async () => {
       jest.mocked(installDismissal.isInstallCollapsed).mockImplementationOnce((fallback = false) => fallback)
       await renderState('promptable', { defaultCollapsed: true, dismissible: true })
 
-      expect(await screen.findByRole('button', { name: 'Install this mailbox' })).toBeVisible()
+      expect(await screen.findByRole('button', { name: 'Install Email' })).toBeVisible()
       expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
     })
   })
@@ -324,7 +324,7 @@ describe('InstallOffer', () => {
     it('labels the region with its heading and names every control', async () => {
       await renderState('promptable', { dismissible: true })
 
-      expect(await screen.findByRole('region', { name: 'Install this mailbox' })).toBeInTheDocument()
+      expect(await screen.findByRole('region', { name: 'Install Email' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Install' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'What changes when I install this?' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Collapse this offer to a one-line link' })).toBeInTheDocument()

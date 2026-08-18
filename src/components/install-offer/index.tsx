@@ -89,7 +89,7 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
         badge: <DownloadIcon />,
         body: 'Its own window, its own icon — and you sign in once inside it.',
         hasButton: true,
-        heading: 'Install this mailbox',
+        heading: 'Install Email',
       }
     case 'spent':
       return {
@@ -182,7 +182,7 @@ const InstallOffer = ({
 
   if (dismissible && collapsed) {
     return (
-      <div style={{ background: 'transparent', padding: '9px 0' }}>
+      <div style={{ background: 'transparent', display: 'flex', justifyContent: 'center', padding: '9px 0' }}>
         <CollapsedLink
           onClick={() => {
             pendingFocus.current = 'banner'
@@ -208,13 +208,45 @@ const InstallOffer = ({
         background: 'var(--accent-subtle)',
         borderLeft: '2px solid var(--accent)',
         borderRadius: '12px',
+        position: 'relative',
       }}
       tabIndex={-1}
     >
+      {/* Dismiss sits in the top-right corner, absolutely positioned, so it lands there on a
+          narrow card too — in a flex row it would wrap to the bottom. */}
+      {dismissible && (
+        <button
+          aria-label="Collapse this offer to a one-line link"
+          onClick={() => {
+            pendingFocus.current = 'link'
+            setInstallCollapsed(true)
+            setCollapsed(true)
+          }}
+          style={{
+            alignItems: 'center',
+            background: 'none',
+            border: 'none',
+            borderRadius: '8px',
+            color: tokens.text,
+            cursor: 'pointer',
+            display: 'flex',
+            height: '28px',
+            justifyContent: 'center',
+            lineHeight: 1,
+            position: 'absolute',
+            right: '10px',
+            top: '10px',
+            width: '28px',
+          }}
+          type="button"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      )}
       <div style={{ alignItems: 'flex-start', display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px 20px' }}>
         <Badge tokens={tokens}>{copy.badge}</Badge>
 
-        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+        <div style={{ flex: '1 1 260px', minWidth: 0, paddingRight: dismissible ? '28px' : 0 }}>
           <h2
             id={headingId}
             style={{
@@ -336,35 +368,10 @@ const InstallOffer = ({
               )}
             </div>
           )}
-        </div>
-
-        <div style={{ alignItems: 'center', display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-          {copy.hasButton && <InstallButton onClick={() => void promptInstall()} />}
-          {dismissible && (
-            <button
-              aria-label="Collapse this offer to a one-line link"
-              onClick={() => {
-                pendingFocus.current = 'link'
-                setInstallCollapsed(true)
-                setCollapsed(true)
-              }}
-              style={{
-                alignItems: 'center',
-                background: 'none',
-                border: 'none',
-                borderRadius: '8px',
-                color: tokens.text,
-                cursor: 'pointer',
-                display: 'flex',
-                height: '28px',
-                justifyContent: 'center',
-                lineHeight: 1,
-                width: '28px',
-              }}
-              type="button"
-            >
-              <span aria-hidden="true">✕</span>
-            </button>
+          {copy.hasButton && (
+            <div style={{ marginTop: '16px' }}>
+              <InstallButton onClick={() => void promptInstall()} />
+            </div>
           )}
         </div>
       </div>

@@ -183,13 +183,12 @@ const InstallOffer = ({ dismissible = false, surface }: InstallOfferProps): Reac
   return (
     <section
       aria-labelledby={headingId}
-      className="animate-fade-slide-up"
+      className="install-offer-region animate-fade-slide-up"
       ref={sectionRef}
       style={{
         background: 'var(--accent-subtle)',
         borderLeft: '2px solid var(--accent)',
         borderRadius: '12px',
-        outline: 'none',
       }}
       tabIndex={-1}
     >

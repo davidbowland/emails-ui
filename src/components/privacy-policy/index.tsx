@@ -93,7 +93,8 @@ const PrivacyPolicy = (): React.ReactNode => {
 
         <Section heading="Who else holds it">
           Amazon runs the machines that carry and store the mail. Some of these addresses forward to a second mailbox.
-          Otherwise nobody sees your message but the owner of the mailbox you wrote to.
+          Otherwise nobody sees your message but the owner of the mailbox you wrote to. If you turn on notifications,
+          Apple, Google, or Mozilla carries them to your device.
         </Section>
 
         <Section heading="Our logs">
@@ -124,7 +125,7 @@ const PrivacyPolicy = (): React.ReactNode => {
             margin: '24px 0 0',
           }}
         >
-          Last updated August 10, 2026
+          Last updated August 18, 2026
         </p>
       </div>
     </div>

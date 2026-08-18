@@ -23,4 +23,16 @@ describe('privacy-policy component', () => {
 
     expect(container.textContent).toContain(claim)
   })
+
+  it('says who carries a notification and how long the address is kept', async () => {
+    render(<PrivacyPolicy />)
+
+    expect(await screen.findByText(/Apple, Google, or Mozilla carries them to your device/i)).toBeInTheDocument()
+  })
+
+  it('is dated the day notifications shipped', async () => {
+    render(<PrivacyPolicy />)
+
+    expect(await screen.findByText('Last updated August 18, 2026')).toBeVisible()
+  })
 })

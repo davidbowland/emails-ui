@@ -32,7 +32,13 @@ const AccountSettings = (): React.ReactNode => {
     setIsSaving(true)
     try {
       const forwardTargets = forwardAddresses.map((address) => address.address)
-      const updatedAccount: Account = { bounceSenders, forwardTargets, id: accountId, name }
+      const updatedAccount: Account = {
+        bounceSenders,
+        forwardTargets,
+        id: accountId,
+        name,
+        notificationPreview: account.notificationPreview,
+      }
       // PUT sends every field this screen owns, so there is nothing to diff.
       if (hasChanges(account, updatedAccount)) {
         await putAccount(accountId, updatedAccount)

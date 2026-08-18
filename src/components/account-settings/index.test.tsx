@@ -120,6 +120,7 @@ describe('AccountSettings component', () => {
       forwardTargets: account.forwardTargets,
       id: user.username,
       name: 'George',
+      notificationPreview: 'sender-and-subject',
     })
   })
 

@@ -20,6 +20,15 @@ export const account: Account = {
   forwardTargets: ['any@domain.com'],
   id: accountId,
   name: 'Dave',
+  notificationPreview: 'sender-and-subject',
+}
+
+export const pushEndpoint = 'https://fcm.googleapis.com/fcm/send/abc123'
+
+export const pushSubscription: PushSubscriptionJSON = {
+  endpoint: pushEndpoint,
+  expirationTime: null,
+  keys: { auth: 'auth-secret', p256dh: 'p256dh-key' },
 }
 
 export const accountBatch: AccountBatch[] = [

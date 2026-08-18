@@ -21,6 +21,10 @@ public/*
 !public/favicon.svg
 !public/apple-touch-icon.png
 !public/og-image.png
+!public/site.webmanifest
+!public/icon-192.png
+!public/icon-512.png
+!public/icon-maskable-512.png
 
 # Compiled Java class files
 *.class

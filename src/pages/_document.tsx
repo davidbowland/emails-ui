@@ -8,6 +8,8 @@ const Document = (): React.ReactNode => {
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
         <link href="/favicon.ico" rel="icon" sizes="any" />
         <link href="/apple-touch-icon.png" rel="apple-touch-icon" />
+        <link href="/site.webmanifest" rel="manifest" />
+        <meta content="#07080f" name="theme-color" />
         <meta content="website" property="og:type" />
         <meta content="Email" property="og:site_name" />
         <meta content="https://email.dbowland.com/og-image.png" property="og:image" />

@@ -22,6 +22,10 @@
   /* Accent – electric violet (departure from terracotta) */
   --accent: #7c5df4;
   --accent-hover: #9376f7;
+  /* Darker violet for filled buttons carrying white text: white on --accent is 4.44:1,
+     which fails WCAG AA for normal text; white on --accent-deep is 5.34:1, and it reads
+     4.70:1 on the paper surface. --accent stays for borders, glows, focus rings, marks. */
+  --accent-deep: #6f4ee8;
   --accent-subtle: rgba(124, 93, 244, 0.08);
   --accent-border: rgba(124, 93, 244, 0.22);
 

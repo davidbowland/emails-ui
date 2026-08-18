@@ -17,9 +17,10 @@
   "homepage": "https://github.com/davidbowland/emails-ui#readme",
   "scripts": {
     "build": "npm run clean && next build",
-    "postbuild": "next-sitemap",
+    "postbuild": "next-sitemap && node scripts/build-sw.js",
     "clean": "rm -rf .next coverage out && npm ci",
     "deploy": "DEVELOPMENT=true npm run build && ./scripts/deploy.sh",
+    "generate:favicons": "node scripts/generate-favicons.js",
     "lint": "prettier --write . && eslint --fix .",
     "prepare": "husky || true",
     "serve": "next build && npx serve out",
@@ -72,6 +73,7 @@
     "lint-staged": "^15.5.2",
     "prettier": "^3.9.5",
     "react-test-renderer": "^19",
+    "sharp": "^0.35.3",
     "typescript-eslint": "^8.64.0",
     "undici": "^6.27.0"
   },

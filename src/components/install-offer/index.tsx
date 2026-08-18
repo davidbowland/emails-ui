@@ -112,6 +112,17 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
         heading: 'Add Email to your home screen',
         steps: IOS_STEPS,
       }
+    // Chromium with no live prompt: the browser can still install from the address bar or its
+    // menu, so point there rather than showing nothing. If `beforeinstallprompt` fires later,
+    // the state upgrades to `promptable` and the one-click button replaces this.
+    case 'chromium':
+      return {
+        badge: <DownloadIcon />,
+        body: 'Chrome and Edge install from the address bar or the browser menu.',
+        hasButton: false,
+        heading: 'Install Email from your browser',
+        steps: ['Click the install icon at the right of the address bar', 'Or open the ⋮ menu and choose Install Email'],
+      }
     default:
       return null
   }

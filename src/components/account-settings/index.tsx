@@ -119,17 +119,10 @@ const AccountSettings = (): React.ReactNode => {
           </section>
         )}
 
-        {/* App — the install offer's permanent home. Not dismissible here (unlike the
-            sign-in card): Settings is the surface that always carries it. */}
-        <section>
-          <div
-            className="mb-2 text-xs font-semibold uppercase"
-            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-          >
-            App
-          </div>
-          <InstallOffer surface="paper" />
-        </section>
+        {/* The install offer's permanent home (not dismissible here, unlike the sign-in
+            card). It renders its own heading and returns null when the browser can't install
+            or the app is already installed — so it never leaves an empty labelled section. */}
+        <InstallOffer surface="paper" />
 
         <div className="flex justify-end pt-2">
           {loggedInUser?.username && account && (

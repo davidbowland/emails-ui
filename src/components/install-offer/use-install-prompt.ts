@@ -34,6 +34,17 @@ export const isIosDevice = (userAgent: string, platform: string, maxTouchPoints:
 // first in `resolveState`.
 export const isFirefoxAndroid = (userAgent: string): boolean => /firefox/i.test(userAgent) && /android/i.test(userAgent)
 
+// A Chromium browser (Chrome, Edge, Brave, Opera). These can install from the address bar
+// or the browser menu even when `beforeinstallprompt` has not fired — which is the common
+// case on desktop, where the event waits on the worker being active AND an engagement
+// heuristic, so it often does not fire on a first visit. Without this branch such a browser
+// falls through to `hidden` and the offer is silently invisible — exactly what a desktop
+// Chrome user saw. iOS is checked before this in `resolveState`, so Chrome-on-iOS (WebKit,
+// installs the Safari way) never reaches here. Pure Safari lacks "Chrome" in its UA, so it
+// is correctly excluded.
+export const isChromium = (userAgent: string): boolean =>
+  /chrome|chromium|edg|opr/i.test(userAgent) && !/firefox|fxios/i.test(userAgent)
+
 // A touch-first device, used only to word the "what changes" list ("home screen" vs
 // "dock"). SSR-guarded and tolerant of an absent `matchMedia`.
 export const isCoarsePointer = (): boolean => {
@@ -48,9 +59,11 @@ export const isCoarsePointer = (): boolean => {
 export const isPhoneLike = (state: InstallState, coarse: boolean = isCoarsePointer()): boolean =>
   state === 'ios' || state === 'menu' || coarse
 
-// The single source of truth for which of the five faces the offer shows. Order matters and
-// is fixed: installed wins over everything; a live prompt beats a spent one; iOS is checked
-// before Firefox-Android so Firefox-on-iOS still gets the Safari steps.
+// The single source of truth for which face the offer shows. Order matters and is fixed:
+// installed wins over everything; a live prompt beats a spent one; iOS is checked before
+// Firefox-Android so Firefox-on-iOS still gets the Safari steps; the Chromium menu fallback
+// is last before `hidden`, so a real `beforeinstallprompt` (→ promptable) always wins over
+// it, and it only catches the case where that event has not fired.
 export const resolveState = (): InstallState => {
   if (typeof window === 'undefined') {
     return 'hidden'
@@ -69,6 +82,9 @@ export const resolveState = (): InstallState => {
   }
   if (isFirefoxAndroid(navigator.userAgent)) {
     return 'menu'
+  }
+  if (isChromium(navigator.userAgent)) {
+    return 'chromium'
   }
   return 'hidden'
 }

@@ -2,6 +2,7 @@ import React from 'react'
 
 import InstallOffer from './index'
 import {
+  isChromium,
   isCoarsePointer,
   isFirefoxAndroid,
   isIosDevice,
@@ -34,6 +35,13 @@ const FIREFOX_ANDROID = {
   maxTouchPoints: 5,
   platform: 'Linux armv8l',
   userAgent: 'Mozilla/5.0 (Android 13; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0',
+}
+// Desktop Firefox genuinely cannot install a web app (Mozilla removed site-specific
+// browsers), so it is the browser that resolves to `hidden`.
+const FIREFOX_DESKTOP = {
+  maxTouchPoints: 0,
+  platform: 'Linux x86_64',
+  userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
 }
 
 const BANNED = [/\bplease\b/i, /\bPWA\b/i, /manifest/i, /service worker/i, /progressive web app/i]
@@ -104,6 +112,13 @@ describe('InstallOffer', () => {
       expect(isFirefoxAndroid(FIREFOX_ANDROID.userAgent)).toBe(true)
       expect(isFirefoxAndroid('Mozilla/5.0 (X11; Linux) Firefox/120.0')).toBe(false)
       expect(isFirefoxAndroid('Mozilla/5.0 (Android 13; Mobile) Chrome/120')).toBe(false)
+    })
+
+    it('detects Chromium browsers but not Firefox or plain Safari', () => {
+      expect(isChromium(DESKTOP.userAgent)).toBe(true)
+      expect(isChromium('Mozilla/5.0 (Windows NT 10.0) Edg/120.0')).toBe(true)
+      expect(isChromium(FIREFOX_DESKTOP.userAgent)).toBe(false)
+      expect(isChromium('Mozilla/5.0 (Macintosh; Intel Mac OS X) Version/17.0 Safari/605')).toBe(false)
     })
 
     it('resolves iOS before Firefox-Android so a touch Mac with a Firefox/Android agent still gets iOS', () => {
@@ -208,12 +223,24 @@ describe('InstallOffer', () => {
 
     it('renders nothing when the browser cannot install (AC-012)', async () => {
       setMatchMedia(false)
-      setNavigator(DESKTOP)
+      setNavigator(FIREFOX_DESKTOP)
 
       render(<InstallOffer surface="paper" />)
       await waitFor(() => expect(installPrompt.subscribe).toHaveBeenCalled())
 
       expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('chromium (no live prompt yet)', () => {
+    it('points a Chromium browser at the address bar or menu, with no Install button', async () => {
+      await renderState('chromium')
+
+      expect(await screen.findByText('Install Email from your browser')).toBeVisible()
+      expect(screen.getByText('Chrome and Edge install from the address bar or the browser menu.')).toBeVisible()
+      expect(screen.getByText('Click the install icon at the right of the address bar')).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
+      BANNED.forEach((re) => expect(document.body.textContent).not.toMatch(re))
     })
   })
 

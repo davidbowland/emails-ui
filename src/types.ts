@@ -117,7 +117,7 @@ export interface EmailOutbound {
 // Which of the five mutually exclusive things the install offer can show. The browser
 // decides which one; the reader never picks. `hidden` covers both an already-installed
 // app and a browser that cannot install at all — in both cases the offer renders nothing.
-export type InstallState = 'hidden' | 'ios' | 'menu' | 'promptable' | 'spent'
+export type InstallState = 'chromium' | 'hidden' | 'ios' | 'menu' | 'promptable' | 'spent'
 
 // The two surfaces the offer renders on: the midnight-navy shell (sign-in card) and the
 // warm-linen paper (Settings). Drives which token set the component reaches for.

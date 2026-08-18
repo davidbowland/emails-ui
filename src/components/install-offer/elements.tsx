@@ -228,7 +228,9 @@ export const DisclosureTrigger = ({
       borderRadius: '9px',
       color: tokens.text,
       cursor: 'pointer',
-      display: 'inline-flex',
+      // Full-width, and the label is free to wrap: on a narrow card an inline nowrap control
+      // ran off the edge and pushed the chevron off-screen.
+      display: 'flex',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '13px',
       fontWeight: 500,
@@ -237,15 +239,17 @@ export const DisclosureTrigger = ({
       marginTop: '14px',
       minHeight: '32px',
       padding: '6px 12px',
-      whiteSpace: 'nowrap',
+      textAlign: 'left',
+      width: '100%',
     }}
     type="button"
   >
-    {label}
+    <span style={{ overflowWrap: 'anywhere' }}>{label}</span>
     <span
       aria-hidden="true"
       style={{
         display: 'inline-flex',
+        flexShrink: 0,
         marginLeft: 'auto',
         paddingLeft: '4px',
         transform: expanded ? 'rotate(180deg)' : 'none',

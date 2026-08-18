@@ -313,6 +313,177 @@ describe('sw-src fetch of offline subresources', () => {
   })
 })
 
+const dispatchPush = async (sw: ReturnType<typeof loadSw>, data: any) => {
+  const waited: Promise<any>[] = []
+  sw.handlers.push({ data, waitUntil: (promise: Promise<any>) => waited.push(promise) })
+  await Promise.all(waited)
+}
+
+const pushData = (payload: unknown) => ({ json: () => payload })
+
+const unreadablePushData = {
+  json: () => {
+    throw new SyntaxError('Unexpected token')
+  },
+}
+
+const createClient = (url: string, overrides: Record<string, any> = {}) => ({
+  focus: jest.fn(() => Promise.resolve()),
+  navigate: jest.fn(() => Promise.resolve(undefined)),
+  postMessage: jest.fn(),
+  url: new URL(url, ORIGIN).href,
+  ...overrides,
+})
+
+const dispatchNotificationClick = async (sw: ReturnType<typeof loadSw>, clients: any) => {
+  sw.self.clients.matchAll.mockResolvedValueOnce(clients)
+  const notification = { close: jest.fn() }
+  const waited: Promise<any>[] = []
+  sw.handlers.notificationclick({ notification, waitUntil: (promise: Promise<any>) => waited.push(promise) })
+  await Promise.all(waited)
+  return { notification }
+}
+
+describe.each([['sw-src.js', source]])('%s push handling', (_name, workerSource) => {
+  it('draws the sender and the subject when both are sent', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, pushData({ emailId: 'abc123', senderLabel: 'Sarah Smith', subject: 'Lunch Thursday?' }))
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Sarah Smith',
+      expect.objectContaining({ body: 'Lunch Thursday?' }),
+    )
+  })
+
+  it('draws the sender alone when no subject is sent', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, pushData({ emailId: 'abc123', senderLabel: 'Sarah Smith' }))
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Sarah Smith',
+      expect.objectContaining({ body: 'sent you an email' }),
+    )
+  })
+
+  it('draws neither when only the id is sent', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, pushData({ emailId: 'abc123' }))
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Emails',
+      expect.objectContaining({ body: 'New email' }),
+    )
+  })
+
+  it('falls back to the most private row when the payload cannot be read', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, unreadablePushData)
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Emails',
+      expect.objectContaining({ body: 'New email', renotify: false }),
+    )
+  })
+
+  it('falls back to the most private row when the push carries no data at all', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, undefined)
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Emails',
+      expect.objectContaining({ body: 'New email', renotify: false }),
+    )
+  })
+
+  it('tags and carries the email id, and renotifies for it', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchPush(sw, pushData({ emailId: 'abc123', senderLabel: 'Sarah Smith' }))
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Sarah Smith',
+      expect.objectContaining({
+        badge: '/icon-192.png',
+        data: { emailId: 'abc123' },
+        icon: '/icon-192.png',
+        renotify: true,
+        tag: 'abc123',
+      }),
+    )
+  })
+
+  it('focuses an open inbox and asks it to refresh', async () => {
+    const sw = loadSw(workerSource)
+    const inbox = createClient('/inbox/')
+
+    await dispatchNotificationClick(sw, [inbox])
+
+    expect(inbox.postMessage).toHaveBeenCalledWith({ type: 'refresh-inbox' })
+    expect(inbox.focus).toHaveBeenCalled()
+    expect(sw.self.clients.openWindow).not.toHaveBeenCalled()
+  })
+
+  it('treats a trailing-slash-less inbox URL as the inbox', async () => {
+    const sw = loadSw(workerSource)
+    const inbox = createClient('/inbox')
+
+    await dispatchNotificationClick(sw, [inbox])
+
+    expect(inbox.postMessage).toHaveBeenCalledWith({ type: 'refresh-inbox' })
+  })
+
+  it('navigates another open page to the inbox and focuses it', async () => {
+    const sw = loadSw(workerSource)
+    const other = createClient('/settings/')
+
+    await dispatchNotificationClick(sw, [other])
+
+    expect(other.navigate).toHaveBeenCalledWith('/inbox/')
+    expect(other.focus).toHaveBeenCalled()
+    expect(sw.self.clients.openWindow).not.toHaveBeenCalled()
+  })
+
+  it('opens a window when navigating an uncontrolled client is refused', async () => {
+    const sw = loadSw(workerSource)
+    const uncontrolled = createClient('/settings/', {
+      navigate: jest.fn(() => Promise.reject(new TypeError('not controlled'))),
+    })
+
+    await dispatchNotificationClick(sw, [uncontrolled])
+
+    expect(sw.self.clients.openWindow).toHaveBeenCalledWith('/inbox/')
+  })
+
+  it('opens a window when nothing is open', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchNotificationClick(sw, [])
+
+    expect(sw.self.clients.openWindow).toHaveBeenCalledWith('/inbox/')
+  })
+
+  it('opens a window when the client list is unavailable', async () => {
+    const sw = loadSw(workerSource)
+
+    await dispatchNotificationClick(sw, undefined)
+
+    expect(sw.self.clients.openWindow).toHaveBeenCalledWith('/inbox/')
+  })
+
+  it('closes the notification it was told about', async () => {
+    const sw = loadSw(workerSource)
+
+    const { notification } = await dispatchNotificationClick(sw, [])
+
+    expect(notification.close).toHaveBeenCalled()
+  })
+})
+
 const loadKillSwitch = () => {
   const sw = loadSw(killSwitchSource)
   sw.caches.seed('emails-ui-abc', {})

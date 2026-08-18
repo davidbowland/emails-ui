@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
+import OfflineNotice from '@components/offline-notice'
 import { AuthUser } from '@types'
 
 export interface IconDrawerProps {
@@ -544,6 +545,9 @@ const IconDrawer = ({
         message={showDeleteErrorSnackbar ? "Couldn't delete your account. Please try again." : undefined}
         onClose={() => setShowDeleteErrorSnackbar(false)}
       />
+      {/* Boots-offline notice for the whole authenticated shell. Sits above the snackbar
+          (bottom-24 vs bottom-6) so the two never overlap. */}
+      <OfflineNotice />
     </>
   )
 }

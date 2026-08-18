@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
+import InstallOffer from '@components/install-offer'
 import { AuthUser } from '@types'
 
 export interface AuthenticatedProps {
@@ -251,6 +252,12 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
           privacy policy
         </a>
       </p>
+
+      {/* The install offer lives on the sign-in screen and in Settings only — never on the
+          mail screen. Dismissible here: it collapses to a one-line link rather than hiding. */}
+      <div className="relative z-10 mt-6 w-full" style={{ maxWidth: '400px' }}>
+        <InstallOffer dismissible surface="shell" />
+      </div>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elem
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
 import ErrorSnackbar from '@components/error-snackbar'
+import InstallOffer from '@components/install-offer'
 import LoadingSpinner from '@components/loading-spinner'
 import { getAccount, putAccount } from '@services/emails'
 import { Account, AuthUser, EmailAddress } from '@types'
@@ -117,6 +118,18 @@ const AccountSettings = (): React.ReactNode => {
             </p>
           </section>
         )}
+
+        {/* App — the install offer's permanent home. Not dismissible here (unlike the
+            sign-in card): Settings is the surface that always carries it. */}
+        <section>
+          <div
+            className="mb-2 text-xs font-semibold uppercase"
+            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
+          >
+            App
+          </div>
+          <InstallOffer surface="paper" />
+        </section>
 
         <div className="flex justify-end pt-2">
           {loggedInUser?.username && account && (

@@ -12,6 +12,20 @@ jest.mock('aws-amplify/auth')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 jest.mock('@config/amplify')
+// Mocked to markers so the mount is what's under test here, not their internals (each has
+// its own suite). The real components render nothing in this environment (not installable /
+// online), so a marker is the only way to prove they are actually wired into the tree — the
+// guard against shipping the feature unmounted.
+jest.mock('@components/install-offer', () => {
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'InstallOfferMounted')
+})
+jest.mock('@components/offline-notice', () => {
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'OfflineNoticeMounted')
+})
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
@@ -68,6 +82,16 @@ describe('Authenticated component', () => {
       )
 
       expect(await screen.findByText(/Sign in to continue/i)).toBeInTheDocument()
+    })
+
+    it('should mount the install offer on the sign-in screen', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      expect(await screen.findByText('InstallOfferMounted')).toBeInTheDocument()
     })
 
     it('should show title and children when showContent is true', async () => {
@@ -143,6 +167,16 @@ describe('Authenticated component', () => {
       )
 
       expect(await screen.findByText(/Dave/i)).toBeInTheDocument()
+    })
+
+    it('should mount the offline notice in the authenticated shell', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      expect(await screen.findByText('OfflineNoticeMounted')).toBeInTheDocument()
     })
 
     it('should open menu when menu button is clicked', async () => {

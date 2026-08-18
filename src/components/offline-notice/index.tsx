@@ -33,7 +33,9 @@ const OfflineNotice = (): React.ReactNode => {
   useEffect(() => {
     const update = (): void => setIsOffline(!navigator.onLine)
     update()
-    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    // Optional chaining because a test environment (jsdom) may not implement matchMedia;
+    // a real browser always does. Absent → treat as no reduced-motion preference.
+    setReducedMotion(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false)
     window.addEventListener('online', update)
     window.addEventListener('offline', update)
     return () => {
@@ -48,7 +50,11 @@ const OfflineNotice = (): React.ReactNode => {
   }
 
   return (
-    <div aria-live="polite" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2" role="status">
+    // Sits at bottom-24, not bottom-6, on purpose: the only place this mounts (the
+    // authenticated shell in icon-drawer) also renders an ErrorSnackbar at bottom-6, and
+    // being offline while an action errors would stack the two on the same spot. This
+    // clears it.
+    <div aria-live="polite" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2" role="status">
       <div
         className={`flex items-center gap-3 rounded-xl px-5 py-3 text-sm shadow-lg${reducedMotion ? '' : ' animate-fade-in'}`}
         style={{

@@ -30,6 +30,11 @@ jest.mock('@components/loading-spinner', () => {
   // eslint-disable-next-line react/display-name
   return () => React.createElement('div', null, 'Loading...')
 })
+jest.mock('@components/install-offer', () => {
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'InstallOfferMounted')
+})
 jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
@@ -94,6 +99,12 @@ describe('AccountSettings component', () => {
     fireEvent.click(saveButton)
 
     expect(emails.putAccount).not.toHaveBeenCalled()
+  })
+
+  it('expect the install offer mounted in the App section', async () => {
+    render(<AccountSettings />)
+
+    expect(await screen.findByText('InstallOfferMounted')).toBeInTheDocument()
   })
 
   it('expect the whole updated account passed to putAccount', async () => {

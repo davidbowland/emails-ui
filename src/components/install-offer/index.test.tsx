@@ -72,7 +72,10 @@ const setMatchMedia = (matches: boolean): void => {
 
 // Drives resolveState to the requested face via the mocked services + navigator, then
 // renders the component and waits for the post-mount state to settle.
-const renderState = async (state: InstallState, props: { dismissible?: boolean } = {}): Promise<void> => {
+const renderState = async (
+  state: InstallState,
+  props: { defaultCollapsed?: boolean; dismissible?: boolean } = {},
+): Promise<void> => {
   setMatchMedia(false)
   if (state === 'ios') {
     setNavigator(IPHONE)
@@ -306,6 +309,14 @@ describe('InstallOffer', () => {
 
       expect(installDismissal.setInstallCollapsed).toHaveBeenCalledWith(true)
       expect(screen.getByRole('button', { name: 'Install this mailbox' })).toBeVisible()
+    })
+
+    it('starts collapsed to the link when defaultCollapsed is set and nothing is stored', async () => {
+      jest.mocked(installDismissal.isInstallCollapsed).mockImplementationOnce((fallback = false) => fallback)
+      await renderState('promptable', { defaultCollapsed: true, dismissible: true })
+
+      expect(await screen.findByRole('button', { name: 'Install this mailbox' })).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
     })
   })
 

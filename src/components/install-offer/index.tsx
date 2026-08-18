@@ -22,6 +22,10 @@ import { setInstallCollapsed, isInstallCollapsed } from '@services/install-dismi
 import { InstallState, InstallSurface } from '@types'
 
 export interface InstallOfferProps {
+  // When dismissible, whether to start collapsed to the one-line link (before the reader has
+  // expanded or collapsed it themselves). The sign-in card sets this so the offer never crowds
+  // the form; the reader taps to expand.
+  defaultCollapsed?: boolean
   dismissible?: boolean
   surface: InstallSurface
 }
@@ -128,7 +132,11 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
   }
 }
 
-const InstallOffer = ({ dismissible = false, surface }: InstallOfferProps): React.ReactNode => {
+const InstallOffer = ({
+  defaultCollapsed = false,
+  dismissible = false,
+  surface,
+}: InstallOfferProps): React.ReactNode => {
   const { promptInstall, state } = useInstallPrompt()
   const tokens = getSurfaceTokens(surface)
 
@@ -148,9 +156,9 @@ const InstallOffer = ({ dismissible = false, surface }: InstallOfferProps): Reac
   // static export and the first client render agree (both render nothing).
   useEffect(() => {
     if (dismissible) {
-      setCollapsed(isInstallCollapsed())
+      setCollapsed(isInstallCollapsed(defaultCollapsed))
     }
-  }, [dismissible])
+  }, [dismissible, defaultCollapsed])
 
   // Focus is never stranded: after collapsing, land on the one-line link; after expanding,
   // land inside the banner. A control the reader just pressed never vanishes from under them.

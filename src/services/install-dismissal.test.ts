@@ -38,6 +38,20 @@ describe('install-dismissal', () => {
       expect(isInstallCollapsed()).toBe(false)
     })
 
+    it('returns the fallback when nothing was ever stored', () => {
+      clearStorage()
+
+      expect(isInstallCollapsed(true)).toBe(true)
+      expect(isInstallCollapsed(false)).toBe(false)
+    })
+
+    it('honors an explicit stored choice over the fallback', () => {
+      clearStorage()
+      setInstallCollapsed(false)
+
+      expect(isInstallCollapsed(true)).toBe(false)
+    })
+
     it('is collapsed after setInstallCollapsed(true)', () => {
       clearStorage()
       setInstallCollapsed(true)
@@ -60,19 +74,20 @@ describe('install-dismissal', () => {
       expect(isInstallCollapsed()).toBe(false)
     })
 
-    it('removes the key on setInstallCollapsed(false)', () => {
+    it('stores an explicit 0 on setInstallCollapsed(false), not a cleared key', () => {
       clearStorage()
       setInstallCollapsed(true)
       setInstallCollapsed(false)
 
-      expect(realStorage.getItem(COLLAPSED_KEY)).toBeNull()
+      expect(realStorage.getItem(COLLAPSED_KEY)).toBe('0')
     })
 
-    it('is not collapsed when the stored value is unexpected', () => {
+    it('falls back when the stored value is unexpected', () => {
       clearStorage()
-      realStorage.setItem(COLLAPSED_KEY, '0')
+      realStorage.setItem(COLLAPSED_KEY, 'maybe')
 
-      expect(isInstallCollapsed()).toBe(false)
+      expect(isInstallCollapsed(false)).toBe(false)
+      expect(isInstallCollapsed(true)).toBe(true)
     })
   })
 

@@ -91,13 +91,17 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
 
   return (
     <div
-      className="flex h-full flex-col items-center justify-center"
+      className="h-full overflow-y-auto"
       style={{
         background: 'var(--shell-bg)',
         backgroundImage: 'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(124, 93, 244, 0.14) 0%, transparent 70%)',
       }}
     >
-      {/* Noise grain overlay – fixed, pointer-events-none */}
+      {/* Centres when it fits, scrolls when it doesn't: min-h-full lets the column grow past
+          the viewport (e.g. once the install offer is expanded) so the scroll container above
+          can reach all of it, instead of clipping it under justify-center + overflow-hidden. */}
+      <div className="flex min-h-full flex-col items-center justify-center px-4 py-10">
+        {/* Noise grain overlay – fixed, pointer-events-none */}
       <div
         style={{
           position: 'fixed',
@@ -253,10 +257,12 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
         </a>
       </p>
 
-      {/* The install offer lives on the sign-in screen and in Settings only — never on the
-          mail screen. Dismissible here: it collapses to a one-line link rather than hiding. */}
-      <div className="relative z-10 mt-6 w-full" style={{ maxWidth: '400px' }}>
-        <InstallOffer dismissible surface="shell" />
+        {/* The install offer lives on the sign-in screen and in Settings only — never on the
+            mail screen. Dismissible and collapsed by default here: a compact "Install this
+            mailbox" link under the card that expands on tap, so it never crowds the sign-in. */}
+        <div className="relative z-10 mt-6 w-full" style={{ maxWidth: '400px' }}>
+          <InstallOffer defaultCollapsed dismissible surface="shell" />
+        </div>
       </div>
     </div>
   )

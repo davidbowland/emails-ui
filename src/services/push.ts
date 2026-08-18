@@ -12,8 +12,10 @@ const resolveContainer = (): ServiceWorkerContainer | undefined =>
   typeof navigator === 'undefined' || !('serviceWorker' in navigator) ? undefined : navigator.serviceWorker
 
 // The applicationServerKey must be raw bytes, and the API hands us the URL-safe base64 the
-// VAPID spec uses.
-export const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+// VAPID spec uses. The buffer is pinned to ArrayBuffer rather than the default ArrayBufferLike:
+// BufferSource excludes SharedArrayBuffer-backed views, so a bare Uint8Array does not satisfy
+// PushSubscriptionOptionsInit.applicationServerKey.
+export const urlBase64ToUint8Array = (base64String: string): Uint8Array<ArrayBuffer> => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)

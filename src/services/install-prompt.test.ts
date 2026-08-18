@@ -54,14 +54,29 @@ describe('install-prompt', () => {
       expect(module.wasPromptOffered()).toBe(true)
     })
 
-    it('clears the deferred prompt on appinstalled', async () => {
+    it('clears the deferred prompt and marks installed on appinstalled', async () => {
       const module = await loadModule()
       window.dispatchEvent(makePromptEvent())
 
       window.dispatchEvent(new Event('appinstalled'))
 
       expect(module.getDeferredPrompt()).toBeNull()
-      expect(module.wasPromptOffered()).toBe(false)
+      expect(module.isInstalled()).toBe(true)
+    })
+
+    it('keeps wasPromptOffered true after an install, so offered stays distinct from never-offered', async () => {
+      const module = await loadModule()
+      window.dispatchEvent(makePromptEvent())
+
+      window.dispatchEvent(new Event('appinstalled'))
+
+      expect(module.wasPromptOffered()).toBe(true)
+    })
+
+    it('reports not installed before appinstalled fires', async () => {
+      const module = await loadModule()
+
+      expect(module.isInstalled()).toBe(false)
     })
   })
 

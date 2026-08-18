@@ -14,6 +14,13 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null
 // tell "we offered and it was spent" apart from "never offered / open the menu".
 let promptOffered = false
 
+// Whether the browser reported the app installed this page load (`appinstalled`). Kept
+// separate from `promptOffered` on purpose: the install completing must NOT erase the
+// fact that a prompt was offered, or the UI can no longer tell "offered and spent" from
+// "never offered" at the exact moment the app was installed. The component treats this as
+// one of its "render nothing" signals, alongside the display-mode standalone check.
+let installed = false
+
 const listeners = new Set<Listener>()
 
 // One subscriber that throws must not stop the rest from hearing the change.
@@ -35,10 +42,12 @@ const onBeforeInstallPrompt = (event: Event): void => {
   notify()
 }
 
-// Once installed there is nothing left to offer, so the offer is retired.
+// Once installed there is nothing left to offer. Clear the spent event and record the
+// install — but leave `promptOffered` alone: it is a page-load latch, and an install
+// firing is exactly when the "offered vs never offered" distinction still has to hold.
 const onInstalled = (): void => {
   deferredPrompt = null
-  promptOffered = false
+  installed = true
   notify()
 }
 
@@ -57,8 +66,15 @@ if (typeof window !== 'undefined') {
 export const getDeferredPrompt = (): BeforeInstallPromptEvent | null => deferredPrompt
 
 // True from the moment the browser offers an install prompt this page load,
-// including after the deferred event has been spent.
+// including after the deferred event has been spent. A one-way latch — the install
+// completing does not reset it (that is what `isInstalled()` is for).
 export const wasPromptOffered = (): boolean => promptOffered
+
+// True once the browser has reported the app installed this page load. The component
+// resolves the offer to `hidden` on this OR a standalone display-mode; the display-mode
+// check is the durable one (iOS never fires `appinstalled`), this is for immediacy in
+// the same tab right after a Chromium install.
+export const isInstalled = (): boolean => installed
 
 export const subscribe = (listener: Listener): (() => void) => {
   listeners.add(listener)

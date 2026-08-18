@@ -1,15 +1,17 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-// sw-src.js runs in a worker scope, so it is loaded as text and evaluated with the scope
-// globals it reaches for passed in as parameters. Every handler it registers is kept so a
+// Both workers run in a worker scope, so each is loaded as text and evaluated with the scope
+// globals it reaches for passed in as parameters. Every handler either registers is kept so a
 // test can drive a real event through the real code.
 
 const ORIGIN = 'https://email.dbowland.com'
 const CACHE = 'emails-ui-dev'
 
 const SW_SRC = join(__dirname, '..', '..', 'scripts', 'sw-src.js')
+const SW_KILLSWITCH = join(__dirname, '..', '..', 'scripts', 'sw-killswitch.js')
 const source = readFileSync(SW_SRC, 'utf8')
+const killSwitchSource = readFileSync(SW_KILLSWITCH, 'utf8')
 
 // A stand-in for the responses the worker gets back from fetch or the cache.
 const createResponse = (body: any, { status = 200 }: { status?: number } = {}) => ({
@@ -70,7 +72,7 @@ const createCacheStorage = () => {
   }
 }
 
-const loadSw = () => {
+const loadSw = (workerSource: string = source) => {
   const handlers: Record<string, any> = {}
   const caches = createCacheStorage()
   const fetchMock = jest.fn()
@@ -78,12 +80,20 @@ const loadSw = () => {
     addEventListener: (type: string, handler: any) => {
       handlers[type] = handler
     },
-    clients: { claim: jest.fn(() => Promise.resolve()) },
+    clients: {
+      claim: jest.fn(() => Promise.resolve()),
+      matchAll: jest.fn(() => Promise.resolve([] as any[])),
+      openWindow: jest.fn(() => Promise.resolve(undefined)),
+    },
     location: { origin: ORIGIN },
+    registration: {
+      showNotification: jest.fn(() => Promise.resolve()),
+      unregister: jest.fn(() => Promise.resolve(true)),
+    },
     skipWaiting: jest.fn(),
   }
   const swExports: any = {}
-  new Function('self', 'exports', 'caches', 'fetch', 'Response', source)(
+  new Function('self', 'exports', 'caches', 'fetch', 'Response', workerSource)(
     self,
     swExports,
     caches,
@@ -300,5 +310,54 @@ describe('sw-src fetch of offline subresources', () => {
 
     expect(response.body).not.toBe('home page')
     expect(response.status).toBe(503)
+  })
+})
+
+const loadKillSwitch = () => {
+  const sw = loadSw(killSwitchSource)
+  sw.caches.seed('emails-ui-abc', {})
+  sw.caches.seed('emails-ui-def', {})
+  return sw
+}
+
+describe('sw-killswitch pass-through', () => {
+  it('carries no precache placeholder, so build-sw copies it straight through', () => {
+    expect(killSwitchSource).not.toContain('var PRECACHE =')
+  })
+})
+
+describe('sw-killswitch install', () => {
+  it('takes effect on the current page load', async () => {
+    const sw = loadKillSwitch()
+
+    await dispatchLifecycle(sw, 'install')
+
+    expect(sw.self.skipWaiting).toHaveBeenCalled()
+  })
+})
+
+describe('sw-killswitch activate', () => {
+  it('deletes every cache', async () => {
+    const sw = loadKillSwitch()
+
+    await dispatchLifecycle(sw, 'activate')
+
+    expect([...sw.caches.stores.keys()]).toEqual([])
+  })
+
+  it('unregisters itself', async () => {
+    const sw = loadKillSwitch()
+
+    await dispatchLifecycle(sw, 'activate')
+
+    expect(sw.self.registration.unregister).toHaveBeenCalled()
+  })
+
+  it('claims open clients', async () => {
+    const sw = loadKillSwitch()
+
+    await dispatchLifecycle(sw, 'activate')
+
+    expect(sw.self.clients.claim).toHaveBeenCalled()
   })
 })

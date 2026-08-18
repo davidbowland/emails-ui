@@ -1,5 +1,11 @@
 import * as emails from './emails'
-import { isSubscribedToPush, READY_TIMEOUT_MS, subscribeToPush, unsubscribeFromPush } from './push'
+import {
+  healPushSubscription,
+  isSubscribedToPush,
+  READY_TIMEOUT_MS,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from './push'
 import * as pushOptin from './push-optin'
 import { accountId, pushEndpoint, pushSubscription } from '@test/__mocks__'
 
@@ -44,6 +50,7 @@ describe('push service', () => {
     jest.mocked(pushOptin.isPushOptedIn).mockReturnValue(false)
 
     console.error = jest.fn()
+    console.warn = jest.fn()
   })
 
   describe('subscribeToPush', () => {
@@ -206,6 +213,86 @@ describe('push service', () => {
       jest.mocked(emails.deletePushSubscription).mockRejectedValueOnce(new Error('500'))
 
       expect(await unsubscribeFromPush(accountId, createContainer())).toEqual('failed')
+    })
+  })
+
+  describe('healPushSubscription', () => {
+    const optedInAndGranted = (): void => {
+      setPermission('granted')
+      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(true)
+    }
+
+    it('re-subscribes silently when the subscription has been evicted', async () => {
+      optedInAndGranted()
+      pushManager.getSubscription.mockResolvedValueOnce(null)
+      pushManager.subscribe.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushManager.subscribe).toHaveBeenCalledWith({
+        applicationServerKey: expect.any(Uint8Array),
+        userVisibleOnly: true,
+      })
+      expect(emails.postPushSubscription).toHaveBeenCalledWith(accountId, pushSubscription)
+    })
+
+    it('never prompts', async () => {
+      optedInAndGranted()
+      pushManager.getSubscription.mockResolvedValueOnce(null)
+      pushManager.subscribe.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(Notification.requestPermission).not.toHaveBeenCalled()
+    })
+
+    // No getSubscription value is queued in the two cases below: they return before reading one,
+    // and clearMocks resets call records but not a queued mockResolvedValueOnce -- an unconsumed
+    // queue would leak into the next test and make it pass or fail for the wrong reason.
+    it('does nothing when the reader never opted in', async () => {
+      setPermission('granted')
+      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(false)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+      expect(emails.postPushSubscription).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when permission is no longer granted', async () => {
+      setPermission('denied')
+      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(true)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when a subscription is already live', async () => {
+      optedInAndGranted()
+      pushManager.getSubscription.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+      expect(emails.postPushSubscription).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when the browser has no container', async () => {
+      optedInAndGranted()
+
+      await healPushSubscription(accountId, undefined)
+
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+    })
+
+    it('swallows a failed POST, because this is a background repair', async () => {
+      optedInAndGranted()
+      pushManager.getSubscription.mockResolvedValueOnce(null)
+      pushManager.subscribe.mockResolvedValueOnce(subscription)
+      jest.mocked(emails.postPushSubscription).mockRejectedValueOnce(new Error('500'))
+
+      await expect(healPushSubscription(accountId, createContainer())).resolves.toBeUndefined()
     })
   })
 })

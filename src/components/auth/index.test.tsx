@@ -3,6 +3,7 @@ import { deleteUser, getCurrentUser, signOut } from 'aws-amplify/auth'
 import React from 'react'
 
 import Authenticated from './index'
+import * as push from '@services/push'
 import { user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
@@ -12,6 +13,7 @@ jest.mock('aws-amplify/auth')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 jest.mock('@config/amplify')
+jest.mock('@services/push')
 // Mocked to markers so the mount is what's under test here, not their internals (each has
 // its own suite). The real components render nothing in this environment (not installable /
 // online), so a marker is the only way to prove they are actually wired into the tree — the
@@ -399,6 +401,36 @@ describe('Authenticated component', () => {
 
         expect(screen.queryByText(/Couldn't delete your account/i)).not.toBeInTheDocument()
       })
+    })
+  })
+
+  describe('push self-heal', () => {
+    beforeAll(() => {
+      jest.mocked(push.healPushSubscription).mockResolvedValue(undefined)
+    })
+
+    it('repairs the push subscription once the session resolves', async () => {
+      jest.mocked(getCurrentUser).mockResolvedValueOnce(user)
+      render(
+        <Authenticated>
+          <>Testing children</>
+        </Authenticated>,
+      )
+
+      await waitFor(() => expect(push.healPushSubscription).toHaveBeenCalledWith(user.username))
+    })
+
+    it('does not repair anything when nobody is signed in', async () => {
+      jest.mocked(getCurrentUser).mockRejectedValueOnce(new Error('Not authenticated'))
+      render(
+        <Authenticated showContent={true}>
+          <>Testing children</>
+        </Authenticated>,
+      )
+
+      await screen.findByText(/Testing children/i)
+
+      expect(push.healPushSubscription).not.toHaveBeenCalled()
     })
   })
 })

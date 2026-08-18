@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react'
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
 import InstallOffer from '@components/install-offer'
+import { healPushSubscription } from '@services/push'
 import { AuthUser } from '@types'
 
 export interface AuthenticatedProps {
@@ -29,6 +30,15 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
       .then(setLoggedInUser)
       .catch(() => null)
   }, [])
+
+  // Self-heal runs from here, not from _app.tsx: at app mount neither the ID token nor the
+  // account id exists yet and every attempt would 401 invisibly. If no session resolves, the
+  // repair is skipped for this page load rather than attempted and swallowed.
+  useEffect(() => {
+    if (loggedInUser?.username) {
+      healPushSubscription(loggedInUser.username)
+    }
+  }, [loggedInUser])
 
   if (loggedInUser) {
     return (

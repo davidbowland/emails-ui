@@ -1,5 +1,5 @@
 import { deletePushSubscription, getVapidPublicKey, postPushSubscription } from '@services/emails'
-import { clearPushOptIn, setPushOptedIn } from '@services/push-optin'
+import { clearPushOptIn, isPushOptedIn, setPushOptedIn } from '@services/push-optin'
 
 // What one attempt to turn notifications on ended in. 'dismissed' is the reader closing the
 // browser prompt without choosing -- retryable in the page -- and is deliberately NOT 'denied',
@@ -127,5 +127,39 @@ export const unsubscribeFromPush = async (
   } catch (error: unknown) {
     console.error('unsubscribeFromPush', { accountId, error })
     return 'failed'
+  }
+}
+
+// Subscriptions die for reasons that have nothing to do with any incident: browsers evict them
+// under storage pressure, Chrome drops them after repeated push-budget violations, readers clear
+// site data, and a VAPID rotation invalidates every one at once. Without this, each of those is a
+// permanent silent failure only a visit to Settings would reveal. No prompt is needed or shown --
+// the permission grant survives independently of the registration. Failures are swallowed; this
+// is a background repair, not a user action.
+export const healPushSubscription = async (
+  accountId: string,
+  swContainer = resolveContainer(),
+  readyTimeoutMs = READY_TIMEOUT_MS,
+): Promise<void> => {
+  if (
+    !swContainer ||
+    typeof Notification === 'undefined' ||
+    Notification.permission !== 'granted' ||
+    !isPushOptedIn()
+  ) {
+    return
+  }
+  try {
+    const registration = await waitForWorker(swContainer, readyTimeoutMs)
+    if (!registration) {
+      return
+    }
+    const existing = await registration.pushManager.getSubscription()
+    if (existing) {
+      return
+    }
+    await subscribeAndPost(accountId, registration)
+  } catch (error: unknown) {
+    console.warn('healPushSubscription', { accountId, error })
   }
 }

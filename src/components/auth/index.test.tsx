@@ -384,6 +384,73 @@ describe('Authenticated component', () => {
         await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
       })
 
+      it('should delete the push subscription before deleting the account', async () => {
+        render(
+          <Authenticated>
+            <p>Testing children</p>
+          </Authenticated>,
+        )
+
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(menuButton)
+        })
+
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(deleteAccountMenuOption)
+        })
+
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(continueButton)
+        })
+
+        expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username)
+        await waitFor(() =>
+          expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
+            jest.mocked(deleteUser).mock.invocationCallOrder[0],
+          ),
+        )
+      })
+
+      it('should delete the account even when the subscription cannot be deleted', async () => {
+        jest.mocked(push.unsubscribeFromPush).mockRejectedValueOnce(new Error('Thar be errors here'))
+        render(
+          <Authenticated>
+            <p>Testing children</p>
+          </Authenticated>,
+        )
+
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(menuButton)
+        })
+
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(deleteAccountMenuOption)
+        })
+
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(continueButton)
+        })
+
+        await waitFor(() => expect(deleteUser).toHaveBeenCalled())
+        await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
+      })
+
       it('should show error message when account deletion fails', async () => {
         jest.mocked(deleteUser).mockRejectedValueOnce(new Error('Thar be errors here'))
 

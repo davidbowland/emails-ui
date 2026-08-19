@@ -91,6 +91,11 @@ const IconDrawer = ({
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
+    // Deleting the Cognito user does not reach the email API, so without this the push endpoint
+    // -- an address anyone holding it can send to -- would outlive the account it belonged to,
+    // against what the privacy policy promises. Swallowed, and first: the account must go even
+    // when the unsubscribe cannot.
+    await unsubscribeFromPush(loggedInUser.username).catch(() => undefined)
     // Only `deleteUser` is guarded: v5's callback reported errors from the delete alone, and a
     // failure after the account is gone must not raise the "couldn't delete" snackbar.
     try {

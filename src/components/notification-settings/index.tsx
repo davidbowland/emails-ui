@@ -130,6 +130,7 @@ const NotificationSettings = ({
       </p>
 
       <button
+        aria-describedby="notification-status"
         className="btn-accent"
         disabled={busy}
         onClick={() => void (isOn ? handleTurnOff() : handleTurnOn())}
@@ -146,15 +147,20 @@ const NotificationSettings = ({
         {buttonLabel()}
       </button>
 
-      {status && (
-        <p
-          className="mt-2 text-sm"
-          role="status"
-          style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif' }}
-        >
-          {status}
-        </p>
-      )}
+      {/* Mounted whether or not there is anything to say. A live region has to be in the
+          accessibility tree BEFORE its content changes: created and filled in the same commit,
+          it reliably announces nothing -- and on denied -> Try again -> pending -> denied the
+          text is identical either side, so an unmount and remount would be the only signal a
+          blind reader got, which is no signal at all. The height is reserved so the fieldset
+          below does not jump when a line appears. */}
+      <p
+        className="mt-2 text-sm"
+        id="notification-status"
+        role="status"
+        style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif', minHeight: '1.25rem' }}
+      >
+        {status ?? ''}
+      </p>
 
       <fieldset
         aria-busy={savingPreview}

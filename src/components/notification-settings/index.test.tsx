@@ -52,6 +52,27 @@ describe('NotificationSettings', () => {
     jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
   })
 
+  describe('announcing what happened', () => {
+    it('keeps its status regions in place before they have anything to say', async () => {
+      setNavigator(DESKTOP)
+      await renderSettings()
+
+      expect(screen.getAllByRole('status').map((region) => region.textContent)).toEqual(['', ''])
+    })
+
+    it('ties the reason to the button that caused it', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.subscribeToPush).mockResolvedValueOnce('failed')
+      await renderSettings()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }))
+
+      expect(await screen.findByRole('button', { name: 'Try again' })).toHaveAccessibleDescription(
+        "We couldn't turn on notifications. Please try again.",
+      )
+    })
+  })
+
   describe('turning notifications on', () => {
     it('offers to turn them on when they are off', async () => {
       setNavigator(DESKTOP)

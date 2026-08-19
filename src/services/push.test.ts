@@ -40,6 +40,10 @@ describe('push service', () => {
     Object.defineProperty(global, 'Notification', { configurable: true, value: undefined, writable: true })
   }
 
+  // JSON.stringify renders an Error as {}, which would hide whatever its message carries.
+  const replaceErrors = (key: string, value: unknown): unknown =>
+    value instanceof Error ? `${value.message} ${value.stack ?? ''}` : value
+
   // A real VAPID public key: 65 URL-safe base64 bytes. It has to be decodable, because
   // urlBase64ToUint8Array runs atob on it before subscribe is ever reached.
   const vapidPublicKey = 'BAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK-2vcTL0tng5-71AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsU'
@@ -238,6 +242,24 @@ describe('push service', () => {
       expect(pushOptin.clearPushOptIn).toHaveBeenCalled()
       expect(emails.deletePushSubscription).not.toHaveBeenCalled()
       expect(result).toEqual('unsubscribed')
+    })
+
+    // Anyone holding the endpoint can send to this browser, so it stays out of the console the
+    // same way it stays out of the API's logs.
+    it('never writes the endpoint to the console', async () => {
+      pushManager.getSubscription.mockResolvedValueOnce(subscription)
+      jest
+        .mocked(emails.deletePushSubscription)
+        .mockRejectedValueOnce(new Error(`DELETE /accounts/${accountId}/push-subscriptions responded with 500`))
+
+      await unsubscribeFromPush(accountId, createContainer())
+
+      const logged = jest
+        .mocked(console.error)
+        .mock.calls.map((call) => JSON.stringify(call, replaceErrors))
+        .join(' ')
+      expect(logged).not.toContain(pushEndpoint)
+      expect(logged).not.toContain(encodeURIComponent(pushEndpoint))
     })
 
     it('reports failed when the DELETE fails', async () => {

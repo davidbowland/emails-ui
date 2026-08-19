@@ -78,6 +78,17 @@ describe('Emails service', () => {
       await expect(getAccount(accountId)).rejects.toThrow(`GET /accounts/${accountId} responded with 500`)
     })
 
+    // A push endpoint is a capability: anyone holding it can send to that browser. The API
+    // redacts it from its own logs, so the message this throws -- which callers hand to
+    // console.error -- must not carry it either.
+    it('should leave the query string out of the error message', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Internal server error' }, false, 500))
+
+      const error: Error = await deletePushSubscription(accountId, pushEndpoint).catch((thrown) => thrown)
+
+      expect(error.message).toEqual(`DELETE /accounts/${accountId}/push-subscriptions responded with 500`)
+    })
+
     it('should send no authorization header when the session cannot be fetched', async () => {
       jest.mocked(fetchAuthSession).mockRejectedValueOnce(new Error('Not signed in'))
       mockFetch.mockResolvedValueOnce(mockResponse(account))

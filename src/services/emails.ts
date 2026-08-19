@@ -35,7 +35,10 @@ const send = async (method: string, path: string, body?: unknown): Promise<Respo
     method,
   })
   if (!response.ok) {
-    throw new Error(`${method} ${path} responded with ${response.status}`)
+    // Path only, never the query string: the push endpoint travels there, and anyone holding it
+    // can send to that browser. The API redacts it from its logs; callers of this hand the
+    // message straight to console.error, so it must not carry it either.
+    throw new Error(`${method} ${path.split('?')[0]} responded with ${response.status}`)
   }
   return response
 }

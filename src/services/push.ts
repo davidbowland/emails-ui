@@ -59,8 +59,9 @@ const subscribeAndPost = async (
 // Whether this browser could ever do push, whatever the reader has chosen. Synchronous and
 // prompt-free, so the settings page can say so at mount rather than offering a button that can
 // only end in 'unsupported'.
-export const isPushSupported = (swContainer = resolveContainer()): boolean =>
-  Boolean(swContainer) && typeof Notification !== 'undefined'
+// A type predicate, so the callers that go on to use the container do not have to re-check it.
+export const isPushSupported = (swContainer = resolveContainer()): swContainer is ServiceWorkerContainer =>
+  swContainer !== undefined && typeof Notification !== 'undefined'
 
 // The subscription is the fact, not Notification.permission: revoking permission in browser
 // settings drops the subscription with it, and a granted permission with no subscription is

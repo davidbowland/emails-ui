@@ -1,5 +1,5 @@
 import { deletePushSubscription, getVapidPublicKey, postPushSubscription } from '@services/emails'
-import { clearPushOptIn, isPushOptedIn, setPushOptedIn } from '@services/push-optin'
+import { clearPushOptIn, getPushOptInAccount, setPushOptedIn } from '@services/push-optin'
 
 // What one attempt to turn notifications on ended in. 'dismissed' is the reader closing the
 // browser prompt without choosing -- retryable in the page -- and is deliberately NOT 'denied',
@@ -110,7 +110,7 @@ export const subscribeToPush = async (
   }
   try {
     await subscribeAndPost(accountId, registration)
-    setPushOptedIn()
+    setPushOptedIn(accountId)
     return 'subscribed'
   } catch (error: unknown) {
     console.error('subscribeToPush', { accountId, error })
@@ -151,12 +151,20 @@ export const unsubscribeFromPush = async (
 // permanent silent failure only a visit to Settings would reveal. No prompt is needed or shown --
 // the permission grant survives independently of the registration. Failures are swallowed; this
 // is a background repair, not a user action.
+//
+// It is also where a subscription that outlived its owner's session is taken away. Signing out
+// unsubscribes, but that is not the only way a session ends: a refresh token expires, or a
+// shared device is simply handed over. The subscription belongs to the browser, so without the
+// account check below the previous reader's senders and subject lines would keep arriving on the
+// new reader's lock screen -- indefinitely, since the push service still considers the endpoint
+// valid.
 export const healPushSubscription = async (
   accountId: string,
   swContainer = resolveContainer(),
   readyTimeoutMs = READY_TIMEOUT_MS,
 ): Promise<void> => {
-  if (!isPushSupported(swContainer) || Notification.permission !== 'granted' || !isPushOptedIn()) {
+  const optedInAccount = getPushOptInAccount()
+  if (!isPushSupported(swContainer) || Notification.permission !== 'granted' || !optedInAccount) {
     return
   }
   try {
@@ -165,6 +173,16 @@ export const healPushSubscription = async (
       return
     }
     const existing = await registration.pushManager.getSubscription()
+    if (optedInAccount !== accountId) {
+      // Local only: the DELETE would be signed as this reader, and the row belongs to the other
+      // one. Killing the endpoint is what stops the delivery -- the push service answers the
+      // server's next send with a 410 and the row goes with it.
+      await existing?.unsubscribe()
+      clearPushOptIn()
+      // Deliberately no re-subscribe. Notifications are this reader's choice to make, in
+      // Settings, not one inherited from whoever used the device before.
+      return
+    }
     if (existing) {
       return
     }

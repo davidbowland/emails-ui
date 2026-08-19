@@ -1,4 +1,5 @@
-import { clearPushOptIn, isPushOptedIn, setPushOptedIn } from './push-optin'
+import { clearPushOptIn, getPushOptInAccount, setPushOptedIn } from './push-optin'
+import { accountId } from '@test/__mocks__'
 
 describe('push-optin', () => {
   const OPT_IN_KEY = 'emails.pushOptIn'
@@ -32,40 +33,49 @@ describe('push-optin', () => {
   afterAll(restoreStorage)
 
   describe('in the browser', () => {
-    it('is not opted in when nothing was ever stored', () => {
+    it('reports no account when nothing was ever stored', () => {
       clearStorage()
 
-      expect(isPushOptedIn()).toBe(false)
+      expect(getPushOptInAccount()).toBeUndefined()
     })
 
-    it('is opted in after setPushOptedIn', () => {
+    it('reports the account setPushOptedIn recorded', () => {
       clearStorage()
-      setPushOptedIn()
+      setPushOptedIn(accountId)
 
-      expect(isPushOptedIn()).toBe(true)
+      expect(getPushOptInAccount()).toEqual(accountId)
     })
 
-    it('stores the flag under the expected key', () => {
+    it('stores the account under the expected key', () => {
       clearStorage()
-      setPushOptedIn()
+      setPushOptedIn(accountId)
 
-      expect(realStorage.getItem(OPT_IN_KEY)).toBe('1')
+      expect(realStorage.getItem(OPT_IN_KEY)).toEqual(accountId)
     })
 
     it('removes the key on clearPushOptIn', () => {
       clearStorage()
-      setPushOptedIn()
+      setPushOptedIn(accountId)
       clearPushOptIn()
 
       expect(realStorage.getItem(OPT_IN_KEY)).toBeNull()
-      expect(isPushOptedIn()).toBe(false)
+      expect(getPushOptInAccount()).toBeUndefined()
     })
 
-    it('is not opted in when the stored value is unexpected', () => {
+    it('reports no account when the stored value is empty', () => {
       clearStorage()
-      realStorage.setItem(OPT_IN_KEY, 'maybe')
+      realStorage.setItem(OPT_IN_KEY, '')
 
-      expect(isPushOptedIn()).toBe(false)
+      expect(getPushOptInAccount()).toBeUndefined()
+    })
+
+    // Builds before this one wrote a bare '1'. It names no account, so the self-heal has to treat
+    // it as somebody else's -- see the mismatch teardown in services/push.ts.
+    it('reports the legacy flag as an account no reader can match', () => {
+      clearStorage()
+      realStorage.setItem(OPT_IN_KEY, '1')
+
+      expect(getPushOptInAccount()).toEqual('1')
     })
   })
 
@@ -81,8 +91,8 @@ describe('push-optin', () => {
 
     afterAll(restoreStorage)
 
-    it('reports not opted in', () => {
-      expect(isPushOptedIn()).toBe(false)
+    it('reports no account', () => {
+      expect(getPushOptInAccount()).toBeUndefined()
     })
   })
 
@@ -102,7 +112,7 @@ describe('push-optin', () => {
     afterAll(restoreStorage)
 
     it('does not throw from setPushOptedIn', () => {
-      expect(() => setPushOptedIn()).not.toThrow()
+      expect(() => setPushOptedIn(accountId)).not.toThrow()
     })
 
     it('does not throw from clearPushOptIn', () => {
@@ -122,16 +132,16 @@ describe('push-optin', () => {
       global.window = originalWindow
     })
 
-    it('reports not opted in', () => {
+    it('reports no account', () => {
       removeWindow()
 
-      expect(isPushOptedIn()).toBe(false)
+      expect(getPushOptInAccount()).toBeUndefined()
     })
 
     it('does not throw from setPushOptedIn', () => {
       removeWindow()
 
-      expect(() => setPushOptedIn()).not.toThrow()
+      expect(() => setPushOptedIn(accountId)).not.toThrow()
     })
 
     it('does not throw from clearPushOptIn', () => {

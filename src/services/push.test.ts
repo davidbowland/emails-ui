@@ -52,7 +52,7 @@ describe('push service', () => {
     jest.mocked(emails.getVapidPublicKey).mockResolvedValue(vapidPublicKey)
     jest.mocked(emails.postPushSubscription).mockResolvedValue(undefined)
     jest.mocked(emails.deletePushSubscription).mockResolvedValue(undefined)
-    jest.mocked(pushOptin.isPushOptedIn).mockReturnValue(false)
+    jest.mocked(pushOptin.getPushOptInAccount).mockReturnValue(undefined)
 
     console.error = jest.fn()
     console.warn = jest.fn()
@@ -127,7 +127,7 @@ describe('push service', () => {
         userVisibleOnly: true,
       })
       expect(emails.postPushSubscription).toHaveBeenCalledWith(accountId, pushSubscription)
-      expect(pushOptin.setPushOptedIn).toHaveBeenCalled()
+      expect(pushOptin.setPushOptedIn).toHaveBeenCalledWith(accountId)
       expect(result).toEqual('subscribed')
     })
 
@@ -271,9 +271,9 @@ describe('push service', () => {
   })
 
   describe('healPushSubscription', () => {
-    const optedInAndGranted = (): void => {
+    const optedInAndGranted = (optedInAccount = accountId): void => {
       setPermission('granted')
-      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(true)
+      jest.mocked(pushOptin.getPushOptInAccount).mockReturnValueOnce(optedInAccount)
     }
 
     it('re-subscribes silently when the subscription has been evicted', async () => {
@@ -305,7 +305,7 @@ describe('push service', () => {
     // queue would leak into the next test and make it pass or fail for the wrong reason.
     it('does nothing when the reader never opted in', async () => {
       setPermission('granted')
-      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(false)
+      jest.mocked(pushOptin.getPushOptInAccount).mockReturnValueOnce(undefined)
 
       await healPushSubscription(accountId, createContainer())
 
@@ -315,14 +315,14 @@ describe('push service', () => {
 
     it('does nothing when permission is no longer granted', async () => {
       setPermission('denied')
-      jest.mocked(pushOptin.isPushOptedIn).mockReturnValueOnce(true)
+      jest.mocked(pushOptin.getPushOptInAccount).mockReturnValueOnce(accountId)
 
       await healPushSubscription(accountId, createContainer())
 
       expect(pushManager.subscribe).not.toHaveBeenCalled()
     })
 
-    it('does nothing when a subscription is already live', async () => {
+    it('does nothing when the live subscription belongs to the signed-in reader', async () => {
       optedInAndGranted()
       pushManager.getSubscription.mockResolvedValueOnce(subscription)
 
@@ -330,6 +330,53 @@ describe('push service', () => {
 
       expect(pushManager.subscribe).not.toHaveBeenCalled()
       expect(emails.postPushSubscription).not.toHaveBeenCalled()
+      expect(subscription.unsubscribe).not.toHaveBeenCalled()
+      expect(pushOptin.clearPushOptIn).not.toHaveBeenCalled()
+    })
+
+    // The whole point: without this, the previous reader's senders and subject lines keep
+    // arriving on a device somebody else is now signed in on.
+    it('tears down a subscription left behind by a different reader', async () => {
+      optedInAndGranted('alice')
+      pushManager.getSubscription.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(subscription.unsubscribe).toHaveBeenCalled()
+      expect(pushOptin.clearPushOptIn).toHaveBeenCalled()
+    })
+
+    it('does not sign the new reader up for the notifications the old one chose', async () => {
+      optedInAndGranted('alice')
+      pushManager.getSubscription.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+      expect(emails.postPushSubscription).not.toHaveBeenCalled()
+    })
+
+    it('clears a different reader\u2019s opt-in even when the subscription is already gone', async () => {
+      optedInAndGranted('alice')
+      pushManager.getSubscription.mockResolvedValueOnce(null)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(pushOptin.clearPushOptIn).toHaveBeenCalled()
+      expect(pushManager.subscribe).not.toHaveBeenCalled()
+    })
+
+    // Builds before the flag carried an account wrote a bare '1'. It names nobody, so the safe
+    // reading is "somebody else's": one silent teardown costs a trip to Settings, the other
+    // reading costs a stranger's mail on the lock screen.
+    it('treats the legacy account-less flag as a different reader', async () => {
+      optedInAndGranted('1')
+      pushManager.getSubscription.mockResolvedValueOnce(subscription)
+
+      await healPushSubscription(accountId, createContainer())
+
+      expect(subscription.unsubscribe).toHaveBeenCalled()
+      expect(pushOptin.clearPushOptIn).toHaveBeenCalled()
     })
 
     it('does nothing when the browser has no container', async () => {

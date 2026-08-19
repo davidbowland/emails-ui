@@ -98,6 +98,10 @@ const NotificationSettings = ({
   // A disabled control must say why, so the label carries the reason rather than a separate hint
   // that a screen reader may skip on a disabled button.
   const buttonLabel = (): string => {
+    // Why the whole section is unavailable: the Save button at the foot of the page is writing.
+    if (disabled) {
+      return 'Saving your settings…'
+    }
     if (isOn === undefined) {
       return 'Checking notifications…'
     }

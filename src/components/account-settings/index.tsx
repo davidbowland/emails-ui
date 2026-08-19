@@ -154,6 +154,8 @@ const AccountSettings = (): React.ReactNode => {
           </section>
         )}
 
+        {account !== undefined && <SettingsDivider />}
+
         {account !== undefined && loggedInUser?.username && (
           <NotificationSettings
             accountId={loggedInUser.username}

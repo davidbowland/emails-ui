@@ -572,3 +572,9 @@ describe('sw-killswitch activate', () => {
     expect(sw.self.clients.claim).toHaveBeenCalled()
   })
 })
+
+describe('sw-killswitch fetch', () => {
+  it('installs no fetch handler, so every request goes to the network', () => {
+    expect(loadKillSwitch().handlers.fetch).toBeUndefined()
+  })
+})

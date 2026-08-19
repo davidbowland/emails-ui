@@ -191,6 +191,33 @@ describe('NotificationSettings', () => {
     })
   })
 
+  describe('while the settings form is saving', () => {
+    it('says why the button cannot be used', async () => {
+      setNavigator(DESKTOP)
+      await renderSettings('sender-and-subject', true)
+
+      expect(await screen.findByRole('button', { name: 'Saving your settings…' })).toBeVisible()
+    })
+
+    it('starts no subscription', async () => {
+      setNavigator(DESKTOP)
+      await renderSettings('sender-and-subject', true)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Saving your settings…' }))
+
+      expect(push.subscribeToPush).not.toHaveBeenCalled()
+    })
+
+    it('takes no new choice of what notifications show', async () => {
+      setNavigator(DESKTOP)
+      await renderSettings('sender-and-subject', true)
+
+      await userEvent.click(await screen.findByRole('radio', { name: 'Neither' }))
+
+      expect(onPreviewChange).not.toHaveBeenCalled()
+    })
+  })
+
   describe('turning notifications off', () => {
     it('offers to turn them off when they are on', async () => {
       setNavigator(DESKTOP)

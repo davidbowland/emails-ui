@@ -50,6 +50,8 @@ describe('NotificationSettings', () => {
     jest.mocked(push.isSubscribedToPush).mockResolvedValue(false)
     jest.mocked(push.subscribeToPush).mockResolvedValue('subscribed')
     jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
+
+    Object.defineProperty(window, 'location', { configurable: true, value: { reload: jest.fn() } })
   })
 
   describe('announcing what happened', () => {
@@ -136,6 +138,17 @@ describe('NotificationSettings', () => {
           "Emails isn't running in the background yet, so notifications can't start. Reload the page and try again.",
         ),
       ).toBeVisible()
+    })
+
+    it('offers the reload it just asked for when the worker is not running yet', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.subscribeToPush).mockResolvedValueOnce('unready')
+      await renderSettings()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Reload the page' }))
+
+      expect(window.location.reload).toHaveBeenCalled()
     })
 
     it('points an iPhone reader at the Home Screen', async () => {

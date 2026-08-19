@@ -107,9 +107,20 @@ const NotificationSettings = ({
     if (isOn) {
       return 'Turn off notifications'
     }
-    return state === 'failed' || state === 'denied' || state === 'dismissed' || state === 'unready'
-      ? 'Try again'
-      : 'Turn on notifications'
+    // Another go at a worker that never became ready would burn another five seconds on the same
+    // answer, so the button offers the reload the status line asks for, and does it.
+    if (state === 'unready') {
+      return 'Reload the page'
+    }
+    return state === 'failed' || state === 'denied' || state === 'dismissed' ? 'Try again' : 'Turn on notifications'
+  }
+
+  const handleButtonClick = (): void => {
+    if (state === 'unready') {
+      window.location.reload()
+      return
+    }
+    void (isOn ? handleTurnOff() : handleTurnOn())
   }
 
   const status = statusMessage(state, iosDevice, turningOff)
@@ -133,7 +144,7 @@ const NotificationSettings = ({
         aria-describedby="notification-status"
         className="btn-accent"
         disabled={busy}
-        onClick={() => void (isOn ? handleTurnOff() : handleTurnOn())}
+        onClick={handleButtonClick}
         style={{
           cursor: busy ? 'not-allowed' : 'pointer',
           fontFamily: 'Outfit, sans-serif',

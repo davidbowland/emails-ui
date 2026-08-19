@@ -144,6 +144,15 @@ describe('push service', () => {
 
       expect(await pending).toEqual('unready')
     })
+
+    it('reports notifications off rather than leaving the settings page checking forever', async () => {
+      const container = createContainer(new Promise(() => undefined))
+
+      const pending = isSubscribedToPush(container, READY_TIMEOUT_MS)
+      await jest.advanceTimersByTimeAsync(READY_TIMEOUT_MS)
+
+      expect(await pending).toBe(false)
+    })
   })
 
   describe('isSubscribedToPush', () => {

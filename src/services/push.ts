@@ -59,13 +59,19 @@ const subscribeAndPost = async (
 // The subscription is the fact, not Notification.permission: revoking permission in browser
 // settings drops the subscription with it, and a granted permission with no subscription is
 // not notifications being on. Read-only, so the settings page never prompts on load.
-export const isSubscribedToPush = async (swContainer = resolveContainer()): Promise<boolean> => {
+export const isSubscribedToPush = async (
+  swContainer = resolveContainer(),
+  readyTimeoutMs = READY_TIMEOUT_MS,
+): Promise<boolean> => {
   if (!swContainer) {
     return false
   }
   try {
-    const registration = await swContainer.ready
-    return (await registration.pushManager.getSubscription()) !== null
+    // Raced for the same reason subscribeToPush races it: ready never rejects, so a failed
+    // registration would leave the settings button on "Checking notifications…" for the life of
+    // the page, with no status line and nothing to try. A worker that never arrives is off.
+    const registration = await waitForWorker(swContainer, readyTimeoutMs)
+    return Boolean(await registration?.pushManager.getSubscription())
   } catch (error: unknown) {
     console.error('isSubscribedToPush', { error })
     return false

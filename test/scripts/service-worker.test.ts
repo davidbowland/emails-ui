@@ -1,6 +1,8 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+import { EXAMPLES } from '@components/notification-preview'
+
 // Both workers run in a worker scope, so each is loaded as text and evaluated with the scope
 // globals it reaches for passed in as parameters. Every handler either registers is kept so a
 // test can drive a real event through the real code.
@@ -496,6 +498,46 @@ describe.each([
     const { notification } = await dispatchNotificationClick(sw, [])
 
     expect(notification.close).toHaveBeenCalled()
+  })
+
+  // The settings page shows the reader a worked example of each row rather than describing it,
+  // so the figure is a promise about what lands on a lock screen. Nothing but this stops the two
+  // from drifting, and a drift here is a privacy misstatement, not a typo. The examples are
+  // imported rather than restated so the test cannot drift either.
+  describe('matches the worked examples the settings page shows', () => {
+    it('draws the "Neither" example', async () => {
+      const sw = loadSw(workerSource)
+
+      await dispatchPush(sw, pushData({ emailId: 'abc123' }))
+
+      expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+        EXAMPLES.none.title,
+        expect.objectContaining({ body: EXAMPLES.none.body }),
+      )
+    })
+
+    it('draws the "Sender only" example', async () => {
+      const sw = loadSw(workerSource)
+
+      await dispatchPush(sw, pushData({ emailId: 'abc123', senderLabel: EXAMPLES['sender-only'].title }))
+
+      expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+        EXAMPLES['sender-only'].title,
+        expect.objectContaining({ body: EXAMPLES['sender-only'].body }),
+      )
+    })
+
+    it('draws the "Sender and subject" example', async () => {
+      const sw = loadSw(workerSource)
+      const example = EXAMPLES['sender-and-subject']
+
+      await dispatchPush(sw, pushData({ emailId: 'abc123', senderLabel: example.title, subject: example.body }))
+
+      expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+        example.title,
+        expect.objectContaining({ body: example.body }),
+      )
+    })
   })
 })
 

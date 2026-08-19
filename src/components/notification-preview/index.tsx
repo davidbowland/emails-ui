@@ -14,8 +14,10 @@ export const PREVIEW_LABELS: Record<NotificationPreview, string> = {
 }
 
 // The three rows the service worker actually draws (scripts/sw-src.js buildNotification), with
-// one worked example rather than a description of one.
-const EXAMPLES: Record<NotificationPreview, { body: string; title: string }> = {
+// one worked example rather than a description of one. Exported because that makes it a promise
+// about what lands on a lock screen: test/scripts/service-worker.test.ts drives each row through
+// the real worker, so the figure and the notification can never drift apart.
+export const EXAMPLES: Record<NotificationPreview, { body: string; title: string }> = {
   none: { body: 'New email', title: 'Emails' },
   'sender-and-subject': { body: 'Lunch Thursday?', title: 'Sarah Smith' },
   'sender-only': { body: 'sent you an email', title: 'Sarah Smith' },

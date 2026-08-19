@@ -1,6 +1,7 @@
 import * as emails from './emails'
 import {
   healPushSubscription,
+  isPushSupported,
   isSubscribedToPush,
   READY_TIMEOUT_MS,
   subscribeToPush,
@@ -51,6 +52,28 @@ describe('push service', () => {
 
     console.error = jest.fn()
     console.warn = jest.fn()
+  })
+
+  describe('isPushSupported', () => {
+    it('is false when the browser has no service worker container', () => {
+      setPermission('granted')
+
+      // Called the way the settings page calls it, so the default container resolution runs
+      // too: jsdom's navigator has no serviceWorker.
+      expect(isPushSupported()).toBe(false)
+    })
+
+    it('is false when the browser has no Notification API', () => {
+      removeNotification()
+
+      expect(isPushSupported(createContainer())).toBe(false)
+    })
+
+    it('is true when the browser has both', () => {
+      setPermission('default')
+
+      expect(isPushSupported(createContainer())).toBe(true)
+    })
   })
 
   describe('subscribeToPush', () => {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 
 import { isIosDevice } from '@components/install-offer/use-install-prompt'
 import NotificationPreviewFigure, { PREVIEW_LABELS } from '@components/notification-preview'
-import { isSubscribedToPush, PushResult, subscribeToPush, unsubscribeFromPush } from '@services/push'
+import { isPushSupported, isSubscribedToPush, PushResult, subscribeToPush, unsubscribeFromPush } from '@services/push'
 import { NotificationPreview } from '@types'
 
 // 'idle' is the settled state with nothing to report: at mount while isSubscribedToPush resolves,
@@ -64,11 +64,22 @@ const NotificationSettings = ({
   const [isOn, setIsOn] = useState<boolean | undefined>()
   const [iosDevice, setIosDevice] = useState(false)
   const [savingPreview, setSavingPreview] = useState(false)
+  // Whether this browser could do notifications at all. Assumed until the mount effect says
+  // otherwise, so the button is not offered and then withdrawn on a browser that can.
+  const [supported, setSupported] = useState(true)
   const [state, setState] = useState<PushState>('idle')
   const [turningOff, setTurningOff] = useState(false)
 
   useEffect(() => {
     setIosDevice(isIosDevice(navigator.userAgent, navigator.platform, navigator.maxTouchPoints))
+    // Knowable without asking, so it is said at mount: a button whose only possible outcome is
+    // "this browser can't" is an offer the reader has to spend a tap to have refused.
+    if (!isPushSupported()) {
+      setSupported(false)
+      setIsOn(false)
+      setState('unsupported')
+      return
+    }
     isSubscribedToPush().then(setIsOn)
   }, [])
 
@@ -144,23 +155,27 @@ const NotificationSettings = ({
         follows your account to every device.
       </p>
 
-      <button
-        aria-describedby="notification-status"
-        className="btn-accent"
-        disabled={busy}
-        onClick={handleButtonClick}
-        style={{
-          cursor: busy ? 'not-allowed' : 'pointer',
-          fontFamily: 'Outfit, sans-serif',
-          fontSize: '14px',
-          fontWeight: 600,
-          minHeight: '44px',
-          padding: '9px 20px',
-        }}
-        type="button"
-      >
-        {buttonLabel()}
-      </button>
+      {/* No button on a browser that cannot do notifications: the status line below already says
+          so, and the only thing pressing it could do is say the same thing a tap later. */}
+      {supported && (
+        <button
+          aria-describedby="notification-status"
+          className="btn-accent"
+          disabled={busy}
+          onClick={handleButtonClick}
+          style={{
+            cursor: busy ? 'not-allowed' : 'pointer',
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '14px',
+            fontWeight: 600,
+            minHeight: '44px',
+            padding: '9px 20px',
+          }}
+          type="button"
+        >
+          {buttonLabel()}
+        </button>
+      )}
 
       {/* Mounted whether or not there is anything to say. A live region has to be in the
           accessibility tree BEFORE its content changes: created and filled in the same commit,

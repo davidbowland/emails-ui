@@ -56,6 +56,12 @@ const subscribeAndPost = async (
   return subscription
 }
 
+// Whether this browser could ever do push, whatever the reader has chosen. Synchronous and
+// prompt-free, so the settings page can say so at mount rather than offering a button that can
+// only end in 'unsupported'.
+export const isPushSupported = (swContainer = resolveContainer()): boolean =>
+  Boolean(swContainer) && typeof Notification !== 'undefined'
+
 // The subscription is the fact, not Notification.permission: revoking permission in browser
 // settings drops the subscription with it, and a granted permission with no subscription is
 // not notifications being on. Read-only, so the settings page never prompts on load.
@@ -83,7 +89,7 @@ export const subscribeToPush = async (
   swContainer = resolveContainer(),
   readyTimeoutMs = READY_TIMEOUT_MS,
 ): Promise<PushResult> => {
-  if (!swContainer || typeof Notification === 'undefined') {
+  if (!isPushSupported(swContainer)) {
     return 'unsupported'
   }
   // FIRST, before any other await. Safari and Firefox require user activation, and a
@@ -149,12 +155,7 @@ export const healPushSubscription = async (
   swContainer = resolveContainer(),
   readyTimeoutMs = READY_TIMEOUT_MS,
 ): Promise<void> => {
-  if (
-    !swContainer ||
-    typeof Notification === 'undefined' ||
-    Notification.permission !== 'granted' ||
-    !isPushOptedIn()
-  ) {
+  if (!isPushSupported(swContainer) || Notification.permission !== 'granted' || !isPushOptedIn()) {
     return
   }
   try {

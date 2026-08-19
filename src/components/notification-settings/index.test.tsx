@@ -47,6 +47,7 @@ describe('NotificationSettings', () => {
 
   beforeAll(() => {
     onPreviewChange.mockResolvedValue(undefined)
+    jest.mocked(push.isPushSupported).mockReturnValue(true)
     jest.mocked(push.isSubscribedToPush).mockResolvedValue(false)
     jest.mocked(push.subscribeToPush).mockResolvedValue('subscribed')
     jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
@@ -188,6 +189,66 @@ describe('NotificationSettings', () => {
 
       expect(await screen.findByText("We couldn't turn on notifications. Please try again.")).toBeVisible()
       expect(await screen.findByRole('button', { name: 'Try again' })).toBeVisible()
+    })
+  })
+
+  describe('a browser that cannot do notifications at all', () => {
+    it('points an iPhone reader at the Home Screen without asking them to try', async () => {
+      setNavigator(IPHONE)
+      jest.mocked(push.isPushSupported).mockReturnValueOnce(false)
+
+      render(
+        <NotificationSettings
+          accountId={accountId}
+          disabled={false}
+          onPreviewChange={onPreviewChange}
+          preview="sender-and-subject"
+        />,
+      )
+
+      expect(
+        await screen.findByText(
+          "This browser can't turn on notifications. Add Emails to your Home Screen from the Share menu, then turn them on from there.",
+        ),
+      ).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Turn on notifications' })).not.toBeInTheDocument()
+    })
+
+    it('reassures every other browser without asking them to try', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.isPushSupported).mockReturnValueOnce(false)
+
+      render(
+        <NotificationSettings
+          accountId={accountId}
+          disabled={false}
+          onPreviewChange={onPreviewChange}
+          preview="sender-and-subject"
+        />,
+      )
+
+      expect(
+        await screen.findByText(
+          "This browser can't turn on notifications. You'll still see new mail when you open Emails.",
+        ),
+      ).toBeVisible()
+      expect(screen.queryByRole('button', { name: 'Turn on notifications' })).not.toBeInTheDocument()
+    })
+
+    it('still offers the choice of what notifications show', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.isPushSupported).mockReturnValueOnce(false)
+
+      render(
+        <NotificationSettings
+          accountId={accountId}
+          disabled={false}
+          onPreviewChange={onPreviewChange}
+          preview="sender-and-subject"
+        />,
+      )
+
+      expect(await screen.findByRole('group', { name: 'What notifications show' })).toBeVisible()
     })
   })
 

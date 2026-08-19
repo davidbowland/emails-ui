@@ -40,6 +40,7 @@ describe('Authenticated component', () => {
 
   beforeAll(() => {
     jest.mocked(signOut).mockResolvedValue()
+    jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
     jest.mocked(Authenticator).mockReturnValue(<></>)
     jest.mocked(ThemeProvider).mockImplementation(({ children }) => children as unknown as React.ReactElement)
 
@@ -224,6 +225,61 @@ describe('Authenticated component', () => {
       expect(deleteUser).not.toHaveBeenCalled()
       expect(signOut).toHaveBeenCalledWith()
       expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
+      await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
+    })
+
+    it('should stop notifications to this browser before signing out', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username)
+      await waitFor(() =>
+        expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
+          jest.mocked(signOut).mock.invocationCallOrder[0],
+        ),
+      )
+    })
+
+    it('should sign out even when notifications cannot be turned off', async () => {
+      jest.mocked(push.unsubscribeFromPush).mockRejectedValueOnce(new Error('Thar be errors here'))
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      await waitFor(() => expect(signOut).toHaveBeenCalledWith())
       await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
     })
 

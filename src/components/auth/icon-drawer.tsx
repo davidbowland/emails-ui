@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
 import OfflineNotice from '@components/offline-notice'
+import { unsubscribeFromPush } from '@services/push'
 import { AuthUser } from '@types'
 
 export interface IconDrawerProps {
@@ -78,6 +79,15 @@ const IconDrawer = ({
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [navMenuOpen, closeMenu])
+
+  // The subscription belongs to the browser, not to the session, so signing out without it would
+  // leave the previous reader's senders and subjects arriving on a device they have handed back.
+  // Swallowed: whatever went wrong, being unable to unsubscribe must never trap someone signed in.
+  const signOutClick = async (): Promise<void> => {
+    await unsubscribeFromPush(loggedInUser.username).catch(() => undefined)
+    await signOut()
+    window.location.href = '/'
+  }
 
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
@@ -455,7 +465,7 @@ const IconDrawer = ({
               () => {
                 closeMenu()
                 setLoggedInUser(undefined)
-                signOut().then(() => (window.location.href = '/'))
+                void signOutClick()
               },
               0,
             )}

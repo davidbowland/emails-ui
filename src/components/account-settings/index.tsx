@@ -1,5 +1,5 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
 import AddressLine from '@components/address-line'
@@ -14,10 +14,11 @@ import { Account, AuthUser, DEFAULT_NOTIFICATION_PREVIEW, EmailAddress, Notifica
 const sameAddresses = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index])
 
-// Every field this screen owns, or a change to the one it forgets never triggers the PUT.
+// Every field the Save button owns, or a change to the one it forgets never triggers the PUT.
+// notificationPreview is not among them: it saves the moment it is chosen, so by the time Save
+// runs it already matches the server.
 const hasChanges = (account: Account, updated: Account): boolean =>
   account.name !== updated.name ||
-  account.notificationPreview !== updated.notificationPreview ||
   !sameAddresses(account.forwardTargets, updated.forwardTargets) ||
   !sameAddresses(account.bounceSenders, updated.bounceSenders)
 
@@ -31,6 +32,29 @@ const AccountSettings = (): React.ReactNode => {
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [name, setName] = useState('')
   const [notificationPreview, setNotificationPreview] = useState<NotificationPreview>(DEFAULT_NOTIFICATION_PREVIEW)
+  // The tier the server last acknowledged. A failed save reverts to what is actually in effect,
+  // which is not necessarily the tier this page loaded with -- an earlier choice may have saved.
+  // At most one save is in flight at a time, because the radio group is disabled while one is.
+  const savedPreview = useRef<NotificationPreview | undefined>(undefined)
+
+  // Saved on change, not on Save: the on/off button in the same section applies instantly, the
+  // section says the choice follows the account, and the worked example redraws to match. A
+  // reader who picks the quietest tier and leaves must not be left on the most revealing one.
+  const handlePreviewChange = async (
+    accountId: string,
+    account: Account,
+    preview: NotificationPreview,
+  ): Promise<void> => {
+    setNotificationPreview(preview)
+    try {
+      await putAccount(accountId, { ...account, id: accountId, notificationPreview: preview })
+      savedPreview.current = preview
+    } catch (error: any) {
+      console.error('handlePreviewChange', { accountId, error, preview })
+      setNotificationPreview(savedPreview.current ?? account.notificationPreview)
+      setErrorMessage("We couldn't save that. Your last saved choice is still in effect.")
+    }
+  }
 
   const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
     setIsSaving(true)
@@ -130,8 +154,10 @@ const AccountSettings = (): React.ReactNode => {
           <NotificationSettings
             accountId={loggedInUser.username}
             disabled={isSaving}
+            onPreviewChange={(preview: NotificationPreview) =>
+              handlePreviewChange(loggedInUser.username, account, preview)
+            }
             preview={notificationPreview}
-            setPreview={setNotificationPreview}
           />
         )}
 

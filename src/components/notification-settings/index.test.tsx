@@ -11,7 +11,7 @@ import { NotificationPreview } from '@types'
 jest.mock('@services/push')
 
 describe('NotificationSettings', () => {
-  const setPreview = jest.fn()
+  const onPreviewChange = jest.fn()
 
   const DESKTOP = {
     maxTouchPoints: 0,
@@ -30,12 +30,23 @@ describe('NotificationSettings', () => {
     })
   }
 
-  const renderSettings = async (preview: NotificationPreview = 'sender-and-subject'): Promise<void> => {
-    render(<NotificationSettings accountId={accountId} disabled={false} preview={preview} setPreview={setPreview} />)
+  const renderSettings = async (
+    preview: NotificationPreview = 'sender-and-subject',
+    disabled = false,
+  ): Promise<void> => {
+    render(
+      <NotificationSettings
+        accountId={accountId}
+        disabled={disabled}
+        onPreviewChange={onPreviewChange}
+        preview={preview}
+      />,
+    )
     await waitFor(() => expect(push.isSubscribedToPush).toHaveBeenCalled())
   }
 
   beforeAll(() => {
+    onPreviewChange.mockResolvedValue(undefined)
     jest.mocked(push.isSubscribedToPush).mockResolvedValue(false)
     jest.mocked(push.subscribeToPush).mockResolvedValue('subscribed')
     jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
@@ -200,13 +211,34 @@ describe('NotificationSettings', () => {
       expect(await screen.findByRole('radio', { name: 'Sender only' })).toBeChecked()
     })
 
-    it('reports a new choice to its owner', async () => {
+    it('saves a new choice as soon as it is made', async () => {
       setNavigator(DESKTOP)
       await renderSettings('sender-and-subject')
 
       await userEvent.click(await screen.findByRole('radio', { name: 'Neither' }))
 
-      expect(setPreview).toHaveBeenCalledWith('none')
+      expect(onPreviewChange).toHaveBeenCalledWith('none')
+    })
+
+    it('says the choice is being saved while the save is in flight', async () => {
+      setNavigator(DESKTOP)
+      onPreviewChange.mockReturnValueOnce(new Promise(() => undefined))
+      await renderSettings('sender-and-subject')
+
+      await userEvent.click(await screen.findByRole('radio', { name: 'Neither' }))
+
+      expect(await screen.findByText('Saving your choice…')).toBeVisible()
+    })
+
+    it('takes no second choice while a save is in flight', async () => {
+      setNavigator(DESKTOP)
+      onPreviewChange.mockReturnValueOnce(new Promise(() => undefined))
+      await renderSettings('sender-and-subject')
+
+      await userEvent.click(await screen.findByRole('radio', { name: 'Neither' }))
+      await userEvent.click(await screen.findByRole('radio', { name: 'Sender only' }))
+
+      expect(onPreviewChange).toHaveBeenCalledTimes(1)
     })
 
     it('shows what the chosen level draws', async () => {

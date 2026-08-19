@@ -12,8 +12,11 @@ export type PushState = PushResult | 'idle' | 'pending'
 export interface NotificationSettingsProps {
   accountId: string
   disabled: boolean
+  // Awaited, because the choice is saved the moment it is made: everything else in this section
+  // applies instantly, and a radio that only looked chosen would leave the account on the tier
+  // the reader just rejected.
+  onPreviewChange: (preview: NotificationPreview) => Promise<void>
   preview: NotificationPreview
-  setPreview: (preview: NotificationPreview) => void
 }
 
 const CHOICES: NotificationPreview[] = ['sender-and-subject', 'sender-only', 'none']
@@ -53,13 +56,14 @@ const statusMessage = (state: PushState, iosDevice: boolean, turningOff: boolean
 const NotificationSettings = ({
   accountId,
   disabled,
+  onPreviewChange,
   preview,
-  setPreview,
 }: NotificationSettingsProps): React.ReactNode => {
   // undefined until isSubscribedToPush resolves. The subscription is the fact, not the
   // permission, and reading it never prompts.
   const [isOn, setIsOn] = useState<boolean | undefined>()
   const [iosDevice, setIosDevice] = useState(false)
+  const [savingPreview, setSavingPreview] = useState(false)
   const [state, setState] = useState<PushState>('idle')
   const [turningOff, setTurningOff] = useState(false)
 
@@ -84,6 +88,13 @@ const NotificationSettings = ({
     setState(result === 'unsubscribed' ? 'idle' : 'failed')
   }
 
+  const handlePreviewChange = async (choice: NotificationPreview): Promise<void> => {
+    setSavingPreview(true)
+    // The owner reports the outcome: a rejection here would leave the section stuck on "Saving".
+    await onPreviewChange(choice).catch(() => undefined)
+    setSavingPreview(false)
+  }
+
   // A disabled control must say why, so the label carries the reason rather than a separate hint
   // that a screen reader may skip on a disabled button.
   const buttonLabel = (): string => {
@@ -103,6 +114,7 @@ const NotificationSettings = ({
 
   const status = statusMessage(state, iosDevice, turningOff)
   const busy = isOn === undefined || state === 'pending' || disabled
+  const previewDisabled = disabled || savingPreview
 
   return (
     <section>
@@ -144,7 +156,11 @@ const NotificationSettings = ({
         </p>
       )}
 
-      <fieldset style={{ border: 'none', margin: '20px 0 0', padding: 0 }}>
+      <fieldset
+        aria-busy={savingPreview}
+        aria-describedby="notification-preview-status"
+        style={{ border: 'none', margin: '20px 0 0', padding: 0 }}
+      >
         <legend
           className="text-xs font-semibold uppercase"
           style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
@@ -161,7 +177,7 @@ const NotificationSettings = ({
             style={{
               alignItems: 'center',
               color: 'var(--text-paper)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
+              cursor: previewDisabled ? 'not-allowed' : 'pointer',
               display: 'flex',
               fontFamily: 'Outfit, sans-serif',
               fontSize: '14px',
@@ -171,15 +187,26 @@ const NotificationSettings = ({
           >
             <input
               checked={preview === choice}
-              disabled={disabled}
+              disabled={previewDisabled}
               name="notification-preview"
-              onChange={() => setPreview(choice)}
+              onChange={() => void handlePreviewChange(choice)}
               type="radio"
               value={choice}
             />
             {PREVIEW_LABELS[choice]}
           </label>
         ))}
+        {/* Mounted whether or not there is anything to say, so a screen reader has the region
+            before its text changes -- a region created in the same commit as its content is
+            reliably not announced. The height is reserved so nothing below it jumps. */}
+        <p
+          className="mt-1 text-sm"
+          id="notification-preview-status"
+          role="status"
+          style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif', minHeight: '1.25rem' }}
+        >
+          {savingPreview ? 'Saving your choice…' : ''}
+        </p>
         <NotificationPreviewFigure preview={preview} />
       </fieldset>
     </section>

@@ -8,6 +8,7 @@ import * as emails from '@services/emails'
 import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 jest.mock('aws-amplify/auth')
 jest.mock('@components/address-line')
@@ -33,12 +34,13 @@ jest.mock('@components/loading-spinner', () => {
 jest.mock('@components/notification-settings', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
-  return ({ preview, setPreview }: any) =>
+  return ({ onPreviewChange, preview }: any) =>
     React.createElement(
       'div',
       null,
       `NotificationSettingsMounted:${preview}`,
-      React.createElement('button', { onClick: () => setPreview('none') }, 'Choose neither'),
+      React.createElement('button', { onClick: () => onPreviewChange('none') }, 'Choose neither'),
+      React.createElement('button', { onClick: () => onPreviewChange('sender-only') }, 'Choose sender only'),
     )
 })
 jest.mock('@components/install-offer', () => {
@@ -107,13 +109,10 @@ describe('AccountSettings component', () => {
     expect(await screen.findByText('NotificationSettingsMounted:sender-and-subject')).toBeInTheDocument()
   })
 
-  it('expect a preference-only change to be saved', async () => {
+  it('expect a new notification level saved as soon as it is chosen', async () => {
     render(<AccountSettings />)
 
-    const chooseNeither = (await screen.findByText(/Choose neither/i)) as HTMLButtonElement
-    fireEvent.click(chooseNeither)
-    const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(saveButton)
+    await userEvent.click(await screen.findByText(/Choose neither/i))
 
     expect(emails.putAccount).toHaveBeenCalledWith(user.username, {
       bounceSenders: account.bounceSenders,
@@ -124,16 +123,24 @@ describe('AccountSettings component', () => {
     })
   })
 
-  it('expect the level to revert when the save fails', async () => {
+  it('expect the level to revert with a message when saving it fails', async () => {
     jest.mocked(emails).putAccount.mockRejectedValueOnce(undefined)
     render(<AccountSettings />)
 
-    const chooseNeither = (await screen.findByText(/Choose neither/i)) as HTMLButtonElement
-    fireEvent.click(chooseNeither)
-    const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
-    fireEvent.click(saveButton)
+    await userEvent.click(await screen.findByText(/Choose neither/i))
 
+    expect(await screen.findByText(/We couldn't save that. Your last saved choice is still in effect./i)).toBeVisible()
     expect(await screen.findByText('NotificationSettingsMounted:sender-and-subject')).toBeInTheDocument()
+  })
+
+  it('expect a failed level save to revert to the level last saved, not the level loaded', async () => {
+    render(<AccountSettings />)
+
+    await userEvent.click(await screen.findByText(/Choose sender only/i))
+    jest.mocked(emails).putAccount.mockRejectedValueOnce(undefined)
+    await userEvent.click(await screen.findByText(/Choose neither/i))
+
+    expect(await screen.findByText('NotificationSettingsMounted:sender-only')).toBeInTheDocument()
   })
 
   it('expect putAccount not called when no changes', async () => {

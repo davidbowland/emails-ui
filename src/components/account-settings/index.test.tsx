@@ -100,7 +100,23 @@ describe('AccountSettings component', () => {
     const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
     fireEvent.click(saveButton)
 
-    expect(await screen.findByText(/We couldn't save that. Your last saved choice is still in effect./i)).toBeVisible()
+    expect(
+      await screen.findByText(
+        "We couldn't save your settings. Nothing changed — your last saved settings are still in effect.",
+      ),
+    ).toBeVisible()
+  })
+
+  it('expect the fields put back where the server is when the save fails', async () => {
+    jest.mocked(emails).putAccount.mockRejectedValueOnce(undefined)
+    render(<AccountSettings />)
+
+    const linkTextInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
+    fireEvent.change(linkTextInput, { target: { value: 'George' } })
+    const saveButton = (await screen.findByText(/Save/i, { selector: 'button' })) as HTMLButtonElement
+    fireEvent.click(saveButton)
+
+    expect(await screen.findByDisplayValue(account.name)).toBeVisible()
   })
 
   it('expect the notification settings mounted with the saved level', async () => {

@@ -68,10 +68,14 @@ const AccountSettings = (): React.ReactNode => {
       }
     } catch (error: any) {
       console.error('handleSaveClick', { account, accountId, bounceSenders, error, forwardAddresses })
-      // Put the screen back where the server is: nothing was written, so showing the unsaved
-      // choice would be a lie the reader cannot see.
-      setNotificationPreview(account.notificationPreview)
-      setErrorMessage("We couldn't save that. Your last saved choice is still in effect.")
+      // Put the screen back where the server is, every field of it: nothing was written, so
+      // leaving an edit on screen while saying the old value is in effect would be a lie the
+      // reader cannot see. notificationPreview is not among them -- it saves on change, so the
+      // value on screen is the one the server acknowledged.
+      setBounceSenders(account.bounceSenders)
+      setForwardAddresses(account.forwardTargets.map((address) => ({ address, name: '' })))
+      setName(account.name)
+      setErrorMessage("We couldn't save your settings. Nothing changed — your last saved settings are still in effect.")
     }
     setIsSaving(false)
   }

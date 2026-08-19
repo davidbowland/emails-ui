@@ -78,7 +78,10 @@ function buildNotification(payload) {
 
 function readPushPayload(event) {
   try {
-    return event.data ? event.data.json() : {}
+    var payload = event.data ? event.data.json() : {}
+    // A body of `null` parses rather than throwing, so the catch never sees it and every read
+    // of a field on it would throw instead -- drawing nothing at all.
+    return payload && typeof payload === 'object' ? payload : {}
   } catch {
     // An unreadable payload lands on the label-less row, which is the right failure.
     return {}

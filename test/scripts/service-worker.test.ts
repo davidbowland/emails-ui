@@ -392,6 +392,18 @@ describe.each([
     )
   })
 
+  it('falls back to the most private row when the payload is a JSON null', async () => {
+    const sw = loadSw(workerSource)
+
+    // A body of `null` parses; it does not throw, so the catch never sees it.
+    await dispatchPush(sw, pushData(null))
+
+    expect(sw.self.registration.showNotification).toHaveBeenCalledWith(
+      'Emails',
+      expect.objectContaining({ body: 'New email', renotify: false }),
+    )
+  })
+
   it('falls back to the most private row when the push carries no data at all', async () => {
     const sw = loadSw(workerSource)
 

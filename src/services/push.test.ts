@@ -4,6 +4,7 @@ import {
   isPushSupported,
   isSubscribedToPush,
   READY_TIMEOUT_MS,
+  SIGN_OUT_TIMEOUT_MS,
   subscribeToPush,
   unsubscribeFromPush,
 } from './push'
@@ -179,6 +180,20 @@ describe('push service', () => {
       await jest.advanceTimersByTimeAsync(READY_TIMEOUT_MS)
 
       expect(await pending).toBe(false)
+    })
+
+    // Sign-out and account deletion wait on the unsubscribe before leaving the page, so their
+    // deadline has to expire well inside the one a settings-page action can afford.
+    it('gives up the unsubscribe on the shorter sign-out deadline', async () => {
+      const container = createContainer(new Promise(() => undefined))
+      const settled = jest.fn()
+
+      const pending = unsubscribeFromPush(accountId, container, SIGN_OUT_TIMEOUT_MS).then(settled)
+      await jest.advanceTimersByTimeAsync(SIGN_OUT_TIMEOUT_MS)
+      await pending
+
+      expect(settled).toHaveBeenCalledWith('unsubscribed')
+      expect(SIGN_OUT_TIMEOUT_MS).toBeLessThan(READY_TIMEOUT_MS)
     })
   })
 

@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
 import OfflineNotice from '@components/offline-notice'
-import { unsubscribeFromPush } from '@services/push'
+import { SIGN_OUT_TIMEOUT_MS, unsubscribeFromPush } from '@services/push'
 import { AuthUser } from '@types'
 
 export interface IconDrawerProps {
@@ -83,8 +83,10 @@ const IconDrawer = ({
   // The subscription belongs to the browser, not to the session, so signing out without it would
   // leave the previous reader's senders and subjects arriving on a device they have handed back.
   // Swallowed: whatever went wrong, being unable to unsubscribe must never trap someone signed in.
+  // Awaited on a short deadline, not the default one: the reader is staring at a screen they have
+  // already left, and a browser whose worker never becomes ready would hold them there.
   const signOutClick = async (): Promise<void> => {
-    await unsubscribeFromPush(loggedInUser.username).catch(() => undefined)
+    await unsubscribeFromPush(loggedInUser.username, undefined, SIGN_OUT_TIMEOUT_MS).catch(() => undefined)
     await signOut()
     window.location.href = '/'
   }
@@ -95,7 +97,7 @@ const IconDrawer = ({
     // -- an address anyone holding it can send to -- would outlive the account it belonged to,
     // against what the privacy policy promises. Swallowed, and first: the account must go even
     // when the unsubscribe cannot.
-    await unsubscribeFromPush(loggedInUser.username).catch(() => undefined)
+    await unsubscribeFromPush(loggedInUser.username, undefined, SIGN_OUT_TIMEOUT_MS).catch(() => undefined)
     // Only `deleteUser` is guarded: v5's callback reported errors from the delete alone, and a
     // failure after the account is gone must not raise the "couldn't delete" snackbar.
     try {

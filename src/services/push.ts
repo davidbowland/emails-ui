@@ -8,6 +8,12 @@ export type PushResult = 'subscribed' | 'unsupported' | 'denied' | 'dismissed' |
 
 export const READY_TIMEOUT_MS = 5_000
 
+// The deadline for the unsubscribe that sign-out and account deletion wait on. Those two hold
+// the reader on a screen they have already left, so they cannot afford the full deadline a
+// settings-page action can: a browser whose worker never becomes ready would freeze the sign-out
+// for five seconds. Still long enough that the server-side DELETE usually lands.
+export const SIGN_OUT_TIMEOUT_MS = 1_500
+
 const resolveContainer = (): ServiceWorkerContainer | undefined =>
   typeof navigator === 'undefined' || !('serviceWorker' in navigator) ? undefined : navigator.serviceWorker
 

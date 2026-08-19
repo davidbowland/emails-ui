@@ -249,12 +249,39 @@ describe('Authenticated component', () => {
         await userEvent.click(signOutButton)
       })
 
-      expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username)
+      expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username, undefined, push.SIGN_OUT_TIMEOUT_MS)
       await waitFor(() =>
         expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
           jest.mocked(signOut).mock.invocationCallOrder[0],
         ),
       )
+    })
+
+    // Sign-out waits on the unsubscribe so the DELETE usually lands, and the unsubscribe waits on
+    // the service worker. On a browser whose worker never becomes ready that wait is the whole
+    // sign-out, so it gets a deadline far shorter than the one a settings-page action can afford.
+    it('should not make the reader wait on the full worker deadline to sign out', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      expect(push.SIGN_OUT_TIMEOUT_MS).toBeLessThan(push.READY_TIMEOUT_MS)
     })
 
     it('should sign out even when notifications cannot be turned off', async () => {
@@ -411,7 +438,7 @@ describe('Authenticated component', () => {
           await userEvent.click(continueButton)
         })
 
-        expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username)
+        expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username, undefined, push.SIGN_OUT_TIMEOUT_MS)
         await waitFor(() =>
           expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
             jest.mocked(deleteUser).mock.invocationCallOrder[0],

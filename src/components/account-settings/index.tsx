@@ -29,6 +29,11 @@ const AccountSettings = (): React.ReactNode => {
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  // Both saves send the whole item, and neither re-reads first. The preference save carries the
+  // account as this page loaded it, so a Save started while one is in flight can land first and be
+  // overwritten by the older name, forward targets and bounce rules -- with the new ones still on
+  // screen. The form's Save is held until the preference save has landed.
+  const [isSavingPreview, setIsSavingPreview] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [name, setName] = useState('')
   const [notificationPreview, setNotificationPreview] = useState<NotificationPreview>(DEFAULT_NOTIFICATION_PREVIEW)
@@ -46,6 +51,7 @@ const AccountSettings = (): React.ReactNode => {
     preview: NotificationPreview,
   ): Promise<void> => {
     setNotificationPreview(preview)
+    setIsSavingPreview(true)
     try {
       await putAccount(accountId, { ...account, id: accountId, notificationPreview: preview })
       savedPreview.current = preview
@@ -54,6 +60,7 @@ const AccountSettings = (): React.ReactNode => {
       setNotificationPreview(savedPreview.current ?? account.notificationPreview)
       setErrorMessage("We couldn't save that. Your last saved choice is still in effect.")
     }
+    setIsSavingPreview(false)
   }
 
   const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
@@ -177,7 +184,7 @@ const AccountSettings = (): React.ReactNode => {
         <div className="flex justify-end pt-2">
           {loggedInUser?.username && account && (
             <SaveButton
-              disabled={isSaving}
+              disabled={isSaving || isSavingPreview}
               isSaving={isSaving}
               onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
             />

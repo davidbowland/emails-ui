@@ -159,6 +159,33 @@ describe('AccountSettings component', () => {
     expect(await screen.findByText('NotificationSettingsMounted:sender-only')).toBeInTheDocument()
   })
 
+  it('expect no save while the notification level is still saving', async () => {
+    // The whole-item PUT the level save is making carries the account as it was loaded, so a
+    // second PUT racing it can land first and be overwritten by the older name.
+    jest.mocked(emails).putAccount.mockReturnValueOnce(new Promise(() => undefined))
+    render(<AccountSettings />)
+
+    const nameInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'George')
+    await userEvent.click(await screen.findByText(/Choose neither/i))
+    await userEvent.click(await screen.findByText(/Save/i, { selector: 'button' }))
+
+    expect(emails.putAccount).toHaveBeenCalledTimes(1)
+  })
+
+  it('expect a save once the notification level has finished saving', async () => {
+    render(<AccountSettings />)
+
+    const nameInput = (await screen.findByLabelText(/From name/i)) as HTMLInputElement
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'George')
+    await userEvent.click(await screen.findByText(/Choose neither/i))
+    await userEvent.click(await screen.findByText(/Save/i, { selector: 'button' }))
+
+    expect(emails.putAccount).toHaveBeenCalledTimes(2)
+  })
+
   it('expect putAccount not called when no changes', async () => {
     render(<AccountSettings />)
 

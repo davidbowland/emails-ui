@@ -25,9 +25,13 @@ describe('privacy-policy component', () => {
   })
 
   it('says who carries a notification and how long the address is kept', async () => {
-    render(<PrivacyPolicy />)
+    const { container } = render(<PrivacyPolicy />)
 
     expect(await screen.findByText(/Apple, Google, or Mozilla carries them to your device/i)).toBeInTheDocument()
+    // The retention half is the only claim in the sentence a reader can hold us to, so assert it separately
+    expect(container.textContent).toContain(
+      'we store the address their service gives us until you turn notifications off',
+    )
   })
 
   it('is dated the day notifications shipped', async () => {

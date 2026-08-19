@@ -3,7 +3,7 @@ import React from 'react'
 import { InstallSurface } from '@types'
 
 // --- Surface tokens -------------------------------------------------------------------
-// Never uses --text-muted / --text-paper-muted for readable text: both fail AA. Shell text
+// Never uses --text-muted for readable text: it fails AA on the shell (2.29:1). Shell text
 // is --text-primary (7.84:1), paper text is --text-paper (15.28:1).
 
 export interface SurfaceTokens {

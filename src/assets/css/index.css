@@ -17,7 +17,9 @@
   --text-primary: #9ba1be;
   --text-muted: #454a62;
   --text-paper: #1c1a17;
-  --text-paper-muted: #7a7469;
+  /* 5.09:1 on --paper-bg and 5.56:1 on --paper-surface. The old #7a7469 read 4.08:1 and
+     4.45:1, below the 4.5:1 AA needs for normal text on both. */
+  --text-paper-muted: #6b6558;
 
   /* Accent – electric violet (departure from terracotta) */
   --accent: #7c5df4;

@@ -3,6 +3,7 @@ import { deleteUser, getCurrentUser, signOut } from 'aws-amplify/auth'
 import React from 'react'
 
 import Authenticated from './index'
+import * as push from '@services/push'
 import { user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
@@ -12,6 +13,21 @@ jest.mock('aws-amplify/auth')
 jest.mock('@aws-amplify/analytics')
 jest.mock('@aws-amplify/ui-react')
 jest.mock('@config/amplify')
+jest.mock('@services/push')
+// Mocked to markers so the mount is what's under test here, not their internals (each has
+// its own suite). The real components render nothing in this environment (not installable /
+// online), so a marker is the only way to prove they are actually wired into the tree — the
+// guard against shipping the feature unmounted.
+jest.mock('@components/install-offer', () => {
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'InstallOfferMounted')
+})
+jest.mock('@components/offline-notice', () => {
+  const React = require('react')
+  // eslint-disable-next-line react/display-name
+  return () => React.createElement('div', null, 'OfflineNoticeMounted')
+})
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
@@ -24,6 +40,7 @@ describe('Authenticated component', () => {
 
   beforeAll(() => {
     jest.mocked(signOut).mockResolvedValue()
+    jest.mocked(push.unsubscribeFromPush).mockResolvedValue('unsubscribed')
     jest.mocked(Authenticator).mockReturnValue(<></>)
     jest.mocked(ThemeProvider).mockImplementation(({ children }) => children as unknown as React.ReactElement)
 
@@ -68,6 +85,16 @@ describe('Authenticated component', () => {
       )
 
       expect(await screen.findByText(/Sign in to continue/i)).toBeInTheDocument()
+    })
+
+    it('should mount the install offer on the sign-in screen', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      expect(await screen.findByText('InstallOfferMounted')).toBeInTheDocument()
     })
 
     it('should show title and children when showContent is true', async () => {
@@ -145,6 +172,16 @@ describe('Authenticated component', () => {
       expect(await screen.findByText(/Dave/i)).toBeInTheDocument()
     })
 
+    it('should mount the offline notice in the authenticated shell', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      expect(await screen.findByText('OfflineNoticeMounted')).toBeInTheDocument()
+    })
+
     it('should open menu when menu button is clicked', async () => {
       render(
         <Authenticated>
@@ -188,6 +225,88 @@ describe('Authenticated component', () => {
       expect(deleteUser).not.toHaveBeenCalled()
       expect(signOut).toHaveBeenCalledWith()
       expect(screen.queryByText(/Dave/i)).not.toBeInTheDocument()
+      await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
+    })
+
+    it('should stop notifications to this browser before signing out', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username, undefined, push.SIGN_OUT_TIMEOUT_MS)
+      await waitFor(() =>
+        expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
+          jest.mocked(signOut).mock.invocationCallOrder[0],
+        ),
+      )
+    })
+
+    // Sign-out waits on the unsubscribe so the DELETE usually lands, and the unsubscribe waits on
+    // the service worker. On a browser whose worker never becomes ready that wait is the whole
+    // sign-out, so it gets a deadline far shorter than the one a settings-page action can afford.
+    it('should not make the reader wait on the full worker deadline to sign out', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      expect(push.SIGN_OUT_TIMEOUT_MS).toBeLessThan(push.READY_TIMEOUT_MS)
+    })
+
+    it('should sign out even when notifications cannot be turned off', async () => {
+      jest.mocked(push.unsubscribeFromPush).mockRejectedValueOnce(new Error('Thar be errors here'))
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const signOutButton = (await screen.findByText(/Sign out/i)) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(signOutButton)
+      })
+
+      await waitFor(() => expect(signOut).toHaveBeenCalledWith())
       await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
     })
 
@@ -292,6 +411,73 @@ describe('Authenticated component', () => {
         await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
       })
 
+      it('should delete the push subscription before deleting the account', async () => {
+        render(
+          <Authenticated>
+            <p>Testing children</p>
+          </Authenticated>,
+        )
+
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(menuButton)
+        })
+
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(deleteAccountMenuOption)
+        })
+
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(continueButton)
+        })
+
+        expect(push.unsubscribeFromPush).toHaveBeenCalledWith(user.username, undefined, push.SIGN_OUT_TIMEOUT_MS)
+        await waitFor(() =>
+          expect(jest.mocked(push.unsubscribeFromPush).mock.invocationCallOrder[0]).toBeLessThan(
+            jest.mocked(deleteUser).mock.invocationCallOrder[0],
+          ),
+        )
+      })
+
+      it('should delete the account even when the subscription cannot be deleted', async () => {
+        jest.mocked(push.unsubscribeFromPush).mockRejectedValueOnce(new Error('Thar be errors here'))
+        render(
+          <Authenticated>
+            <p>Testing children</p>
+          </Authenticated>,
+        )
+
+        const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+          selector: 'button',
+        })) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(menuButton)
+        })
+
+        const deleteAccountMenuOption = (await screen.findAllByText(/Delete account/i))[0] as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(deleteAccountMenuOption)
+        })
+
+        const continueButton = (await screen.findByText(/Delete my account/i)) as HTMLButtonElement
+
+        await act(async () => {
+          await userEvent.click(continueButton)
+        })
+
+        await waitFor(() => expect(deleteUser).toHaveBeenCalled())
+        await waitFor(() => expect(mockLocationHref).toHaveBeenCalledWith('/'))
+      })
+
       it('should show error message when account deletion fails', async () => {
         jest.mocked(deleteUser).mockRejectedValueOnce(new Error('Thar be errors here'))
 
@@ -365,6 +551,36 @@ describe('Authenticated component', () => {
 
         expect(screen.queryByText(/Couldn't delete your account/i)).not.toBeInTheDocument()
       })
+    })
+  })
+
+  describe('push self-heal', () => {
+    beforeAll(() => {
+      jest.mocked(push.healPushSubscription).mockResolvedValue(undefined)
+    })
+
+    it('repairs the push subscription once the session resolves', async () => {
+      jest.mocked(getCurrentUser).mockResolvedValueOnce(user)
+      render(
+        <Authenticated>
+          <>Testing children</>
+        </Authenticated>,
+      )
+
+      await waitFor(() => expect(push.healPushSubscription).toHaveBeenCalledWith(user.username))
+    })
+
+    it('does not repair anything when nobody is signed in', async () => {
+      jest.mocked(getCurrentUser).mockRejectedValueOnce(new Error('Not authenticated'))
+      render(
+        <Authenticated showContent={true}>
+          <>Testing children</>
+        </Authenticated>,
+      )
+
+      await screen.findByText(/Testing children/i)
+
+      expect(push.healPushSubscription).not.toHaveBeenCalled()
     })
   })
 })

@@ -355,4 +355,74 @@ describe('Mailbox component', () => {
     await screen.findByText(/Hello, world of email/i)
     expect(screen.queryByText(/Bounced/i)).not.toBeInTheDocument()
   })
+  describe('service worker messages', () => {
+    // A real EventTarget rather than a mock pair, so the test drives the listener the way the
+    // browser does -- which is the only way a stale-closure registration would show up.
+    const serviceWorker = new EventTarget()
+
+    beforeAll(() => {
+      Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: serviceWorker,
+      })
+    })
+
+    const postToPage = async (data: unknown): Promise<void> => {
+      await act(async () => {
+        serviceWorker.dispatchEvent(new MessageEvent('message', { data }))
+      })
+    }
+
+    // The mailbox settles at TWO loads on mount: the initial fetch, then the refresh that
+    // follows marking the first email as viewed. Waiting for that second load is what makes the
+    // counts below deterministic -- the act() around dispatchEvent is otherwise what flushes the
+    // mark-as-viewed chain, so an unrelated load would land on whichever test dispatched first.
+    const renderSettledMailbox = async () => {
+      const view = render(
+        <Mailbox
+          deleteEmail={deleteEmail}
+          getAllEmails={getAllEmails}
+          getEmailAttachment={getEmailAttachment}
+          getEmailContents={getEmailContents}
+          patchEmail={patchEmail}
+        />,
+      )
+      await waitFor(() => expect(getAllEmails).toHaveBeenCalledTimes(2))
+      return view
+    }
+
+    it('refreshes the mailbox when the worker says an email arrived', async () => {
+      await renderSettledMailbox()
+
+      await postToPage({ type: 'refresh-inbox' })
+
+      expect(getAllEmails).toHaveBeenCalledTimes(3)
+      expect(getAllEmails).toHaveBeenLastCalledWith(user.username)
+    })
+
+    it('ignores a message it does not recognize', async () => {
+      await renderSettledMailbox()
+
+      await postToPage({ type: 'something-else' })
+
+      expect(getAllEmails).toHaveBeenCalledTimes(2)
+    })
+
+    it('ignores a message with no data', async () => {
+      await renderSettledMailbox()
+
+      await postToPage(undefined)
+
+      expect(getAllEmails).toHaveBeenCalledTimes(2)
+    })
+
+    it('stops listening once the mailbox unmounts', async () => {
+      const { unmount } = await renderSettledMailbox()
+      unmount()
+
+      await postToPage({ type: 'refresh-inbox' })
+
+      expect(getAllEmails).toHaveBeenCalledTimes(2)
+    })
+  })
 })

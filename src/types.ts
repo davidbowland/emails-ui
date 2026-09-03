@@ -20,10 +20,19 @@ export interface AttachmentCommon {
   type: 'attachment'
 }
 
+// How much a push notification is allowed to reveal on a locked screen. The API applies the
+// default on read, so every account this UI receives carries a concrete value; the field is
+// required here because putAccount replaces the whole account and a body that omits it would
+// silently reset the reader's choice. The constant lives beside the type because it is the
+// type's canonical default, and this file is excluded from coverage.
+export type NotificationPreview = 'sender-and-subject' | 'sender-only' | 'none'
+export const DEFAULT_NOTIFICATION_PREVIEW: NotificationPreview = 'sender-and-subject'
+
 export interface Account {
   bounceSenders: string[]
   forwardTargets: string[]
   name: string
+  notificationPreview: NotificationPreview
   id?: string
 }
 
@@ -113,6 +122,15 @@ export interface EmailOutbound {
   text: string
   to: EmailAddress[]
 }
+
+// Which of the five mutually exclusive things the install offer can show. The browser
+// decides which one; the reader never picks. `hidden` covers both an already-installed
+// app and a browser that cannot install at all — in both cases the offer renders nothing.
+export type InstallState = 'chromium' | 'hidden' | 'ios' | 'menu' | 'promptable' | 'spent'
+
+// The two surfaces the offer renders on: the midnight-navy shell (sign-in card) and the
+// warm-linen paper (Settings). Drives which token set the component reaches for.
+export type InstallSurface = 'paper' | 'shell'
 
 export interface PostSignedUrl {
   fields: StringObject

@@ -22,6 +22,15 @@ const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  useEffect(() => {
+    // A failed registration must not break the app, and an unsupported browser is a clean
+    // no-op -- so guard on the API and swallow any rejection. The worker boots the offline
+    // app shell; the page works fine without it.
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+    }
+  }, [])
+
   return (
     <div className="h-screen overflow-hidden" style={{ background: 'var(--shell-bg)', color: 'var(--text-primary)' }}>
       <Component {...pageProps} />

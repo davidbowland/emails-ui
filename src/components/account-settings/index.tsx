@@ -1,18 +1,25 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
 import ErrorSnackbar from '@components/error-snackbar'
+import InstallOffer from '@components/install-offer'
 import LoadingSpinner from '@components/loading-spinner'
+import NotificationSettings from '@components/notification-settings'
 import { getAccount, putAccount } from '@services/emails'
-import { Account, AuthUser, EmailAddress } from '@types'
+import { Account, AuthUser, DEFAULT_NOTIFICATION_PREVIEW, EmailAddress, NotificationPreview } from '@types'
 
 const sameAddresses = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index])
 
-const hasChanges = (account: Account, updated: Account): boolean =>
+// Every field the Save button owns, or a change to the one it forgets leaves Save reading "Saved"
+// while an edit sits unwritten on screen. notificationPreview is not among them: it saves the
+// moment it is chosen, so by the time Save is offered it already matches the server.
+type SaveableFields = Pick<Account, 'bounceSenders' | 'forwardTargets' | 'name'>
+
+const hasChanges = (account: Account, updated: SaveableFields): boolean =>
   account.name !== updated.name ||
   !sameAddresses(account.forwardTargets, updated.forwardTargets) ||
   !sameAddresses(account.bounceSenders, updated.bounceSenders)
@@ -24,22 +31,67 @@ const AccountSettings = (): React.ReactNode => {
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  // Both saves send the whole item, and neither re-reads first. The preference save carries the
+  // account as this page loaded it, so a Save started while one is in flight can land first and be
+  // overwritten by the older name, forward targets and bounce rules -- with the new ones still on
+  // screen. The form's Save is held until the preference save has landed.
+  const [isSavingPreview, setIsSavingPreview] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
   const [name, setName] = useState('')
+  const [notificationPreview, setNotificationPreview] = useState<NotificationPreview>(DEFAULT_NOTIFICATION_PREVIEW)
+  // Said only after a save this page made. A successful save otherwise reported nothing at all,
+  // which is indistinguishable from a save that never ran.
+  const [saveStatus, setSaveStatus] = useState('')
+  // The tier the server last acknowledged. A failed save reverts to what is actually in effect,
+  // which is not necessarily the tier this page loaded with -- an earlier choice may have saved.
+  // At most one save is in flight at a time, because the radio group is disabled while one is.
+  const savedPreview = useRef<NotificationPreview | undefined>(undefined)
+
+  const forwardTargets = forwardAddresses.map((address) => address.address)
+  const hasUnsavedChanges = account !== undefined && hasChanges(account, { bounceSenders, forwardTargets, name })
+
+  // Saved on change, not on Save: the on/off button in the same section applies instantly, the
+  // section says the choice follows the account, and the worked example redraws to match. A
+  // reader who picks the quietest tier and leaves must not be left on the most revealing one.
+  const handlePreviewChange = async (
+    accountId: string,
+    account: Account,
+    preview: NotificationPreview,
+  ): Promise<void> => {
+    setNotificationPreview(preview)
+    setIsSavingPreview(true)
+    try {
+      await putAccount(accountId, { ...account, id: accountId, notificationPreview: preview })
+      savedPreview.current = preview
+    } catch (error: any) {
+      console.error('handlePreviewChange', { accountId, error, preview })
+      setNotificationPreview(savedPreview.current ?? account.notificationPreview)
+      setErrorMessage("We couldn't save that. Your last saved choice is still in effect.")
+    }
+    setIsSavingPreview(false)
+  }
 
   const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
     setIsSaving(true)
     try {
-      const forwardTargets = forwardAddresses.map((address) => address.address)
-      const updatedAccount: Account = { bounceSenders, forwardTargets, id: accountId, name }
-      // PUT sends every field this screen owns, so there is nothing to diff.
-      if (hasChanges(account, updatedAccount)) {
-        await putAccount(accountId, updatedAccount)
-        setAccount(updatedAccount)
-      }
+      const updatedAccount: Account = { bounceSenders, forwardTargets, id: accountId, name, notificationPreview }
+      // PUT sends every field this screen owns, so there is nothing to diff. The button is only
+      // offered when there is something to write, so there is nothing to skip either -- it used to
+      // skip silently here, which is how pressing Save could do and say nothing at all.
+      await putAccount(accountId, updatedAccount)
+      setAccount(updatedAccount)
+      setSaveStatus('Settings saved.')
     } catch (error: any) {
       console.error('handleSaveClick', { account, accountId, bounceSenders, error, forwardAddresses })
-      setErrorMessage('Error saving account settings. Please refresh the page and try again.')
+      // Put the screen back where the server is, every field of it: nothing was written, so
+      // leaving an edit on screen while saying the old value is in effect would be a lie the
+      // reader cannot see. notificationPreview is not among them -- it saves on change, so the
+      // value on screen is the one the server acknowledged.
+      setBounceSenders(account.bounceSenders)
+      setForwardAddresses(account.forwardTargets.map((address) => ({ address, name: '' })))
+      setName(account.name)
+      setSaveStatus('')
+      setErrorMessage("We couldn't save your settings. Nothing changed — your last saved settings are still in effect.")
     }
     setIsSaving(false)
   }
@@ -118,15 +170,69 @@ const AccountSettings = (): React.ReactNode => {
           </section>
         )}
 
-        <div className="flex justify-end pt-2">
-          {loggedInUser?.username && account && (
-            <SaveButton
-              disabled={isSaving}
-              isSaving={isSaving}
-              onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
-            />
-          )}
-        </div>
+        {account !== undefined && <SettingsDivider />}
+
+        {account !== undefined && loggedInUser?.username && (
+          <NotificationSettings
+            accountId={loggedInUser.username}
+            disabled={isSaving}
+            onPreviewChange={(preview: NotificationPreview) =>
+              handlePreviewChange(loggedInUser.username, account, preview)
+            }
+            preview={notificationPreview}
+          />
+        )}
+
+        {account !== undefined && <SettingsDivider />}
+
+        {/* The install offer's permanent home (not dismissible here, unlike the sign-in
+            card). It renders its own heading and returns null when the browser can't install
+            or the app is already installed — so it never leaves an empty labelled section. */}
+        <InstallOffer surface="paper" />
+
+        {loggedInUser?.username && account && (
+          <div className="flex flex-col items-end gap-1 pt-2">
+            <div className="flex w-full flex-wrap items-center justify-between gap-3">
+              {/* The other half of the "Saved automatically" line on the Notifications section.
+                  A reader who changed only a notification setting arrives at a button reading
+                  "Saved" and needs to be told why, not left to press it and watch nothing happen. */}
+              <p
+                className="text-xs"
+                style={{
+                  color: 'var(--text-paper-muted)',
+                  fontFamily: 'Outfit, sans-serif',
+                  margin: 0,
+                  maxWidth: '26rem',
+                }}
+              >
+                Notifications save as soon as you change them. Everything else waits for Save.
+              </p>
+              <SaveButton
+                hasUnsavedChanges={hasUnsavedChanges}
+                // The notification tier's save sends the whole item, carrying the account as this
+                // page loaded it, so a Save racing it can land first and be overwritten by the
+                // older name. Save waits for it, and says so.
+                isSaving={isSaving || isSavingPreview}
+                onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+              />
+            </div>
+            {/* Mounted whether or not there is anything to say: a live region created in the same
+                commit as its content is reliably not announced. The height is reserved so the
+                confirmation does not shove the page as it appears. */}
+            <p
+              className="text-sm"
+              role="status"
+              style={{
+                color: 'var(--text-paper)',
+                fontFamily: 'Outfit, sans-serif',
+                margin: 0,
+                minHeight: '1.25rem',
+              }}
+            >
+              {hasUnsavedChanges ? '' : saveStatus}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -141,6 +247,7 @@ const AccountSettings = (): React.ReactNode => {
       const forwardTargets = account.forwardTargets.map((address) => ({ address, name: '' }))
       setForwardAddresses(forwardTargets)
       setName(account.name)
+      setNotificationPreview(account.notificationPreview)
 
       setIsLoading(false)
     }

@@ -10,6 +10,13 @@ const PrivacyPage = (): React.ReactNode => {
     <>
       <Head>
         <title>Privacy Policy | dbowland.com</title>
+        {/*
+          The only indexable page in this app -- every other route carries `noindex, nofollow`.
+          Hardcoded to production on purpose: this same build is deployed byte for byte to
+          email.bowland.link, and the canonical is what tells a search engine which copy is the
+          original.
+        */}
+        <link href="https://email.dbowland.com/privacy-policy/" rel="canonical" />
       </Head>
       <div style={{ height: '100%', overflow: 'hidden' }}>
         <Authenticated showContent={true}>

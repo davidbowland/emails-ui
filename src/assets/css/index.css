@@ -17,11 +17,20 @@
   --text-primary: #9ba1be;
   --text-muted: #454a62;
   --text-paper: #1c1a17;
-  --text-paper-muted: #7a7469;
+  /* 5.09:1 on --paper-bg and 5.56:1 on --paper-surface. The old #7a7469 read 4.08:1 and
+     4.45:1, below the 4.5:1 AA needs for normal text on both. */
+  --text-paper-muted: #6b6558;
 
   /* Accent – electric violet (departure from terracotta) */
   --accent: #7c5df4;
   --accent-hover: #9376f7;
+  /* Darker violet for filled buttons carrying white text: white on --accent is 4.44:1,
+     which fails WCAG AA for normal text; white on --accent-deep is 5.34:1, and it reads
+     4.70:1 on the paper surface. --accent stays for borders, glows, focus rings, marks. */
+  --accent-deep: #6f4ee8;
+  /* The lighter end of a filled button's gradient. --accent-hover is too light to sit under
+     white text (3.40:1); this reads 4.79:1, so both ends of the gradient clear AA. */
+  --accent-deep-hover: #7757ee;
   --accent-subtle: rgba(124, 93, 244, 0.08);
   --accent-border: rgba(124, 93, 244, 0.22);
 
@@ -69,6 +78,19 @@ body {
 .paper-surface {
   background-color: var(--paper-bg);
   color: var(--text-paper);
+}
+
+/* ─── Install offer focus ────────────────────────────────────── */
+/* The install-offer banner is a programmatic focus target: re-expanding it moves focus
+   inside the region so a keyboard user is not stranded. Show a ring only for keyboard
+   focus (`:focus-visible`), never for the pointer — a mouse user never sees it and never
+   needs it. --accent-hover is 5.88:1 on the shell, well past the 3:1 UI-component bar. */
+.install-offer-region {
+  outline: none;
+}
+.install-offer-region:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
 }
 
 /* ─── Animations ─────────────────────────────────────────────── */
@@ -266,7 +288,12 @@ body {
 }
 
 .amplify-button--primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%) !important;
+  /* Amplify paints this button's label with `font-inverse`, which its dark-mode override flips
+     to near-black — so the label's colour tracked the OS colour scheme (white at 4.44:1, black
+     at 3.94:1; both fail AA). Pin it to white and let the deeper gradient carry it: 5.34:1 at
+     the dark end, 4.79:1 at the light one, in either colour mode. */
+  color: #fff !important;
   border: none !important;
   border-radius: 10px !important;
   font-family: 'Outfit', sans-serif !important;
@@ -287,6 +314,20 @@ body {
 
 .amplify-button--primary:active {
   transform: scale(0.98) !important;
+}
+
+/* While the sign-in request is in flight Amplify swaps the button to its loading tokens, which
+   grey the label out to `font-disabled` and expect a transparent background to go with it. Our
+   `background` shorthand keeps the violet gradient, so "Signing in" landed at 1.4:1 — invisible.
+   Hold the resting appearance instead, and give the spinner a white arc (5.3:1, clearing the
+   3:1 that WCAG asks of meaningful graphics) over a faint white track. */
+.amplify-button--primary.amplify-button--loading,
+.amplify-button--primary.amplify-button--loading:hover,
+.amplify-button--primary.amplify-button--loading:focus,
+.amplify-button--primary.amplify-button--loading:active {
+  color: #fff !important;
+  --amplify-components-loader-stroke-filled: #fff;
+  --amplify-components-loader-stroke-empty: rgba(255, 255, 255, 0.32);
 }
 
 .amplify-button--link {
@@ -320,7 +361,8 @@ body {
 }
 
 .btn-accent {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  /* Same reason as .amplify-button--primary: white needs the deep stops to clear AA. */
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -329,11 +371,13 @@ body {
     transform 0.15s cubic-bezier(0.32, 0.72, 0, 1),
     box-shadow 0.15s ease;
 }
-.btn-accent:hover:not(:disabled) {
+/* aria-disabled is excluded alongside :disabled: a button kept in the tab order that way still
+   refuses the press, and lifting under the pointer would promise otherwise. */
+.btn-accent:hover:not(:disabled):not([aria-disabled='true']) {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(124, 93, 244, 0.45);
 }
-.btn-accent:active:not(:disabled) {
+.btn-accent:active:not(:disabled):not([aria-disabled='true']) {
   transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(124, 93, 244, 0.3);
 }
@@ -423,7 +467,8 @@ body {
 }
 
 .btn-accept {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  /* Deep stops, as .btn-accent — white needs them to clear AA. */
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%);
   color: #fff;
   border: none;
   border-radius: 10px;

@@ -6,6 +6,8 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import ConfirmDialog from '@components/confirm-dialog'
 import ErrorSnackbar from '@components/error-snackbar'
+import OfflineNotice from '@components/offline-notice'
+import { SIGN_OUT_TIMEOUT_MS, unsubscribeFromPush } from '@services/push'
 import { AuthUser } from '@types'
 
 export interface IconDrawerProps {
@@ -78,8 +80,24 @@ const IconDrawer = ({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [navMenuOpen, closeMenu])
 
+  // The subscription belongs to the browser, not to the session, so signing out without it would
+  // leave the previous reader's senders and subjects arriving on a device they have handed back.
+  // Swallowed: whatever went wrong, being unable to unsubscribe must never trap someone signed in.
+  // Awaited on a short deadline, not the default one: the reader is staring at a screen they have
+  // already left, and a browser whose worker never becomes ready would hold them there.
+  const signOutClick = async (): Promise<void> => {
+    await unsubscribeFromPush(loggedInUser.username, undefined, SIGN_OUT_TIMEOUT_MS).catch(() => undefined)
+    await signOut()
+    window.location.href = '/'
+  }
+
   const deleteAccountClick = async (): Promise<void> => {
     setShowDeleteDialog(false)
+    // Deleting the Cognito user does not reach the email API, so without this the push endpoint
+    // -- an address anyone holding it can send to -- would outlive the account it belonged to,
+    // against what the privacy policy promises. Swallowed, and first: the account must go even
+    // when the unsubscribe cannot.
+    await unsubscribeFromPush(loggedInUser.username, undefined, SIGN_OUT_TIMEOUT_MS).catch(() => undefined)
     // Only `deleteUser` is guarded: v5's callback reported errors from the delete alone, and a
     // failure after the account is gone must not raise the "couldn't delete" snackbar.
     try {
@@ -454,7 +472,7 @@ const IconDrawer = ({
               () => {
                 closeMenu()
                 setLoggedInUser(undefined)
-                signOut().then(() => (window.location.href = '/'))
+                void signOutClick()
               },
               0,
             )}
@@ -544,6 +562,9 @@ const IconDrawer = ({
         message={showDeleteErrorSnackbar ? "Couldn't delete your account. Please try again." : undefined}
         onClose={() => setShowDeleteErrorSnackbar(false)}
       />
+      {/* Boots-offline notice for the whole authenticated shell. Sits above the snackbar
+          (bottom-24 vs bottom-6) so the two never overlap. */}
+      <OfflineNotice />
     </>
   )
 }

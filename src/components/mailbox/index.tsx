@@ -334,6 +334,23 @@ const Mailbox = ({
     refreshEmails()
   }, [loggedInUser])
 
+  // Keyed on [loggedInUser], not [], and that is load-bearing: refreshEmails is re-created every
+  // render and closes over loggedInUser, which is undefined on the first render. A listener
+  // registered with [] deps would capture that first closure and its username guard would fail
+  // forever, silently.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return
+    }
+    const handleWorkerMessage = (event: MessageEvent): void => {
+      if (event.data?.type === 'refresh-inbox') {
+        refreshEmails()
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handleWorkerMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', handleWorkerMessage)
+  }, [loggedInUser])
+
   useEffect(() => {
     if (
       loggedInUser?.username &&

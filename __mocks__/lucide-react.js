@@ -15,6 +15,7 @@ module.exports = {
   ArrowRight: createIcon('ArrowRight'),
   Ban: createIcon('Ban'),
   Bold: createIcon('Bold'),
+  Check: createIcon('Check'),
   ChevronLeft: createIcon('ChevronLeft'),
   ChevronsUp: createIcon('ChevronsUp'),
   Eye: createIcon('Eye'),

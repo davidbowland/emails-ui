@@ -66,10 +66,11 @@ const changeLabel = (suggestion: SpamSuggestion): React.ReactNode => {
   }
 }
 
-// Only the daily limit gets its own message; any other 429 (throttling) reads as unavailable.
+// Only the daily limit gets its own message; any other 429 (throttling) reads as unavailable. A 404
+// (the email or account is gone) reads as forbidden: suggestions aren't available for this email.
 const errorState = (error: unknown): DialogState => {
   const httpError = error as HttpError | undefined
-  return httpError?.status === 403
+  return httpError?.status === 403 || httpError?.status === 404
     ? 'forbidden'
     : httpError?.status === 429 && httpError.code === 'DAILY_LIMIT'
       ? 'quota'
@@ -256,6 +257,11 @@ const SpamSuggestions = ({
       if (overLimit) {
         setErrorMessage(OVER_LIMIT[overLimit])
         setState('results')
+        return
+      }
+      // Every pick was already in the rules: nothing to save, and onApplied(0) says so.
+      if (changed === 0) {
+        onApplied(0)
         return
       }
       await putAccount(accountId, { ...account, spamFilter })

@@ -276,16 +276,29 @@ describe('SpamFilterSettings', () => {
       )
     })
 
-    it.each(['harbor', 'user@', '@domain', 'a@b@c.com', 'user name@domain.com', 'domain.'])(
-      'refuses %s as neither an address nor a domain',
-      async (entry: string) => {
-        renderSettings()
+    it.each([
+      'harbor',
+      'user@',
+      '@domain',
+      'a@b@c.com',
+      'user name@domain.com',
+      'domain.',
+      'domain..com',
+      '*@domain.com',
+      '"user"@domain.com',
+      '<user@domain.com>',
+      'a,b@domain.com',
+      'user@do;main.com',
+      'user(x)@domain.com',
+      "user@o'brien.com",
+      'ex\u200bample.com',
+    ])('refuses %s as neither an address nor a domain', async (entry: string) => {
+      renderSettings()
 
-        await addSender(entry)
+      await addSender(entry)
 
-        expect(screen.getByText('Enter an address (user@domain.com) or a domain (@domain.com).')).toBeVisible()
-      },
-    )
+      expect(screen.getByText('Enter an address (user@domain.com) or a domain (@domain.com).')).toBeVisible()
+    })
 
     it('refuses an entry over 100 characters', async () => {
       renderSettings()
@@ -440,6 +453,10 @@ describe('SpamFilterSettings', () => {
   describe('trustedSenderError', () => {
     it('accepts an address', () => {
       expect(trustedSenderError([], 'user@domain.com')).toBeUndefined()
+    })
+
+    it("accepts an apostrophe in the address's local part", () => {
+      expect(trustedSenderError([], "o'brien@corp.com")).toBeUndefined()
     })
 
     it('refuses a wildcard', () => {

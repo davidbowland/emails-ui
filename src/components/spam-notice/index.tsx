@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef } from 'react'
 
 import { Info, Lead, Line, Mono, NoticeButton, NoticeCard } from './elements'
-import { isFreeMailDomain, SPAM_FILTER_LIST_LIMIT } from '@services/spam-impact'
+import { isFreeMailDomain, isValidTrustedSender, SPAM_FILTER_LIST_LIMIT } from '@services/spam-impact'
 
 export type SpamNoticeKind = 'not-spam' | 'moved-to-spam'
 export type SpamNoticeTrustState = 'offer' | 'saving' | 'accepted' | 'declined' | 'full'
@@ -21,7 +21,7 @@ export interface SpamNoticeProps {
   sender?: string
   trustedValue?: string
   trustState: SpamNoticeTrustState
-  // Set once suggestions were applied (moved-to-spam only).
+  // Set once suggestions were applied (moved-to-spam only); 0 when every pick was already a rule.
   updatedCount?: number
 }
 
@@ -30,7 +30,8 @@ const plural = (count: number, one: string, many: string): string => (count === 
 // The "@domain" rule for an address, or undefined when there is no usable domain.
 const domainRule = (sender: string): string | undefined => {
   const at = sender.lastIndexOf('@')
-  return at > 0 && at < sender.length - 1 ? sender.slice(at).toLowerCase() : undefined
+  const rule = at > 0 && at < sender.length - 1 ? sender.slice(at).toLowerCase() : undefined
+  return rule && isValidTrustedSender(rule) ? rule : undefined
 }
 
 const SpamNotice = ({
@@ -77,7 +78,9 @@ const SpamNotice = ({
   }
 
   const renderNotSpam = (): { actions?: React.ReactNode; body: React.ReactNode } => {
-    const offering = sender !== undefined && (trustState === 'offer' || trustState === 'saving')
+    // Only a sender the API would accept is offered, so trusting it never fails validation.
+    const offering =
+      sender !== undefined && isValidTrustedSender(sender) && (trustState === 'offer' || trustState === 'saving')
     if (!offering) {
       return {
         body: (
@@ -154,9 +157,13 @@ const SpamNotice = ({
           body: (
             <>
               <Lead>Moved to Spam.</Lead>
-              <Line>
-                {updatedCount} rule {plural(updatedCount, 'change', 'changes')} saved.
-              </Line>
+              {updatedCount === 0 ? (
+                <Line>Those changes were already in your rules.</Line>
+              ) : (
+                <Line>
+                  {updatedCount} rule {plural(updatedCount, 'change', 'changes')} saved.
+                </Line>
+              )}
               <Info>You can change your spam filter anytime in Settings.</Info>
             </>
           ),

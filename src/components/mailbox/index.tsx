@@ -17,7 +17,7 @@ import LoadingSpinner from '@components/loading-spinner'
 import SpamNotice, { SpamNoticeKind, SpamNoticeTrustState } from '@components/spam-notice'
 import SpamSuggestions from '@components/spam-suggestions'
 import { getAccount, putAccount } from '@services/emails'
-import { wouldExceedLimits } from '@services/spam-impact'
+import { SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
 import {
   AuthUser,
   DEFAULT_SPAM_FILTER,
@@ -202,6 +202,12 @@ const Mailbox = ({
   const updateNotice = (changes: Partial<NoticeState>): void =>
     setNotice((current) => current && { ...current, ...changes })
 
+  const trustFailed = (accountId: string, error: unknown): void => {
+    console.error('trustSender', { accountId, error })
+    updateNotice({ trustState: 'offer' })
+    setErrorMessage(TRUST_FAILURE)
+  }
+
   // Re-reads the account right before the PUT, and checks the list limit first (AC-032).
   const trustSender = async (value: string): Promise<void> => {
     const accountId = loggedInUser?.username
@@ -221,17 +227,20 @@ const Mailbox = ({
         updateNotice({ trustState: 'full' })
         return
       }
-      await putAccount(accountId, { ...account, spamFilter: next })
-      updateNotice({ trustedValue: value, trustState: 'accepted' })
-    } catch (error: unknown) {
-      console.error('trustSender', { accountId, error })
-      // The API refuses a list over the limit with a 400, e.g. when another tab filled it since the read.
-      if ((error as HttpError | undefined)?.status === 400) {
-        updateNotice({ trustState: 'full' })
-        return
+      try {
+        await putAccount(accountId, { ...account, spamFilter: next })
+        updateNotice({ trustedValue: value, trustState: 'accepted' })
+      } catch (error: unknown) {
+        // A 400 means the list is full only when this save filled it; any other 400 is a plain failure.
+        if ((error as HttpError | undefined)?.status === 400 && next.trustedSenders.length >= SPAM_FILTER_LIST_LIMIT) {
+          console.error('trustSender', { accountId, error })
+          updateNotice({ trustState: 'full' })
+          return
+        }
+        trustFailed(accountId, error)
       }
-      updateNotice({ trustState: 'offer' })
-      setErrorMessage(TRUST_FAILURE)
+    } catch (error: unknown) {
+      trustFailed(accountId, error)
     }
   }
 

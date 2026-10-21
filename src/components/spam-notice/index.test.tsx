@@ -78,10 +78,24 @@ describe('SpamNotice component', () => {
       expect(screen.queryByRole('button', { name: /Trust all/ })).not.toBeInTheDocument()
     })
 
-    it('offers only the address when the sender has no domain', () => {
+    it('offers no trust when the sender has no domain', () => {
       render(<SpamNotice {...baseProps} sender="postmaster" />)
 
-      expect(screen.queryByRole('button', { name: /Trust all/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/^Moved to Inbox\.$/)
+      expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
+    })
+
+    it('offers no trust for a sender the API would refuse', () => {
+      render(<SpamNotice {...baseProps} sender='"odd user"@example.com' />)
+
+      expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
+    })
+
+    it('offers an address with an apostrophe in its local part', () => {
+      render(<SpamNotice {...baseProps} sender="o'brien@corp.com" />)
+
+      expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Trust all @corp.com' })).toBeInTheDocument()
     })
 
     it('says one more email is in Spam', () => {
@@ -188,6 +202,15 @@ describe('SpamNotice component', () => {
       render(<SpamNotice {...baseProps} kind="moved-to-spam" updatedCount={2} />)
 
       expect(screen.getByText('2 rule changes saved.')).toBeVisible()
+    })
+
+    it('says the picks were already rules when nothing changed', () => {
+      render(<SpamNotice {...baseProps} kind="moved-to-spam" updatedCount={0} />)
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Moved to Spam.Those changes were already in your rules.You can change your spam filter anytime in Settings.',
+      )
+      expect(screen.queryByText(/rule changes saved/)).not.toBeInTheDocument()
     })
   })
 

@@ -6,6 +6,7 @@ import {
   applySuggestions,
   containsPhrase,
   isFreeMailDomain,
+  isValidTrustedSender,
   matchInboxSubjects,
   newPhraseMatches,
   SPAM_FILTER_LIST_LIMIT,
@@ -155,6 +156,48 @@ describe('spam-impact', () => {
         expect(isFreeMailDomain(domain)).toBe(false)
       },
     )
+  })
+
+  describe('isValidTrustedSender', () => {
+    it.each([
+      'user@domain.com',
+      'first.last+tag@mail.domain.co.uk',
+      "o'brien@corp.com",
+      '@domain.com',
+      'domain.com',
+      'mail.domain.com',
+    ])('should accept %s', (entry) => {
+      expect(isValidTrustedSender(entry)).toBe(true)
+    })
+
+    it.each([
+      '*',
+      '*@domain.com',
+      '@*.com',
+      '*.domain.com',
+      'com',
+      '@com',
+      'user@domain',
+      'user@',
+      '@',
+      '',
+      'user name@domain.com',
+      'user@@domain.com',
+      'domain..com',
+      '.domain.com',
+      'domain.com.',
+      'a,b@domain.com',
+      'user@do;main.com',
+      '<user@domain.com>',
+      '"user"@domain.com',
+      "user@o'brien.com",
+      "@o'brien.com",
+      "o'brien.com",
+      'user(x)@domain.com',
+      'ex\u200bample.com',
+    ])('should reject "%s"', (entry) => {
+      expect(isValidTrustedSender(entry)).toBe(false)
+    })
   })
 
   describe('applySuggestions', () => {

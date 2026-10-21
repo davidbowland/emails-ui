@@ -88,6 +88,14 @@ export const isFreeMailDomain = (domain: string): boolean => {
   return FREE_MAIL_DOMAINS.has(trimmed.slice(trimmed.lastIndexOf('@') + 1))
 }
 
+// The same rule emails-email-api applies to spamFilter.trustedSenders: an address (local@domain.tld),
+// an @domain or a bare domain, each domain with at least one dot. No whitespace, no wildcards, no
+// separators, quotes, brackets or invisible format characters; an apostrophe only in the local part
+// (o'brien@corp.com). Keep the two patterns identical, or the client offers what the API refuses.
+const TRUSTED_SENDER_PATTERN = /^(?:[^\s@*<>,;"()\p{Cf}]+@|@)?[^\s@*.<>,;"'()\p{Cf}]+(?:\.[^\s@*.<>,;"'()\p{Cf}]+)+$/u
+
+export const isValidTrustedSender = (entry: string): boolean => TRUSTED_SENDER_PATTERN.test(entry)
+
 /* Suggestions */
 
 const SENSITIVITY_RANK: Readonly<Record<SpamSensitivity, number>> = { high: 3, low: 1, medium: 2 }

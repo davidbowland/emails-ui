@@ -367,6 +367,19 @@ describe('SpamSuggestions component', () => {
       expect(onApplied).toHaveBeenCalledWith(1)
     })
 
+    it('skips the save and reports 0 when every pick is already a rule', async () => {
+      jest.mocked(emails).getAccount.mockResolvedValueOnce({
+        ...spamAccount,
+        spamFilter: { blockPhrases: ['Lottery'], sensitivity: 'medium', trustedSenders: [] },
+      })
+      await renderResults()
+      await pick('Add “lottery” to block phrases')
+      await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
+
+      expect(emails.putAccount).not.toHaveBeenCalled()
+      expect(onApplied).toHaveBeenCalledWith(0)
+    })
+
     it('starts from the default filter for an account without one', async () => {
       jest.mocked(emails).getAccount.mockResolvedValueOnce(account)
       await renderResults()
@@ -568,6 +581,12 @@ describe('SpamSuggestions component', () => {
       ],
       [
         403,
+        undefined,
+        "Rule suggestions aren't available for this email.",
+        "It's still in Spam, and you can change your spam filter anytime in Settings.",
+      ],
+      [
+        404,
         undefined,
         "Rule suggestions aren't available for this email.",
         "It's still in Spam, and you can change your spam filter anytime in Settings.",

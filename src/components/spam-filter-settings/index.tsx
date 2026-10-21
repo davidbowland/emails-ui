@@ -2,7 +2,7 @@ import { AlertCircle } from 'lucide-react'
 import React, { useId, useImperativeHandle, useRef, useState } from 'react'
 
 import BounceSenderInput from '@components/bounce-sender-input'
-import { SPAM_FILTER_LIST_LIMIT, toWords } from '@services/spam-impact'
+import { isValidTrustedSender, SPAM_FILTER_LIST_LIMIT, toWords } from '@services/spam-impact'
 import { SpamFilter, SpamSensitivity } from '@types'
 
 export interface SpamFilterSettingsHandle {
@@ -56,20 +56,6 @@ export const blockPhraseError = (phrases: string[], entry: string): string | und
   return phrases.some((phrase) => samePhrase(phrase, entry)) ? alreadyListed(entry) : undefined
 }
 
-// user@domain.com, @domain.com or domain.com -- the forms the inbound sender match understands.
-const isAddressOrDomain = (entry: string): boolean => {
-  const atIndex = entry.indexOf('@')
-  const domain = entry.slice(atIndex + 1)
-  const dotIndex = domain.indexOf('.')
-  return (
-    !/\s/.test(entry) &&
-    atIndex === entry.lastIndexOf('@') &&
-    dotIndex > 0 &&
-    dotIndex < domain.length - 1 &&
-    !domain.endsWith('.')
-  )
-}
-
 export const trustedSenderError = (senders: string[], entry: string): string | undefined => {
   if (senders.length >= SPAM_FILTER_LIST_LIMIT) {
     return `You've reached the limit of ${SPAM_FILTER_LIST_LIMIT} trusted senders. Remove one to add another.`
@@ -80,7 +66,8 @@ export const trustedSenderError = (senders: string[], entry: string): string | u
   if (entry.length > MAX_ENTRY_LENGTH) {
     return `That entry is ${entry.length} characters. Shorten it to ${MAX_ENTRY_LENGTH} or fewer.`
   }
-  if (!isAddressOrDomain(entry)) {
+  // The API's own rule, so nothing accepted here is refused on save.
+  if (!isValidTrustedSender(entry)) {
     return 'Enter an address (user@domain.com) or a domain (@domain.com).'
   }
   return senders.some((sender) => sender.toLowerCase() === entry.toLowerCase()) ? alreadyListed(entry) : undefined

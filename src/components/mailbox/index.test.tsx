@@ -780,7 +780,12 @@ describe('Mailbox component', () => {
         expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
       })
 
-      it('should show the list-full message when the save is refused for the list limit', async () => {
+      it('should show the list-full message when the save that fills the list is refused', async () => {
+        const trustedSenders = Array.from({ length: 99 }, (_, index) => `user${index}@domain.com`)
+        jest.mocked(getAccount).mockResolvedValueOnce({
+          ...account,
+          spamFilter: { blockPhrases: [], sensitivity: 'medium', trustedSenders },
+        })
         jest.mocked(putAccount).mockRejectedValueOnce(Object.assign(new Error('Bad Request'), { status: 400 }))
         await moveFirst()
 
@@ -788,6 +793,19 @@ describe('Mailbox component', () => {
 
         expect(await screen.findByText(/Your trusted senders list is full/)).toBeInTheDocument()
         expect(screen.queryByText(/We couldn't add that trusted sender/)).not.toBeInTheDocument()
+      })
+
+      it('should explain a refused save as a failure when the list is not full', async () => {
+        jest.mocked(putAccount).mockRejectedValueOnce(Object.assign(new Error('Bad Request'), { status: 400 }))
+        await moveFirst()
+
+        await click('Trust this address')
+
+        expect(
+          await screen.findByText("We couldn't add that trusted sender. Nothing changed — try again."),
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/Your trusted senders list is full/)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
       })
 
       it('should keep the offer when the account cannot be read', async () => {

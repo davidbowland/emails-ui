@@ -1,5 +1,5 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import { AlertCircle } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 
 import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
@@ -71,7 +71,7 @@ const ImpactCheck = ({ matches }: { matches: PhraseMatch[] }): React.ReactNode =
           }}
         >
           <div className="flex items-start gap-1.5" style={{ color: 'var(--text-paper)' }}>
-            <AlertCircle
+            <TriangleAlert
               aria-hidden="true"
               size={14}
               strokeWidth={2}

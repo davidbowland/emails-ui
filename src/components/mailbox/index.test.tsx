@@ -503,6 +503,7 @@ describe('Mailbox component', () => {
     const second = batch('s2', sender, 'Second notice', 2000)
     const third = batch('s3', 'deals@gmail.com', 'Free offer', 1000)
     const moveEmail = jest.fn()
+    const originalMatchMedia = window.matchMedia
 
     // Stands in for the viewer: its action group holds the move buttons it was given.
     const FakeViewer = ({ accountId, emailId, onMoveToSpam, onNotSpam }: EmailViewerProps): React.ReactNode => (
@@ -535,6 +536,10 @@ describe('Mailbox component', () => {
       jest.mocked(getAccount).mockResolvedValue(account)
       jest.mocked(putAccount).mockResolvedValue(account)
       moveEmail.mockResolvedValue(email)
+    })
+
+    afterAll(() => {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, value: originalMatchMedia })
     })
 
     // Renders a settled folder with its first email selected.
@@ -656,6 +661,42 @@ describe('Mailbox component', () => {
         expect(noticeOf('Moved to Inbox.')).toHaveFocus()
       })
 
+      it('should keep a refresh that started before the move from showing the moved email again', async () => {
+        const unreadFirst = { ...first, data: { ...first.data, viewed: false } }
+        let resolveStaleLoad: (emails: EmailBatch[]) => void = () => undefined
+        const staleLoad = new Promise<EmailBatch[]>((resolve) => {
+          resolveStaleLoad = resolve
+        })
+        setViewport(true)
+        // The initial load, the refresh after marking s1 read (held open), then the reload after the move.
+        getAllEmails
+          .mockResolvedValueOnce([unreadFirst, second])
+          .mockReturnValueOnce(staleLoad)
+          .mockResolvedValueOnce([second])
+        render(
+          <Mailbox
+            deleteEmail={deleteEmail}
+            folder="spam"
+            getAllEmails={getAllEmails}
+            getEmailAttachment={getEmailAttachment}
+            getEmailContents={getEmailContents}
+            moveEmail={moveEmail}
+            patchEmail={patchEmail}
+          />,
+        )
+        await screen.findByText('Viewing s1')
+        await waitFor(() => expect(getAllEmails).toHaveBeenCalledTimes(2))
+
+        await click('Not spam')
+        await screen.findByText('Viewing s2')
+        await act(async () => {
+          resolveStaleLoad([unreadFirst, second])
+        })
+
+        expect(screen.queryByText('Polling place notice')).not.toBeInTheDocument()
+        expect(screen.getByText('Second notice')).toBeInTheDocument()
+      })
+
       it('should offer no trust when the sender has no address', async () => {
         await setup('spam', [batch('s9', 'unknown', 'No sender', 4000)])
 
@@ -739,6 +780,16 @@ describe('Mailbox component', () => {
         expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
       })
 
+      it('should show the list-full message when the save is refused for the list limit', async () => {
+        jest.mocked(putAccount).mockRejectedValueOnce(Object.assign(new Error('Bad Request'), { status: 400 }))
+        await moveFirst()
+
+        await click('Trust this address')
+
+        expect(await screen.findByText(/Your trusted senders list is full/)).toBeInTheDocument()
+        expect(screen.queryByText(/We couldn't add that trusted sender/)).not.toBeInTheDocument()
+      })
+
       it('should keep the offer when the account cannot be read', async () => {
         jest.mocked(getAccount).mockRejectedValueOnce(new Error('Network Error'))
         await moveFirst()
@@ -768,6 +819,39 @@ describe('Mailbox component', () => {
         expect(moveEmail).toHaveBeenCalledWith(accountId, 's4', 'inbox')
         expect(await screen.findByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Trust all/ })).not.toBeInTheDocument()
+      })
+    })
+
+    describe('marking the next email read', () => {
+      const unreadSecond = { ...second, data: { ...second.data, viewed: false } }
+
+      it('should not mark the next email read below md while the list is showing', async () => {
+        await setup('spam', [first, unreadSecond], false)
+
+        await move('Not spam', [unreadSecond])
+        await screen.findByText('Viewing s2')
+
+        expect(patchEmail).not.toHaveBeenCalled()
+      })
+
+      it('should mark the next email read below md once the user opens it', async () => {
+        await setup('spam', [first, unreadSecond], false)
+        await move('Not spam', [unreadSecond])
+        await screen.findByText('Viewing s2')
+
+        await click('Show selected email')
+
+        expect(patchEmail).toHaveBeenCalledWith(accountId, 's2', [{ op: 'replace', path: '/viewed', value: true }])
+      })
+
+      it('should mark the next email read at md and up, where it is shown', async () => {
+        await setup('spam', [first, unreadSecond])
+
+        await move('Not spam', [unreadSecond])
+
+        await waitFor(() =>
+          expect(patchEmail).toHaveBeenCalledWith(accountId, 's2', [{ op: 'replace', path: '/viewed', value: true }]),
+        )
       })
     })
 

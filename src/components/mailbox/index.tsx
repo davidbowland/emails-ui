@@ -25,6 +25,7 @@ import {
   EmailBatch,
   EmailContents,
   EmailFolder,
+  HttpError,
   PatchOperation,
   SignedUrl,
 } from '@types'
@@ -95,6 +96,10 @@ const Mailbox = ({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<HTMLDivElement>(null)
+  // Every list load takes the next number; a refresh older than the list already shown is dropped,
+  // so one that started before a move can't bring the moved email back.
+  const loadCountRef = useRef(0)
+  const shownLoadRef = useRef(0)
 
   const bounceEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
     if (bounceEmail) {
@@ -136,10 +141,17 @@ const Mailbox = ({
     }
   }
 
+  const startLoad = (): number => {
+    loadCountRef.current += 1
+    return loadCountRef.current
+  }
+
   const refreshEmails = async (): Promise<void> => {
     if (loggedInUser?.username) {
+      const load = startLoad()
       const emails = await fetchEmails(loggedInUser.username)
-      if (emails) {
+      if (emails && load > shownLoadRef.current) {
+        shownLoadRef.current = load
         setReceivedEmails(emails)
       }
     }
@@ -155,8 +167,11 @@ const Mailbox = ({
       await moveEmail(accountId, emailId, target)
 
       // Filtered either way: a failed reload must still drop the moved email, and a reload that
-      // races the move must not show it again.
+      // races the move must not show it again. Shown even when a newer refresh landed first, since
+      // this load started after the move; any refresh still in flight from before it is dropped.
+      const load = startLoad()
       const remaining = ((await fetchEmails(accountId)) ?? before).filter((e) => e.id !== emailId)
+      shownLoadRef.current = Math.max(shownLoadRef.current, load)
       const wide = isWideViewport()
       const next = remaining[Math.min(Math.max(index, 0), remaining.length - 1)]
       const sender = target === 'inbox' && moved ? addressOf(moved.data.from) : undefined
@@ -210,6 +225,11 @@ const Mailbox = ({
       updateNotice({ trustedValue: value, trustState: 'accepted' })
     } catch (error: unknown) {
       console.error('trustSender', { accountId, error })
+      // The API refuses a list over the limit with a 400, e.g. when another tab filled it since the read.
+      if ((error as HttpError | undefined)?.status === 400) {
+        updateNotice({ trustState: 'full' })
+        return
+      }
       updateNotice({ trustState: 'offer' })
       setErrorMessage(TRUST_FAILURE)
     }
@@ -296,7 +316,7 @@ const Mailbox = ({
           const isUnread = !email.data.viewed
           const rowState = { isSelected, isUnread }
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={email.id}>
               <button
                 aria-label={`${isUnread ? 'Unread: ' : ''}${email.data.subject || '(No subject)'}`}
                 className="email-row"
@@ -467,14 +487,17 @@ const Mailbox = ({
     setErrorMessage(undefined)
   }
 
+  // Marks the selected email read only once it is on screen: below md a move selects the next email
+  // but stays on the list (AC-034), so it is marked when the user opens it.
   useEffect(() => {
     const selectedEmail = receivedEmails?.find((email) => email.id === selectedEmailId)
-    if (selectedEmail?.data.viewed === false && selectedEmailId && loggedInUser?.username) {
+    const isShown = isViewingEmail || isWideViewport()
+    if (isShown && selectedEmail?.data.viewed === false && selectedEmailId && loggedInUser?.username) {
       patchEmail(loggedInUser?.username, selectedEmailId, [{ op: 'replace', path: '/viewed', value: true }]).then(
         refreshEmails,
       )
     }
-  }, [selectedEmailId])
+  }, [selectedEmailId, isViewingEmail])
 
   useEffect(() => {
     refreshEmails()
@@ -484,6 +507,7 @@ const Mailbox = ({
   // render and closes over loggedInUser, which is undefined on the first render. A listener
   // registered with [] deps would capture that first closure and its username guard would fail
   // forever, silently.
+  // In the Spam folder too, on purpose: newly arrived mail may land in Spam.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
       return

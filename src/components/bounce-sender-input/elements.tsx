@@ -24,13 +24,28 @@ export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => 
   </span>
 )
 
-export const RuleInput = ({
-  disabled,
-  onAdd,
-}: {
+export interface RuleInputProps {
+  // Omit when a <label htmlFor={inputId}> names the input instead.
+  ariaLabel?: string
+  describedBy?: string
   disabled: boolean
+  enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
+  inputId?: string
+  invalid?: boolean
   onAdd: (value: string) => void
-}): React.ReactNode => {
+  placeholder: string
+}
+
+export const RuleInput = ({
+  ariaLabel,
+  describedBy,
+  disabled,
+  enterKeyHint,
+  inputId,
+  invalid,
+  onAdd,
+  placeholder,
+}: RuleInputProps): React.ReactNode => {
   const commitValue = (input: HTMLInputElement): void => {
     if (input.value.trim()) {
       onAdd(input.value)
@@ -51,12 +66,16 @@ export const RuleInput = ({
 
   return (
     <input
-      aria-label="Sender to block"
+      aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
+      aria-label={ariaLabel}
       className="rounded-md px-3 py-1.5 text-sm outline-none"
       disabled={disabled}
+      enterKeyHint={enterKeyHint}
+      id={inputId}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      placeholder="Email, @domain.com, or * for all"
+      placeholder={placeholder}
       style={{
         minWidth: '180px',
         flex: '1 1 auto',

@@ -180,6 +180,45 @@ body {
   animation-delay: 260ms;
 }
 
+/* ─── Reduced motion ─────────────────────────────────────────── */
+/* Readers who ask the OS for less motion get content in place, without entrance animations,
+   staggered rows or transitions. Rows start at opacity 0 for their entrance, so they are made
+   visible here rather than left hidden. Spinners (animate-spin) keep turning: a frozen spinner
+   reads as a hang, and the rotation is small and essential. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .email-row,
+  [class*='animate-']:not(.animate-spin) {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* ─── Focus rings ────────────────────────────────────────────── */
+/* Keyboard focus only (`:focus-visible`), never the pointer. --accent clears the 3:1 bar for UI
+   components on both surfaces (3.8:1 on paper), so it is the default; shell controls get
+   --accent-hover, which reads 5.88:1 there. `:where` keeps these at zero specificity so a
+   component's own focus style still wins. */
+:where(button, [href], input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:where(.btn-shell, .email-row):focus-visible {
+  outline-color: var(--accent-hover);
+}
+
 /* ─── AWS Amplify Auth ───────────────────────────────────────── */
 [data-amplify-authenticator] {
   --amplify-components-authenticator-state-inactive-background-color: rgba(255, 255, 255, 0.04);

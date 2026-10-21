@@ -1,6 +1,51 @@
 import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import React from 'react'
 
+/* List row text (AC-035) */
+
+// Subject, sender and time each read at least 4.5:1 on --shell-bg in every row state, at full
+// opacity: --text-primary is 7.84:1, and --accent-hover (selected) is 5.88:1 -- 5.24:1 even on
+// the selected row's violet tint. The old --text-muted read 2.29:1, and --accent only 4.50:1.
+// Unread stays distinct by weight and the dot, never by colour alone. contrast.test.ts holds
+// these to the bar.
+export interface ListRowState {
+  isSelected: boolean
+  isUnread: boolean
+}
+
+export const LIST_TEXT_COLOR = 'var(--text-primary)'
+export const LIST_SELECTED_TEXT_COLOR = 'var(--accent-hover)'
+
+const listTextColor = (isSelected: boolean): string => (isSelected ? LIST_SELECTED_TEXT_COLOR : LIST_TEXT_COLOR)
+
+export const listSubjectStyle = ({ isSelected, isUnread }: ListRowState): React.CSSProperties => ({
+  color: listTextColor(isSelected),
+  fontFamily: 'Outfit, sans-serif',
+  fontSize: '13px',
+  fontWeight: isUnread ? 600 : 400,
+  letterSpacing: '0.005em',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+})
+
+export const listTimeStyle = ({ isSelected }: ListRowState): React.CSSProperties => ({
+  color: listTextColor(isSelected),
+  flexShrink: 0,
+  fontFamily: 'IBM Plex Mono, monospace',
+  fontSize: '10px',
+})
+
+export const listSenderStyle = ({ isSelected }: ListRowState): React.CSSProperties => ({
+  color: listTextColor(isSelected),
+  flex: 1,
+  fontFamily: 'Outfit, sans-serif',
+  fontSize: '11px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+})
+
 export const EmailListDivider = (): React.ReactNode => (
   <div
     style={{

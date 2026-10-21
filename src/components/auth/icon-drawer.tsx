@@ -1,6 +1,6 @@
 import '@aws-amplify/ui-react/styles.css'
 import { deleteUser, signOut } from 'aws-amplify/auth'
-import { LogOut, Mail, Menu, Pencil, Send, Settings, Shield, Trash2, X } from 'lucide-react'
+import { LogOut, Mail, Menu, Pencil, Send, Settings, Shield, ShieldAlert, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
@@ -22,6 +22,7 @@ export interface IconDrawerProps {
 const navItems = [
   { icon: <Pencil size={16} strokeWidth={1.5} />, label: 'Compose', path: '/compose' },
   { icon: <Mail size={16} strokeWidth={1.5} />, label: 'Inbox', path: '/inbox' },
+  { icon: <ShieldAlert size={16} strokeWidth={1.5} />, label: 'Spam', path: '/spam' },
   { icon: <Send size={16} strokeWidth={1.5} />, label: 'Sent', path: '/outbox' },
 ]
 

@@ -1,27 +1,87 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import React, { useEffect, useState } from 'react'
+import { Mail } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
 
-import { BouncedChip, EmailListDivider, NavBackButton, NavForwardButton } from './elements'
+import {
+  BouncedChip,
+  EmailListDivider,
+  listSenderStyle,
+  listSubjectStyle,
+  listTimeStyle,
+  NavBackButton,
+  NavForwardButton,
+} from './elements'
 import EmailViewer from '@components/email-viewer'
 import ErrorSnackbar from '@components/error-snackbar'
 import LoadingSpinner from '@components/loading-spinner'
-import { AuthUser, Email, EmailBatch, EmailContents, PatchOperation, SignedUrl } from '@types'
+import SpamNotice, { SpamNoticeKind, SpamNoticeTrustState } from '@components/spam-notice'
+import SpamSuggestions from '@components/spam-suggestions'
+import { getAccount, putAccount } from '@services/emails'
+import { wouldExceedLimits } from '@services/spam-impact'
+import {
+  AuthUser,
+  DEFAULT_SPAM_FILTER,
+  Email,
+  EmailBatch,
+  EmailContents,
+  EmailFolder,
+  PatchOperation,
+  SignedUrl,
+} from '@types'
 
 export interface MailboxProps {
   bounceEmail?: (accountId: string, emailId: string) => Promise<Email>
   deleteEmail: (accountId: string, emailId: string) => Promise<Email>
+  // Inbox and Spam only; Sent has no folder and no move actions.
+  folder?: EmailFolder
   getAllEmails: (accountId: string) => Promise<EmailBatch[]>
   getEmailAttachment: (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
   getEmailContents: (accountId: string, emailId: string) => Promise<EmailContents>
+  moveEmail?: (accountId: string, emailId: string, folder: EmailFolder) => Promise<Email>
   patchEmail: (accountId: string, emailId: string, patchOperations: PatchOperation[]) => Promise<Email>
 }
+
+interface NoticeState {
+  // The moved email, for suggestions.
+  emailId: string
+  // At the top of the viewer (md and up), or of the list (below md, where the view returns to it).
+  inViewer: boolean
+  kind: SpamNoticeKind
+  moveId: string
+  otherFromSender: number
+  sender?: string
+  trustedValue?: string
+  trustState: SpamNoticeTrustState
+  updatedCount?: number
+}
+
+const TRUST_FAILURE = "We couldn't add that trusted sender. Nothing changed — try again."
+
+// Tailwind's md breakpoint, where the list and viewer sit side by side. Without matchMedia (jsdom,
+// very old browsers) the wide layout is assumed.
+const isWideViewport = (): boolean => window.matchMedia?.('(min-width: 768px)')?.matches ?? true
+
+// The bare address from a stored From line ("Name" <user@domain.com> or user@domain.com),
+// lowercased, or undefined when there is none (the inbound service stores "unknown" then).
+const addressOf = (from: string): string | undefined => {
+  const open = from.lastIndexOf('<')
+  const close = from.lastIndexOf('>')
+  const address = (open >= 0 && close > open ? from.slice(open + 1, close) : from).trim().toLowerCase()
+  const at = address.lastIndexOf('@')
+  return at > 0 && at < address.length - 1 && !/\s/.test(address) ? address : undefined
+}
+
+const sortByNewest = (emails: EmailBatch[]): EmailBatch[] =>
+  [...emails].sort((a, b) => Math.sign(b.data.timestamp - a.data.timestamp))
 
 const Mailbox = ({
   bounceEmail,
   deleteEmail,
+  folder,
   getAllEmails,
   getEmailAttachment,
   getEmailContents,
+  moveEmail,
   patchEmail,
 }: MailboxProps): React.ReactNode => {
   const [email, setEmail] = useState<EmailContents | undefined>()
@@ -29,8 +89,12 @@ const Mailbox = ({
   const [isEmailLoading, setIsEmailLoading] = useState(false)
   const [isViewingEmail, setIsViewingEmail] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
+  const [notice, setNotice] = useState<NoticeState | undefined>()
   const [receivedEmails, setReceivedEmails] = useState<EmailBatch[] | undefined>()
   const [selectedEmailId, setSelectedEmailId] = useState<string | undefined>()
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
+  const viewerRef = useRef<HTMLDivElement>(null)
 
   const bounceEmailCallback = async (accountId: string, emailId: string): Promise<void> => {
     if (bounceEmail) {
@@ -44,10 +108,13 @@ const Mailbox = ({
     await refreshEmails()
   }
 
-  const emailSelectClick = async (accountId: string, emailId: string): Promise<void> => {
+  // `show` is false when a move below md selects the next email but stays on the list (AC-034).
+  const emailSelectClick = async (accountId: string, emailId: string, show = true): Promise<void> => {
     setSelectedEmailId(emailId)
     setIsEmailLoading(true)
-    setIsViewingEmail(true)
+    if (show) {
+      setIsViewingEmail(true)
+    }
     try {
       const emailContents = await getEmailContents(accountId, emailId)
       setEmail(emailContents)
@@ -58,16 +125,109 @@ const Mailbox = ({
     setIsEmailLoading(false)
   }
 
+  // Undefined (with the error shown) when the list can't be loaded.
+  const fetchEmails = async (accountId: string): Promise<EmailBatch[] | undefined> => {
+    try {
+      return sortByNewest(await getAllEmails(accountId))
+    } catch (error: unknown) {
+      console.error('refreshEmails', { error, username: accountId })
+      setErrorMessage("Couldn't load your emails. Reload the page to try again.")
+      return undefined
+    }
+  }
+
   const refreshEmails = async (): Promise<void> => {
     if (loggedInUser?.username) {
-      try {
-        const emails = await getAllEmails(loggedInUser.username)
-        setReceivedEmails(emails.sort((a, b) => Math.sign(b.data.timestamp - a.data.timestamp)))
-      } catch (error: unknown) {
-        console.error('refreshEmails', { error, username: loggedInUser.username })
-        setErrorMessage("Couldn't load your emails. Reload the page to try again.")
+      const emails = await fetchEmails(loggedInUser.username)
+      if (emails) {
+        setReceivedEmails(emails)
       }
     }
+  }
+
+  // Throws when the move fails, so the viewer can report it; nothing here changes in that case.
+  const moveEmailCallback =
+    (moveEmail: NonNullable<MailboxProps['moveEmail']>, target: EmailFolder) =>
+    async (accountId: string, emailId: string): Promise<void> => {
+      const before = receivedEmails ?? []
+      const index = before.findIndex((e) => e.id === emailId)
+      const moved = before[index]
+      await moveEmail(accountId, emailId, target)
+
+      // Filtered either way: a failed reload must still drop the moved email, and a reload that
+      // races the move must not show it again.
+      const remaining = ((await fetchEmails(accountId)) ?? before).filter((e) => e.id !== emailId)
+      const wide = isWideViewport()
+      const next = remaining[Math.min(Math.max(index, 0), remaining.length - 1)]
+      const sender = target === 'inbox' && moved ? addressOf(moved.data.from) : undefined
+
+      setReceivedEmails(remaining)
+      setSuggestionsOpen(false)
+      setNotice((current) => ({
+        emailId,
+        inViewer: wide,
+        kind: target === 'inbox' ? 'not-spam' : 'moved-to-spam',
+        // A fresh id per move, so a repeat move of the same kind still takes focus.
+        moveId: String(Number(current?.moveId ?? 0) + 1),
+        otherFromSender: sender ? remaining.filter((e) => addressOf(e.data.from) === sender).length : 0,
+        sender,
+        trustState: 'offer',
+      }))
+      if (!wide) {
+        setIsViewingEmail(false)
+      }
+      if (next) {
+        emailSelectClick(accountId, next.id, wide)
+      } else {
+        setSelectedEmailId(undefined)
+        setEmail(undefined)
+      }
+    }
+
+  const updateNotice = (changes: Partial<NoticeState>): void =>
+    setNotice((current) => current && { ...current, ...changes })
+
+  // Re-reads the account right before the PUT, and checks the list limit first (AC-032).
+  const trustSender = async (value: string): Promise<void> => {
+    const accountId = loggedInUser?.username
+    if (!accountId) {
+      return
+    }
+    updateNotice({ trustState: 'saving' })
+    try {
+      const account = await getAccount(accountId)
+      const spamFilter = account.spamFilter ?? DEFAULT_SPAM_FILTER
+      if (spamFilter.trustedSenders.some((sender) => sender.toLowerCase() === value.toLowerCase())) {
+        updateNotice({ trustedValue: value, trustState: 'accepted' })
+        return
+      }
+      const next = { ...spamFilter, trustedSenders: [...spamFilter.trustedSenders, value] }
+      if (wouldExceedLimits(spamFilter, next) === 'trustedSenders') {
+        updateNotice({ trustState: 'full' })
+        return
+      }
+      await putAccount(accountId, { ...account, spamFilter: next })
+      updateNotice({ trustedValue: value, trustState: 'accepted' })
+    } catch (error: unknown) {
+      console.error('trustSender', { accountId, error })
+      updateNotice({ trustState: 'offer' })
+      setErrorMessage(TRUST_FAILURE)
+    }
+  }
+
+  // Focus goes back to the first viewer action, or to the list when there is none (or the
+  // viewer is hidden below md).
+  const dismissNotice = (): void => {
+    const action = notice?.inViewer
+      ? viewerRef.current?.querySelector<HTMLElement>('[data-email-actions] button')
+      : undefined
+    setNotice(undefined)
+    ;(action ?? listRef.current?.querySelector<HTMLElement>('nav') ?? listRef.current)?.focus()
+  }
+
+  const suggestionsApplied = (count: number): void => {
+    setSuggestionsOpen(false)
+    updateNotice({ updatedCount: count })
   }
 
   const formatDate = (timestamp: number): string => {
@@ -106,10 +266,9 @@ const Mailbox = ({
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--text-muted)',
-              fontSize: '20px',
             }}
           >
-            ✉
+            <Mail aria-hidden="true" size={20} strokeWidth={1.5} />
           </div>
           <p
             style={{
@@ -120,17 +279,22 @@ const Mailbox = ({
               letterSpacing: '0.01em',
             }}
           >
-            This mailbox is empty
+            {folder === 'spam' ? 'No spam right now' : 'This mailbox is empty'}
           </p>
         </div>
       )
     }
 
     return (
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+      <nav
+        aria-label={folder === undefined ? undefined : folder === 'spam' ? 'Spam emails' : 'Inbox emails'}
+        style={{ flex: 1, overflowY: 'auto', padding: '8px 8px', outline: 'none' }}
+        tabIndex={-1}
+      >
         {receivedEmails.map((email, index) => {
           const isSelected = selectedEmailId === email.id
           const isUnread = !email.data.viewed
+          const rowState = { isSelected, isUnread }
           return (
             <React.Fragment key={index}>
               <button
@@ -189,32 +353,9 @@ const Mailbox = ({
                         }}
                       />
                     )}
-                    <span
-                      style={{
-                        fontFamily: 'Outfit, sans-serif',
-                        fontSize: '13px',
-                        fontWeight: isUnread ? 600 : 400,
-                        color: isSelected ? 'var(--accent)' : isUnread ? 'var(--text-primary)' : 'var(--text-muted)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '0.005em',
-                      }}
-                    >
-                      {email.data.subject}
-                    </span>
+                    <span style={listSubjectStyle(rowState)}>{email.data.subject}</span>
                   </div>
-                  <span
-                    style={{
-                      fontFamily: 'IBM Plex Mono, monospace',
-                      fontSize: '10px',
-                      color: isSelected ? 'var(--accent)' : 'var(--text-muted)',
-                      flexShrink: 0,
-                      opacity: 0.8,
-                    }}
-                  >
-                    {formatDate(email.data.timestamp)}
-                  </span>
+                  <span style={listTimeStyle(rowState)}>{formatDate(email.data.timestamp)}</span>
                 </div>
 
                 {/* Bottom row: from + bounced chip */}
@@ -226,20 +367,7 @@ const Mailbox = ({
                     paddingLeft: isUnread ? '12px' : '0',
                   }}
                 >
-                  <span
-                    style={{
-                      fontFamily: 'Outfit, sans-serif',
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                      opacity: 0.75,
-                    }}
-                  >
-                    {email.data.from}
-                  </span>
+                  <span style={listSenderStyle(rowState)}>{email.data.from}</span>
                   {email.data.bounced && <BouncedChip />}
                 </div>
               </button>
@@ -282,11 +410,10 @@ const Mailbox = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '28px',
               color: 'var(--paper-border)',
             }}
           >
-            ✉
+            <Mail aria-hidden="true" size={28} strokeWidth={1.5} />
           </div>
           <p
             style={{
@@ -313,9 +440,28 @@ const Mailbox = ({
         email={email}
         emailId={emailId}
         getAttachment={getEmailAttachment}
+        onMoveToSpam={folder === 'inbox' && moveEmail ? moveEmailCallback(moveEmail, 'spam') : undefined}
+        onNotSpam={folder === 'spam' && moveEmail ? moveEmailCallback(moveEmail, 'inbox') : undefined}
       />
     )
   }
+
+  const renderNotice = (): React.ReactNode =>
+    notice && (
+      <SpamNotice
+        kind={notice.kind}
+        moveId={notice.moveId}
+        onDecline={() => updateNotice({ trustState: 'declined' })}
+        onDismiss={dismissNotice}
+        onSuggest={() => setSuggestionsOpen(true)}
+        onTrust={trustSender}
+        otherFromSender={notice.otherFromSender}
+        sender={notice.sender}
+        trustState={notice.trustState}
+        trustedValue={notice.trustedValue}
+        updatedCount={notice.updatedCount}
+      />
+    )
 
   const snackbarErrorClose = (): void => {
     setErrorMessage(undefined)
@@ -433,8 +579,15 @@ const Mailbox = ({
             <NavForwardButton onClick={() => setIsViewingEmail(true)} />
           </div>
 
+          {/* Post-move notice below md: the view has returned to the list (AC-034) */}
+          {notice && !notice.inViewer && <div style={{ flexShrink: 0, padding: '12px 12px 0' }}>{renderNotice()}</div>}
+
           {/* List body */}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' as const }}>
+          <div
+            ref={listRef}
+            style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' as const, outline: 'none' }}
+            tabIndex={-1}
+          >
             {receivedEmails === undefined ? <LoadingSpinner /> : renderReceivedEmails(receivedEmails)}
           </div>
         </div>
@@ -458,8 +611,11 @@ const Mailbox = ({
             <NavBackButton onClick={() => setIsViewingEmail(false)} />
           </div>
 
+          {/* Post-move notice, md and up */}
+          {notice?.inViewer && <div style={{ flexShrink: 0, padding: '16px 32px 0' }}>{renderNotice()}</div>}
+
           {/* Viewer content */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div ref={viewerRef} style={{ flex: 1, overflowY: 'auto' }}>
             {isEmailLoading || loggedInUser?.username === undefined ? (
               <LoadingSpinner />
             ) : (
@@ -473,6 +629,17 @@ const Mailbox = ({
           </div>
         </div>
       </div>
+      {folder === 'inbox' && moveEmail && loggedInUser?.username && (
+        // Stays mounted and is opened by toggling, so the dialog can return focus to its trigger.
+        <SpamSuggestions
+          accountId={loggedInUser.username}
+          emailId={notice?.emailId ?? ''}
+          inboxEmails={receivedEmails ?? []}
+          onApplied={suggestionsApplied}
+          onClose={() => setSuggestionsOpen(false)}
+          open={suggestionsOpen}
+        />
+      )}
       <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )

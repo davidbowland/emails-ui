@@ -313,6 +313,7 @@ describe('Authenticated component', () => {
     it.each([
       [/compose/i, '/compose'],
       [/inbox/i, '/inbox'],
+      [/^spam$/i, '/spam'],
       [/sent/i, '/outbox'],
       [/settings/i, '/settings'],
       [/privacy policy/i, '/privacy-policy'],
@@ -339,6 +340,27 @@ describe('Authenticated component', () => {
       })
 
       expect(mockPush).toHaveBeenCalledWith(path)
+    })
+
+    it('should list Spam between Inbox and Sent', async () => {
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      const menuButton = (await screen.findByLabelText(/Open navigation menu/i, {
+        selector: 'button',
+      })) as HTMLButtonElement
+
+      await act(async () => {
+        await userEvent.click(menuButton)
+      })
+
+      const labels = screen.getAllByRole('listitem').map((item) => item.textContent)
+      const inboxIndex = labels.indexOf('Inbox')
+      expect(labels.slice(inboxIndex, inboxIndex + 3)).toEqual(['Inbox', 'Spam', 'Sent'])
+      expect(screen.getByTestId('icon-ShieldAlert')).toBeInTheDocument()
     })
 
     describe('delete account', () => {

@@ -8,9 +8,14 @@ import {
   getAllReceivedEmails,
   getReceivedAttachment,
   getReceivedEmailContents,
+  moveReceivedEmail,
   patchReceivedEmail,
   postBounceEmail,
 } from '@services/emails'
+import { EmailBatch } from '@types'
+
+// Bound to the Inbox, so the list never depends on getAllReceivedEmails' default folder.
+const getInboxEmails = (accountId: string): Promise<EmailBatch[]> => getAllReceivedEmails(accountId, 'inbox')
 
 const InboxPage = (): React.ReactNode => {
   return (
@@ -24,9 +29,11 @@ const InboxPage = (): React.ReactNode => {
           <Mailbox
             bounceEmail={postBounceEmail}
             deleteEmail={deleteReceivedEmail}
-            getAllEmails={getAllReceivedEmails}
+            folder="inbox"
+            getAllEmails={getInboxEmails}
             getEmailAttachment={getReceivedAttachment}
             getEmailContents={getReceivedEmailContents}
+            moveEmail={moveReceivedEmail}
             patchEmail={patchReceivedEmail}
           />
         </Authenticated>

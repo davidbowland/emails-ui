@@ -4,6 +4,7 @@ import Authenticated from '@components/auth'
 import Mailbox from '@components/mailbox'
 import InboxPage from '@pages/inbox'
 import * as emails from '@services/emails'
+import { accountId } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
 
@@ -30,13 +31,24 @@ describe('Inbox page', () => {
       {
         bounceEmail: jest.mocked(emails).postBounceEmail,
         deleteEmail: jest.mocked(emails).deleteReceivedEmail,
-        getAllEmails: jest.mocked(emails).getAllReceivedEmails,
+        folder: 'inbox',
+        getAllEmails: expect.any(Function),
         getEmailAttachment: jest.mocked(emails).getReceivedAttachment,
         getEmailContents: jest.mocked(emails).getReceivedEmailContents,
+        moveEmail: jest.mocked(emails).moveReceivedEmail,
         patchEmail: jest.mocked(emails).patchReceivedEmail,
       },
       undefined,
     )
+  })
+
+  it('should load the Inbox folder only', async () => {
+    jest.mocked(emails).getAllReceivedEmails.mockResolvedValueOnce([])
+    render(<InboxPage />)
+
+    const { getAllEmails } = jest.mocked(Mailbox).mock.calls[0][0]
+    expect(await getAllEmails(accountId)).toEqual([])
+    expect(emails.getAllReceivedEmails).toHaveBeenCalledWith(accountId, 'inbox')
   })
 
   it('returns title in Head', () => {

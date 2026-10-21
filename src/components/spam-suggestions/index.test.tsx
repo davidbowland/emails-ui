@@ -156,7 +156,7 @@ describe('SpamSuggestions component', () => {
   })
 
   describe('results', () => {
-    it('lists each suggestion as a labelled checkbox with nothing picked', async () => {
+    it('lists each suggestion as a labeled checkbox with nothing picked', async () => {
       await renderResults()
 
       const names = screen.getAllByRole('checkbox').map((checkbox) => checkbox.getAttribute('aria-labelledby'))

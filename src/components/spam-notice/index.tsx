@@ -11,7 +11,7 @@ export interface SpamNoticeProps {
   // Changes with every move, so a second move of the same kind and sender still takes focus.
   moveId: string
   onDecline: () => void
-  // The parent returns focus to the first viewer action.
+  // The parent returns focus to the first viewer action, or to the list when there is none.
   onDismiss: () => void
   onSuggest: () => void
   // The address, or "@domain" for the whole domain.

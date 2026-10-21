@@ -10,7 +10,7 @@ This repo is the Next.js (Pages Router, static export) UI for the `emails` proje
 
 ## Code Layout
 
-- `src/assets/` — static files: images, CSS, JSON data.
+- `src/assets/` — static files: images, CSS, JSON data. `phrase-matching-vectors.json` is an identical copy of the one in `emails-inbound-service`, pinned by SHA-256 in `src/services/spam-impact.test.ts`; change both copies and both hashes together.
 - `src/components/` — React components. Each component has an `index.tsx` (plus any supporting files) and, colocated in the same directory, ONE `index.test.tsx` that tests every file in that component.
 - `src/config/` — Amplify config (JWT authorization).
 - `src/pages/` — the pages served directly by this UI; kept bare-bones, importing components rather than containing logic. **Page tests are NOT colocated** — they live under `test/pages/`, mirroring the `src/pages/` path (e.g. `src/pages/compose.tsx` -> `test/pages/compose.test.tsx`), because `next-sitemap`/Next's page resolution would otherwise treat a colocated `*.test.tsx` as a route.

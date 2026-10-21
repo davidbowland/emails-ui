@@ -91,7 +91,7 @@ describe('mailbox list contrast', () => {
     )
   })
 
-  it('should mark unread rows by weight, not by colour alone', () => {
+  it('should mark unread rows by weight, not by color alone', () => {
     const unread = listSubjectStyle({ isSelected: false, isUnread: true })
     const read = listSubjectStyle({ isSelected: false, isUnread: false })
 

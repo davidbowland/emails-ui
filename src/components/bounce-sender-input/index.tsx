@@ -15,13 +15,13 @@ export interface BounceSenderInputProps {
   inputRef?: RuleInputProps['inputRef']
   invalid?: boolean
   label: string
-  // Called with the typed text when it fails validation, so the caller can show why.
+  // Called with the trimmed entry when it fails validation, so the caller can show why.
   onInvalid?: (value: string) => void
   placeholder?: string
   rules: string[]
   setRules?: BounceRuleSetter
   // Reuse for another list (block phrases, trusted senders): only the new entry is checked, and
-  // a failing one is not added. Without it, the bounce rules below apply exactly as before.
+  // a failing one is not added. Without it, the bounce rules below apply.
   validate?: (value: string) => boolean
 }
 

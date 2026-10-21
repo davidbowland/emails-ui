@@ -7,7 +7,8 @@ import { SpamFilter, SpamSensitivity } from '@types'
 
 export interface SpamFilterSettingsHandle {
   // Adds whatever is still typed in either box, so Save never drops an entry the owner can see. An
-  // exact repeat of an entry already listed adds nothing, so it is cleared from its box silently. Returns the filter to save, or undefined when a typed entry is rejected: its error is shown and
+  // exact repeat of an entry already listed adds nothing, so it is cleared from its box silently.
+  // Returns the filter to save, or undefined when a typed entry is rejected: its error is shown and
   // its box focused, and nothing should be saved until it is fixed or cleared.
   commitDrafts: () => SpamFilter | undefined
 }

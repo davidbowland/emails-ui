@@ -940,7 +940,7 @@ describe('Mailbox component', () => {
         expect(noticeOf('Moved to Spam.')).toHaveFocus()
       })
 
-      it('should close suggestions and keep the offer when cancelled', async () => {
+      it('should close suggestions and keep the offer when canceled', async () => {
         await setup('inbox', [inboxFirst, inboxSecond])
         await move('Move to spam', [inboxSecond])
         await click('Suggest rule changes')

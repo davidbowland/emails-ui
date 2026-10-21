@@ -6,7 +6,7 @@ import React from 'react'
 // Subject, sender and time each read at least 4.5:1 on --shell-bg in every row state, at full
 // opacity: --text-primary is 7.84:1, and --accent-hover (selected) is 5.88:1 -- 5.24:1 even on
 // the selected row's violet tint. The old --text-muted read 2.29:1, and --accent only 4.50:1.
-// Unread stays distinct by weight and the dot, never by colour alone. contrast.test.ts holds
+// Unread stays distinct by weight and the dot, never by color alone. contrast.test.ts holds
 // these to the bar.
 export interface ListRowState {
   isSelected: boolean

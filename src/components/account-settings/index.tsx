@@ -304,7 +304,7 @@ const AccountSettings = (): React.ReactNode => {
 
         {/* The install offer's permanent home (not dismissible here, unlike the sign-in
             card). It renders its own heading and returns null when the browser can't install
-            or the app is already installed — so it never leaves an empty labelled section. */}
+            or the app is already installed — so it never leaves an empty labeled section. */}
         <InstallOffer surface="paper" />
 
         {loggedInUser?.username && account && (

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import React from 'react'
 
 export interface ErrorSnackbarProps {
@@ -33,11 +34,10 @@ const ErrorSnackbar = ({ message, onClose }: ErrorSnackbarProps): React.ReactNod
         <span style={{ color: 'var(--text-paper)', minWidth: 0, overflowWrap: 'anywhere' }}>{message}</span>
         <button
           aria-label="Close"
-          className="btn-close ml-1 flex-shrink-0 text-base transition-opacity"
+          className="btn-close ml-1 flex flex-shrink-0 items-center transition-opacity"
           onClick={onClose}
-          style={{ lineHeight: 1 }}
         >
-          ✕
+          <X aria-hidden="true" size={14} strokeWidth={1.5} />
         </button>
       </div>
     </div>

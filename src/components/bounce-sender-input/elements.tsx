@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import React from 'react'
 
 export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
@@ -14,11 +15,11 @@ export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => 
     {onDelete && (
       <button
         aria-label={`Remove ${label}`}
-        className="chip-delete transition-colors"
+        className="chip-delete inline-flex items-center transition-colors"
         data-testid="CancelIcon"
         onClick={onDelete}
       >
-        ✕
+        <X aria-hidden="true" size={12} strokeWidth={1.5} />
       </button>
     )}
   </span>
@@ -32,7 +33,8 @@ export interface RuleInputProps {
   enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
   inputId?: string
   invalid?: boolean
-  onAdd: (value: string) => void
+  // Returns whether the entry was accepted; a rejected entry stays in the box so it can be fixed.
+  onAdd: (value: string) => boolean
   placeholder: string
 }
 
@@ -47,8 +49,7 @@ export const RuleInput = ({
   placeholder,
 }: RuleInputProps): React.ReactNode => {
   const commitValue = (input: HTMLInputElement): void => {
-    if (input.value.trim()) {
-      onAdd(input.value)
+    if (input.value.trim() && onAdd(input.value)) {
       input.value = ''
     }
   }
@@ -69,7 +70,8 @@ export const RuleInput = ({
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
       aria-label={ariaLabel}
-      className="rounded-md px-3 py-1.5 text-sm outline-none"
+      // No outline utility here: the global :focus-visible ring in index.css must stay visible.
+      className="rounded-md px-3 py-1.5 text-sm"
       disabled={disabled}
       enterKeyHint={enterKeyHint}
       id={inputId}

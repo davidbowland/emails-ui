@@ -161,7 +161,7 @@ export interface PhraseMatch {
 
 // What a failed API call throws: the status lets callers tell 403, 429 and 503 apart.
 export interface HttpError extends Error {
-  status: number
+  status?: number
 }
 
 export interface PostSignedUrl {

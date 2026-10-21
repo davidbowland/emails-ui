@@ -35,4 +35,11 @@ describe('ErrorSnackbar component', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(longMessage)
     expect(screen.getByRole('button', { name: 'Close' })).toBeVisible()
   })
+
+  it('should show an icon, not a text glyph, on the close button', () => {
+    render(<ErrorSnackbar message="Something went wrong" onClose={onClose} />)
+
+    expect(screen.getByRole('button', { name: 'Close' })).not.toHaveTextContent('✕')
+    expect(screen.getByTestId('icon-X')).toBeInTheDocument()
+  })
 })

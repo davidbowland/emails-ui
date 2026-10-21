@@ -149,6 +149,39 @@ describe('BounceSenderInput component', () => {
     expect(setRules).toHaveBeenCalledWith(['a.com'])
   })
 
+  it('should keep a rejected bounce rule in the box so it can be fixed', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'invalid{Enter}')
+
+    expect(screen.getByRole('textbox')).toHaveValue('invalid')
+  })
+
+  it('should clear the box once a bounce rule is accepted', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'ok.com{Enter}')
+
+    expect(screen.getByRole('textbox')).toHaveValue('')
+  })
+
+  it('should not add a bounce rule already on the list, ignoring case', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={['spam@domain.com']} setRules={setRules} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'SPAM@Domain.com{Enter}')
+
+    expect(setRules).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox')).toHaveValue('SPAM@Domain.com')
+  })
+
+  it('should show an icon, not a text glyph, on the remove button', () => {
+    render(<BounceSenderInput label="Bounce:" rules={['spam.com']} setRules={setRules} />)
+
+    const button = screen.getByRole('button', { name: 'Remove spam.com' })
+    expect(button).not.toHaveTextContent('✕')
+    expect(screen.getByTestId('icon-X')).toBeInTheDocument()
+  })
+
   it('should not report a valid bounce rule', async () => {
     const onInvalid = jest.fn()
     render(<BounceSenderInput label="Bounce:" onInvalid={onInvalid} rules={[]} setRules={setRules} />)
@@ -220,6 +253,43 @@ describe('BounceSenderInput component', () => {
 
       expect(onInvalid).toHaveBeenCalledWith('far too long a phrase')
       expect(setRules).not.toHaveBeenCalled()
+    })
+
+    it('should keep a rejected entry in the box so it can be fixed', async () => {
+      renderReused()
+
+      const input = screen.getByRole('textbox', { name: 'Block phrases:' })
+      await userEvent.type(input, 'far too long a phrase{Enter}')
+
+      expect(input).toHaveValue('far too long a phrase')
+    })
+
+    it('should clear the box once an entry is accepted', async () => {
+      renderReused()
+
+      const input = screen.getByRole('textbox', { name: 'Block phrases:' })
+      await userEvent.type(input, 'usd 12/hour{Enter}')
+
+      expect(input).toHaveValue('')
+    })
+
+    it('should trim an entry before adding it', async () => {
+      renderReused()
+
+      await userEvent.type(screen.getByRole('textbox', { name: 'Block phrases:' }), '  usd 12/hour  {Enter}')
+
+      expect(setRules).toHaveBeenCalledWith(['crypto', 'usd 12/hour'])
+    })
+
+    it('should not add an entry already on the list, ignoring case', async () => {
+      renderReused()
+
+      const input = screen.getByRole('textbox', { name: 'Block phrases:' })
+      await userEvent.type(input, ' CRYPTO {Enter}')
+
+      expect(setRules).not.toHaveBeenCalled()
+      expect(onInvalid).not.toHaveBeenCalled()
+      expect(input).toHaveValue(' CRYPTO ')
     })
   })
 

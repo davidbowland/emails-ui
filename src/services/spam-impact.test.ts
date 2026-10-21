@@ -1,4 +1,3 @@
-import vectors from '../assets/phrase-matching-vectors.json'
 import {
   applySuggestions,
   containsPhrase,
@@ -9,6 +8,7 @@ import {
   toWords,
   wouldExceedLimits,
 } from './spam-impact'
+import vectors from '@assets/phrase-matching-vectors.json'
 import { DEFAULT_SPAM_FILTER, EmailBatch, SpamFilter, SpamSuggestion } from '@types'
 
 interface PhraseVector {
@@ -150,6 +150,10 @@ describe('spam-impact', () => {
 
     it('should not add a block phrase twice', () => {
       expect(applySuggestions(spamFilter, [suggestion('addBlockPhrase', 'crypto')]).blockPhrases).toEqual(['crypto'])
+    })
+
+    it('should not add a block phrase that differs only in case or punctuation', () => {
+      expect(applySuggestions(spamFilter, [suggestion('addBlockPhrase', 'Crypto!')]).blockPhrases).toEqual(['crypto'])
     })
 
     it('should remove a trusted sender regardless of case', () => {

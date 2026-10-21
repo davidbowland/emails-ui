@@ -5,17 +5,18 @@ export const SPAM_FILTER_LIST_LIMIT = 100
 
 /* Phrase matching (AC-038) */
 
-const ZERO_WIDTH_CHARACTERS = new Set(['​', '‌', '‍', '⁠', '﻿'])
+const ZERO_WIDTH_CHARACTERS = new Set(['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF'])
 
+// Escaped so every character is visible in review: NBSP, en dash, em dash, curly quotes, ellipsis.
 const LOOK_ALIKES: Readonly<Record<string, string>> = {
-  ' ': ' ',
-  '–': '-',
-  '—': '-',
-  '‘': "'",
-  '’': "'",
-  '“': '"',
-  '”': '"',
-  '…': '...',
+  '\u00A0': ' ',
+  '\u2013': '-',
+  '\u2014': '-',
+  '\u2018': "'",
+  '\u2019': "'",
+  '\u201C': '"',
+  '\u201D': '"',
+  '\u2026': '...',
 }
 
 // A fixed pattern. Nothing the owner or a sender types is ever turned into a RegExp.
@@ -92,7 +93,8 @@ const isSensitivity = (value: string): value is SpamSensitivity => Object.hasOwn
 const applySuggestion = (spamFilter: SpamFilter, suggestion: SpamSuggestion): SpamFilter => {
   switch (suggestion.kind) {
     case 'addBlockPhrase':
-      return spamFilter.blockPhrases.includes(suggestion.value)
+      // Compared as words, so "Crypto!" and "crypto" count as the same phrase.
+      return spamFilter.blockPhrases.some((phrase) => toWords(phrase).join(' ') === toWords(suggestion.value).join(' '))
         ? spamFilter
         : { ...spamFilter, blockPhrases: [...spamFilter.blockPhrases, suggestion.value] }
     case 'removeTrustedSender':

@@ -38,6 +38,9 @@ const validateBounceRule = (input: string): boolean => {
   return trimmed.indexOf('.') > 0
 }
 
+const isDuplicate = (rules: string[], entry: string): boolean =>
+  rules.some((rule) => rule.trim().toLowerCase() === entry.toLowerCase())
+
 const formatRuleDisplay = (rule: string): string => {
   const trimmed = rule.trim()
   if (trimmed === '*') {
@@ -59,22 +62,28 @@ const BounceSenderInput = ({
   setRules,
   validate,
 }: BounceSenderInputProps): React.ReactNode => {
-  const handleAdd = (value: string): void => {
-    if (!setRules) return
+  // Returns whether the entry was accepted, so a rejected one stays in the box to be fixed.
+  const handleAdd = (value: string): boolean => {
+    if (!setRules) return false
+    const entry = value.trim()
+    // A case-insensitive repeat adds nothing; leave it in the box rather than add a second chip.
+    if (isDuplicate(rules, entry)) return false
     if (validate) {
-      if (validate(value)) {
-        setRules([...rules, value])
-      } else {
-        onInvalid?.(value)
+      if (!validate(entry)) {
+        onInvalid?.(entry)
+        return false
       }
-      return
+      setRules([...rules, entry])
+      return true
     }
-    if (!validateBounceRule(value)) {
-      onInvalid?.(value)
+    const accepted = validateBounceRule(entry)
+    if (!accepted) {
+      onInvalid?.(entry)
     }
-    const allValues = [...rules, value]
+    const allValues = [...rules, entry]
     const validRules = allValues.filter(validateBounceRule)
     setRules(validRules)
+    return accepted
   }
 
   const handleDelete = (index: number): void => {

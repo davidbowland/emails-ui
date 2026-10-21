@@ -387,14 +387,16 @@ body {
     color 0.15s ease,
     transform 0.1s ease;
 }
-.btn-ghost-paper:hover:not(:disabled) {
+.btn-ghost-paper:hover:not(:disabled):not([aria-disabled='true']) {
   background: var(--paper-border);
   color: var(--text-paper);
 }
-.btn-ghost-paper:active:not(:disabled) {
+.btn-ghost-paper:active:not(:disabled):not([aria-disabled='true']) {
   transform: scale(0.97);
 }
-.btn-ghost-paper:disabled {
+/* aria-disabled keeps the button in the tab order while busy, so it looks and points as :disabled. */
+.btn-ghost-paper:disabled,
+.btn-ghost-paper[aria-disabled='true'] {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -420,7 +422,8 @@ body {
   transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(124, 93, 244, 0.3);
 }
-.btn-accent:disabled {
+.btn-accent:disabled,
+.btn-accent[aria-disabled='true'] {
   background: var(--shell-border);
   color: var(--text-muted);
   box-shadow: none;

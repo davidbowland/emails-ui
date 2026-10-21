@@ -123,10 +123,17 @@ const applySuggestion = (spamFilter: SpamFilter, suggestion: SpamSuggestion): Sp
 export const applySuggestions = (spamFilter: SpamFilter, picked: SpamSuggestion[]): SpamFilter =>
   picked.reduce(applySuggestion, spamFilter)
 
-// Which list, if any, is over the limit. Block phrases are checked first.
-export const wouldExceedLimits = (spamFilter: SpamFilter): 'blockPhrases' | 'trustedSenders' | undefined =>
-  spamFilter.blockPhrases.length > SPAM_FILTER_LIST_LIMIT
+const grewPastLimit = (before: string[], after: string[]): boolean =>
+  after.length > before.length && after.length > SPAM_FILTER_LIST_LIMIT
+
+// Which list, if any, the change grows past the limit. A list that was already over the limit and
+// did not grow never blocks the change. Block phrases are checked first.
+export const wouldExceedLimits = (
+  before: SpamFilter,
+  after: SpamFilter,
+): 'blockPhrases' | 'trustedSenders' | undefined =>
+  grewPastLimit(before.blockPhrases, after.blockPhrases)
     ? 'blockPhrases'
-    : spamFilter.trustedSenders.length > SPAM_FILTER_LIST_LIMIT
+    : grewPastLimit(before.trustedSenders, after.trustedSenders)
       ? 'trustedSenders'
       : undefined

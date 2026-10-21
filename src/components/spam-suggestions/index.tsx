@@ -2,10 +2,9 @@ import { Check, TriangleAlert } from 'lucide-react'
 import React, { useEffect, useId, useMemo, useState } from 'react'
 
 import ConfirmDialog from '@components/confirm-dialog'
-import ErrorSnackbar from '@components/error-snackbar'
 import { getAccount, postSpamSuggestions, putAccount } from '@services/emails'
 import { applySuggestions, matchInboxSubjects, SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
-import { DEFAULT_SPAM_FILTER, EmailBatch, HttpError, SpamSuggestion, SpamSuggestionKind } from '@types'
+import { DEFAULT_SPAM_FILTER, EmailBatch, HttpError, SpamFilter, SpamSuggestion, SpamSuggestionKind } from '@types'
 
 export interface SpamSuggestionsProps {
   accountId: string
@@ -67,10 +66,48 @@ const changeLabel = (suggestion: SpamSuggestion): React.ReactNode => {
   }
 }
 
+// Only the daily limit gets its own message; any other 429 (throttling) reads as unavailable.
 const errorState = (error: unknown): DialogState => {
-  const status = (error as HttpError | undefined)?.status
-  return status === 403 ? 'forbidden' : status === 429 ? 'quota' : 'unavailable'
+  const httpError = error as HttpError | undefined
+  return httpError?.status === 403
+    ? 'forbidden'
+    : httpError?.status === 429 && httpError.code === 'DAILY_LIMIT'
+      ? 'quota'
+      : 'unavailable'
 }
+
+const isSuggestion = (value: unknown): value is SpamSuggestion => {
+  const candidate = value as Partial<Record<keyof SpamSuggestion, unknown>> | null | undefined
+  return (
+    typeof candidate?.id === 'string' &&
+    typeof candidate.kind === 'string' &&
+    typeof candidate.value === 'string' &&
+    typeof candidate.reason === 'string' &&
+    KINDS.has(candidate.kind as SpamSuggestionKind)
+  )
+}
+
+// Well-formed suggestions of a known kind, first of each id only.
+const validSuggestions = (received: unknown): SpamSuggestion[] =>
+  (Array.isArray(received) ? received : [])
+    .filter(isSuggestion)
+    .filter((suggestion, index, all) => all.findIndex(({ id }) => id === suggestion.id) === index)
+
+// Add-only and remove-only lists, so a change of length or level is a change of filter.
+const filterChanged = (before: SpamFilter, after: SpamFilter): boolean =>
+  before.blockPhrases.length !== after.blockPhrases.length ||
+  before.trustedSenders.length !== after.trustedSenders.length ||
+  before.sensitivity !== after.sensitivity
+
+// The filter with the picks applied, and how many of them changed it.
+const applyCounted = (base: SpamFilter, picks: SpamSuggestion[]): { changed: number; spamFilter: SpamFilter } =>
+  picks.reduce(
+    ({ changed, spamFilter }, suggestion) => {
+      const next = applySuggestions(spamFilter, [suggestion])
+      return { changed: changed + (filterChanged(spamFilter, next) ? 1 : 0), spamFilter: next }
+    },
+    { changed: 0, spamFilter: base },
+  )
 
 const ImpactLine = ({
   id,
@@ -93,28 +130,39 @@ const ImpactLine = ({
         />
         <span className="min-w-0">
           Matches {subjects.length} Inbox {plural(subjects.length, 'subject', 'subjects')}:
-          <ul className="mt-0.5 list-disc pl-4" style={{ color: 'var(--text-paper-muted)' }}>
+          {/* A list inside a label is invalid HTML, so these are spans drawn as list items. */}
+          <span className="mt-0.5 list-disc pl-4" style={{ color: 'var(--text-paper-muted)', display: 'block' }}>
             {subjects.slice(0, SHOWN_SUBJECTS).map((subject, index) => (
-              <li key={index} style={{ overflowWrap: 'anywhere' }}>
+              <span key={index} style={{ display: 'list-item', overflowWrap: 'anywhere' }}>
                 {subject}
-              </li>
+              </span>
             ))}
-            {subjects.length > SHOWN_SUBJECTS && <li>and {subjects.length - SHOWN_SUBJECTS} more</li>}
-          </ul>
+            {subjects.length > SHOWN_SUBJECTS && (
+              <span style={{ display: 'list-item' }}>and {subjects.length - SHOWN_SUBJECTS} more</span>
+            )}
+          </span>
         </span>
       </span>
     )
   }
-  const text =
-    suggestion.kind === 'addBlockPhrase'
-      ? 'No Inbox subjects match'
-      : suggestion.kind === 'raiseSensitivity' && suggestion.value === 'high'
-        ? 'Applies to new mail only. High may catch real mail.'
-        : 'Applies to new mail only'
+  if (suggestion.kind === 'raiseSensitivity' && suggestion.value === 'high') {
+    return (
+      <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id} style={{ color: 'var(--text-paper)' }}>
+        <TriangleAlert
+          aria-hidden="true"
+          className="mt-px flex-shrink-0"
+          size={12}
+          strokeWidth={2}
+          style={{ color: 'var(--accent)' }}
+        />
+        <span>Applies to new mail only. High may catch real mail.</span>
+      </span>
+    )
+  }
   return (
     <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id}>
       <Check aria-hidden="true" className="mt-px flex-shrink-0" size={12} strokeWidth={2} />
-      <span>{text}</span>
+      <span>{suggestion.kind === 'addBlockPhrase' ? 'No Inbox subjects match' : 'Applies to new mail only'}</span>
     </span>
   )
 }
@@ -148,8 +196,8 @@ const SpamSuggestions = ({
     postSpamSuggestions(accountId, emailId)
       .then(({ suggestions: received }) => {
         if (!current) return
-        // The API validates these; anything that is not a known stricter kind is still dropped here.
-        const valid = (Array.isArray(received) ? received : []).filter((suggestion) => KINDS.has(suggestion?.kind))
+        // The API validates these; anything malformed, of an unknown kind, or repeated is still dropped here.
+        const valid = validSuggestions(received)
         setSuggestions(valid)
         setState(valid.length > 0 ? 'results' : 'zero')
       })
@@ -179,6 +227,7 @@ const SpamSuggestions = ({
   const matchingPicks = pickedSuggestions.filter((suggestion) => (impacts.get(suggestion.id) ?? []).length > 0).length
   const applying = state === 'applying'
   const showRows = state === 'results' || applying
+  const hasPhrases = suggestions.some((suggestion) => suggestion.kind === 'addBlockPhrase')
 
   const togglePick = (id: string): void => {
     if (applying) return
@@ -196,18 +245,21 @@ const SpamSuggestions = ({
   const handleApply = async (): Promise<void> => {
     if (pickedCount === 0 || applying) return
     setState('applying')
+    setErrorMessage(undefined)
     try {
       // Re-read right before the PUT so an edit made elsewhere is not overwritten.
       const account = await getAccount(accountId)
-      const spamFilter = applySuggestions(account.spamFilter ?? DEFAULT_SPAM_FILTER, pickedSuggestions)
-      const overLimit = wouldExceedLimits(spamFilter)
+      const before = account.spamFilter ?? DEFAULT_SPAM_FILTER
+      // Only picks that change the filter count: a phrase already there, say, is no change.
+      const { changed, spamFilter } = applyCounted(before, pickedSuggestions)
+      const overLimit = wouldExceedLimits(before, spamFilter)
       if (overLimit) {
         setErrorMessage(OVER_LIMIT[overLimit])
         setState('results')
         return
       }
       await putAccount(accountId, { ...account, spamFilter })
-      onApplied(pickedCount)
+      onApplied(changed)
     } catch (error: unknown) {
       console.error('Error applying spam suggestions', error)
       setErrorMessage(APPLY_FAILURE)
@@ -254,114 +306,136 @@ const SpamSuggestions = ({
   const message = STATE_MESSAGES[state]
 
   return (
-    <>
-      <ConfirmDialog footer={footer} onCancel={handleClose} open={open} scrollable title="Suggested rule changes">
-        {/* Mounted for every state, so each change of state is announced. */}
-        <div role="status">
-          {state === 'loading' && (
-            <div className="flex flex-col items-center gap-3.5 pb-2 pt-5 text-center">
-              <div
+    <ConfirmDialog footer={footer} onCancel={handleClose} open={open} scrollable title="Suggested rule changes">
+      {/* Mounted for every state, so each change of state is announced. */}
+      <div role="status">
+        {state === 'loading' && (
+          <div className="flex flex-col items-center gap-3.5 pb-2 pt-5 text-center">
+            <div
+              aria-hidden="true"
+              className="h-8 w-8 animate-spin rounded-full"
+              style={{ border: '2px solid var(--paper-border)', borderTopColor: 'var(--accent)' }}
+            />
+            <p style={{ color: 'var(--text-paper)' }}>Reading this email…</p>
+          </div>
+        )}
+        {message && (
+          <>
+            <p style={{ color: 'var(--text-paper)' }}>{message.lead}</p>
+            <p className="mt-2">{message.detail}</p>
+          </>
+        )}
+        {showRows && (
+          <span className="sr-only">
+            {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
+          </span>
+        )}
+      </div>
+      {/* Mounted for every state too, so an error added later is announced. Kept in the dialog:
+            anything outside it is inert while the dialog is open. */}
+      <div role="alert">
+        {errorMessage && (
+          <p
+            className="mb-3 flex items-start gap-2 rounded-[10px] px-3 py-2.5 text-[13px] leading-[18px]"
+            style={{
+              background: 'var(--accent-subtle)',
+              border: '1px solid var(--accent-border)',
+              color: 'var(--text-paper)',
+            }}
+          >
+            <TriangleAlert
+              aria-hidden="true"
+              className="mt-0.5 flex-shrink-0"
+              size={14}
+              strokeWidth={2}
+              style={{ color: 'var(--accent)' }}
+            />
+            <span style={{ overflowWrap: 'anywhere' }}>{errorMessage}</span>
+          </p>
+        )}
+      </div>
+      {showRows && (
+        <>
+          <p className="mb-3" id={introId}>
+            Pick the changes you want. Nothing is saved until you apply them.
+          </p>
+          {matchingPicks > 0 && (
+            <div
+              className="mb-3 flex items-start gap-2 rounded-[10px] px-3 py-2.5 text-[13px] leading-[18px]"
+              role="note"
+              style={{
+                background: 'var(--accent-subtle)',
+                border: '1px solid var(--accent-border)',
+                color: 'var(--text-paper)',
+              }}
+            >
+              <TriangleAlert
                 aria-hidden="true"
-                className="h-8 w-8 animate-spin rounded-full"
-                style={{ border: '2px solid var(--paper-border)', borderTopColor: 'var(--accent)' }}
+                className="mt-0.5 flex-shrink-0"
+                size={14}
+                strokeWidth={2}
+                style={{ color: 'var(--accent)' }}
               />
-              <p style={{ color: 'var(--text-paper)' }}>Reading this email…</p>
+              <span>
+                {matchingPicks === 1
+                  ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam.'
+                  : 'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam.'}
+              </span>
             </div>
           )}
-          {message && (
-            <>
-              <p style={{ color: 'var(--text-paper)' }}>{message.lead}</p>
-              <p className="mt-2">{message.detail}</p>
-            </>
-          )}
-          {showRows && (
-            <span className="sr-only">
-              {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
-            </span>
-          )}
-        </div>
-        {showRows && (
-          <>
-            <p className="mb-3" id={introId}>
-              Pick the changes you want. Nothing is saved until you apply them.
-            </p>
-            {matchingPicks > 0 && (
-              <div
-                className="mb-3 flex items-start gap-2 rounded-[10px] px-3 py-2.5 text-[13px] leading-[18px]"
-                role="note"
-                style={{
-                  background: 'var(--accent-subtle)',
-                  border: '1px solid var(--accent-border)',
-                  color: 'var(--text-paper)',
-                }}
-              >
-                <TriangleAlert
-                  aria-hidden="true"
-                  className="mt-0.5 flex-shrink-0"
-                  size={14}
-                  strokeWidth={2}
-                  style={{ color: 'var(--accent)' }}
-                />
-                <span>
-                  {matchingPicks === 1
-                    ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam.'
-                    : 'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam.'}
-                </span>
-              </div>
-            )}
-            <ul className="flex flex-col gap-2">
-              {suggestions.map((suggestion, index) => {
-                const labelId = `${baseId}-${index}-label`
-                const reasonId = `${baseId}-${index}-reason`
-                const impactId = `${baseId}-${index}-impact`
-                const checked = picked.has(suggestion.id)
-                return (
-                  <li key={suggestion.id}>
-                    <label
-                      className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[10px] px-3 py-2.5"
-                      style={{
-                        background: checked
-                          ? 'linear-gradient(0deg, var(--accent-subtle), var(--accent-subtle)), var(--paper-surface)'
-                          : 'var(--paper-surface)',
-                        border: `1px solid ${checked ? 'var(--accent-border)' : 'var(--paper-border)'}`,
-                      }}
-                    >
-                      <input
-                        aria-describedby={`${reasonId} ${impactId}`}
-                        aria-disabled={applying || undefined}
-                        aria-labelledby={labelId}
-                        checked={checked}
-                        className="mt-0.5 h-4 w-4 flex-shrink-0"
-                        onChange={() => togglePick(suggestion.id)}
-                        style={{ accentColor: 'var(--accent-deep)' }}
-                        type="checkbox"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className="block text-sm font-medium"
-                          id={labelId}
-                          style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}
-                        >
-                          {changeLabel(suggestion)}
-                        </span>
-                        <span className="mt-0.5 block text-xs" id={reasonId}>
-                          {suggestion.reason}
-                        </span>
-                        <ImpactLine id={impactId} subjects={impacts.get(suggestion.id) ?? []} suggestion={suggestion} />
+          <ul className="flex flex-col gap-2">
+            {suggestions.map((suggestion, index) => {
+              const labelId = `${baseId}-${index}-label`
+              const reasonId = `${baseId}-${index}-reason`
+              const impactId = `${baseId}-${index}-impact`
+              const checked = picked.has(suggestion.id)
+              return (
+                <li key={suggestion.id}>
+                  <label
+                    className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[10px] px-3 py-2.5"
+                    style={{
+                      background: checked
+                        ? 'linear-gradient(0deg, var(--accent-subtle), var(--accent-subtle)), var(--paper-surface)'
+                        : 'var(--paper-surface)',
+                      border: `1px solid ${checked ? 'var(--accent-border)' : 'var(--paper-border)'}`,
+                    }}
+                  >
+                    <input
+                      aria-describedby={`${reasonId} ${impactId}`}
+                      aria-disabled={applying || undefined}
+                      aria-labelledby={labelId}
+                      checked={checked}
+                      className="mt-0.5 h-4 w-4 flex-shrink-0"
+                      onChange={() => togglePick(suggestion.id)}
+                      style={{ accentColor: 'var(--accent-deep)' }}
+                      type="checkbox"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className="block text-sm font-medium"
+                        id={labelId}
+                        style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}
+                      >
+                        {changeLabel(suggestion)}
                       </span>
-                    </label>
-                  </li>
-                )
-              })}
-            </ul>
+                      <span className="mt-0.5 block text-xs" id={reasonId}>
+                        {suggestion.reason}
+                      </span>
+                      <ImpactLine id={impactId} subjects={impacts.get(suggestion.id) ?? []} suggestion={suggestion} />
+                    </span>
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
+          {hasPhrases && (
             <p className="mt-3 text-xs">
               We checked your Inbox subjects only. New mail with these phrases in the body will go to Spam too.
             </p>
-          </>
-        )}
-      </ConfirmDialog>
-      <ErrorSnackbar message={errorMessage} onClose={() => setErrorMessage(undefined)} />
-    </>
+          )}
+        </>
+      )}
+    </ConfirmDialog>
   )
 }
 

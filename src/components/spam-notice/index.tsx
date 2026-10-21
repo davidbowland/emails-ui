@@ -8,6 +8,8 @@ export type SpamNoticeTrustState = 'offer' | 'saving' | 'accepted' | 'declined' 
 
 export interface SpamNoticeProps {
   kind: SpamNoticeKind
+  // Changes with every move, so a second move of the same kind and sender still takes focus.
+  moveId: string
   onDecline: () => void
   // The parent returns focus to the first viewer action.
   onDismiss: () => void
@@ -33,6 +35,7 @@ const domainRule = (sender: string): string | undefined => {
 
 const SpamNotice = ({
   kind,
+  moveId,
   onDecline,
   onDismiss,
   onSuggest,
@@ -46,16 +49,24 @@ const SpamNotice = ({
   const sectionRef = useRef<HTMLElement>(null)
   const questionId = useId()
 
-  // Focus arrives when the notice is shown or shows a new move. A later state change (offer to
-  // accepted) only takes focus back when the button that held it has gone.
+  const saved = updatedCount !== undefined
+
+  // Focus arrives when the notice is shown, shows a new move, or confirms saved rule changes (the
+  // dialog that saved them has just closed). A later trust state change (offer to accepted) only
+  // takes focus back when the button that held it has gone.
   useEffect(() => {
     sectionRef.current?.focus()
-  }, [kind, sender])
+  }, [kind, sender, moveId])
+  useEffect(() => {
+    if (saved) {
+      sectionRef.current?.focus()
+    }
+  }, [saved])
   useEffect(() => {
     if (document.activeElement === document.body) {
       sectionRef.current?.focus()
     }
-  }, [trustState, updatedCount])
+  }, [trustState])
 
   // Non-modal: Escape closes it, but Tab is never held.
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>): void => {

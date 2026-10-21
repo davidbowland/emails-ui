@@ -14,6 +14,7 @@ describe('SpamNotice component', () => {
 
   const baseProps: SpamNoticeProps = {
     kind: 'not-spam',
+    moveId: 'move-1',
     onDecline,
     onDismiss,
     onSuggest,
@@ -210,6 +211,44 @@ describe('SpamNotice component', () => {
         <>
           <button>Elsewhere</button>
           <SpamNotice {...baseProps} kind="moved-to-spam" />
+        </>,
+      )
+
+      expect(getSection()).toHaveFocus()
+    })
+
+    it('takes focus again for a new move of the same kind and sender', () => {
+      const { rerender } = render(
+        <>
+          <button>Elsewhere</button>
+          <SpamNotice {...baseProps} />
+        </>,
+      )
+      screen.getByRole('button', { name: 'Elsewhere' }).focus()
+
+      rerender(
+        <>
+          <button>Elsewhere</button>
+          <SpamNotice {...baseProps} moveId="move-2" />
+        </>,
+      )
+
+      expect(getSection()).toHaveFocus()
+    })
+
+    it('takes focus when rule changes are saved', () => {
+      const { rerender } = render(
+        <>
+          <button>Elsewhere</button>
+          <SpamNotice {...baseProps} kind="moved-to-spam" />
+        </>,
+      )
+      screen.getByRole('button', { name: 'Elsewhere' }).focus()
+
+      rerender(
+        <>
+          <button>Elsewhere</button>
+          <SpamNotice {...baseProps} kind="moved-to-spam" updatedCount={1} />
         </>,
       )
 

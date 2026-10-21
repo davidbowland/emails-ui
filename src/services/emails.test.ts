@@ -90,6 +90,35 @@ describe('Emails service', () => {
       expect(error.status).toEqual(429)
     })
 
+    it('should expose a string code from the error body', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ code: 'DAILY_LIMIT', message: 'Too many requests' }, false, 429))
+
+      const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+      expect(error.code).toEqual('DAILY_LIMIT')
+    })
+
+    it.each([[{ message: 'Too many requests' }], [{ code: 7 }], [null]])(
+      'should leave the code out when the body is %j',
+      async (body) => {
+        mockFetch.mockResolvedValueOnce(mockResponse(body, false, 429))
+
+        const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+        expect(error.code).toBeUndefined()
+        expect(error.status).toEqual(429)
+      },
+    )
+
+    it('should leave the code out when the error body is not JSON', async () => {
+      mockFetch.mockResolvedValueOnce({ json: () => Promise.reject(new SyntaxError('bad')), ok: false, status: 502 })
+
+      const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+      expect(error.code).toBeUndefined()
+      expect(error.status).toEqual(502)
+    })
+
     // A push endpoint is a capability: anyone holding it can send to that browser. The API
     // redacts it from its own logs, so the message this throws -- which callers hand to
     // console.error -- must not carry it either.

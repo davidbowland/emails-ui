@@ -3,9 +3,11 @@ import { EmailBatch, PhraseMatch, SpamFilter, SpamSensitivity, SpamSuggestion } 
 // The API rejects a list longer than this; the UI checks first so it never sends one.
 export const SPAM_FILTER_LIST_LIMIT = 100
 
-/* Phrase matching (AC-038) */
+/* Phrase matching (AC-048) */
 
-const ZERO_WIDTH_CHARACTERS = new Set(['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF'])
+// Every Unicode format character: zero-width spaces and joiners, the BOM, the soft hyphen. Senders
+// hide them inside words to dodge filters.
+const FORMAT_CHARACTER = /\p{Cf}/u
 
 // Escaped so every character is visible in review: NBSP, en dash, em dash, curly quotes, ellipsis.
 const LOOK_ALIKES: Readonly<Record<string, string>> = {
@@ -20,14 +22,16 @@ const LOOK_ALIKES: Readonly<Record<string, string>> = {
 }
 
 // A fixed pattern. Nothing the owner or a sender types is ever turned into a RegExp.
-const WORD_CHARACTER = /[\p{L}\p{N}]/u
+// Combining marks stay inside their word, so "İstanbul" is one word, not two.
+const WORD_CHARACTER = /[\p{L}\p{M}\p{N}]/u
 
-// NFKC; lowercase; drop zero-width characters; fold typographic look-alikes; delete apostrophes
-// (so "won't" and "wont" agree); treat every other non-letter, non-digit as a space; split.
+// NFKC; lowercase; drop format characters; fold typographic look-alikes; delete apostrophes
+// (so "won't" and "wont" agree); treat everything but letters, combining marks and digits as a
+// space; split.
 export const toWords = (text: string): string[] =>
   Array.from(
     Array.from(text.normalize('NFKC').toLowerCase())
-      .filter((character) => !ZERO_WIDTH_CHARACTERS.has(character))
+      .filter((character) => !FORMAT_CHARACTER.test(character))
       .map((character) => LOOK_ALIKES[character] ?? character)
       .join(''),
   )

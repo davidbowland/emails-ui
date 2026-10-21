@@ -54,7 +54,16 @@ describe('spam-impact', () => {
   })
 
   describe('toWords', () => {
-    it('should normalize, fold and split per AC-038', () => {
+    it('should drop every format character, including the soft hyphen', () => {
+      expect(toWords('What\u00ADsApp n\u2060ow')).toEqual(['whatsapp', 'now'])
+    })
+
+    it('should keep combining marks inside their word', () => {
+      expect(toWords('İstanbul')).toHaveLength(1)
+      expect(toWords('नमस्ते दुनिया')).toHaveLength(2)
+    })
+
+    it('should normalize, fold and split per AC-048', () => {
       expect(toWords('  Won’t STOP​— reply “NO”… 12/hour\n')).toEqual(['wont', 'stop', 'reply', 'no', '12', 'hour'])
     })
 

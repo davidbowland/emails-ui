@@ -6,8 +6,8 @@ import { SPAM_FILTER_LIST_LIMIT, toWords } from '@services/spam-impact'
 import { SpamFilter, SpamSensitivity } from '@types'
 
 export interface SpamFilterSettingsHandle {
-  // Adds whatever is still typed in either box, so Save never drops an entry the owner can see.
-  // Returns the filter to save, or undefined when a typed entry is rejected: its error is shown and
+  // Adds whatever is still typed in either box, so Save never drops an entry the owner can see. An
+  // exact repeat of an entry already listed adds nothing, so it is cleared from its box silently. Returns the filter to save, or undefined when a typed entry is rejected: its error is shown and
   // its box focused, and nothing should be saved until it is fixed or cleared.
   commitDrafts: () => SpamFilter | undefined
 }
@@ -36,6 +36,10 @@ const alreadyListed = (entry: string): string => `“${entry}” is already on y
 
 // Compared as words, the way mail is matched, so "Crypto!" and "crypto" count as the same phrase.
 const samePhrase = (a: string, b: string): boolean => toWords(a).join(' ') === toWords(b).join(' ')
+
+// The same test the chip input uses to refuse a repeat without a word.
+const isExactRepeat = (entries: string[], entry: string): boolean =>
+  entries.some((existing) => existing.trim().toLowerCase() === entry.toLowerCase())
 
 export const blockPhraseError = (phrases: string[], entry: string): string | undefined => {
   if (phrases.length >= SPAM_FILTER_LIST_LIMIT) {
@@ -115,7 +119,7 @@ const eyebrowStyle: React.CSSProperties = { ...textStyle, letterSpacing: '0.1em'
 
 const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettingsProps): React.ReactNode => {
   const [errors, setErrors] = useState<Partial<Record<ListKey, string>>>({})
-  const fieldRefs = useRef<Partial<Record<ListKey, HTMLDivElement | null>>>({})
+  const inputRefs = useRef<Partial<Record<ListKey, HTMLInputElement | null>>>({})
   const idPrefix = useId()
   const headingId = `${idPrefix}-heading`
   const sensitivityHelpId = `${idPrefix}-sensitivity-help`
@@ -128,15 +132,20 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
     onChange({ ...value, [key]: entries })
   }
 
-  const draftInput = (key: ListKey): HTMLInputElement | null | undefined =>
-    fieldRefs.current[key]?.querySelector('input')
-
   // The chip input refuses an exact repeat without saying why. Whatever is still in the box after
-  // Enter or blur was refused, so the reason is shown here.
+  // Enter or blur was refused, so the reason is shown here; an emptied box has nothing left to fix.
   const explainRefusal = (key: ListKey, event: React.SyntheticEvent): void => {
     const target = event.target
-    if (target instanceof HTMLInputElement && target.value.trim()) {
-      setError(key, LISTS[key].errorFor(value[key], target.value.trim()))
+    if (target instanceof HTMLInputElement) {
+      const entry = target.value.trim()
+      setError(key, entry ? LISTS[key].errorFor(value[key], entry) : undefined)
+    }
+  }
+
+  const clearErrorWhenEmptied = (key: ListKey, event: React.ChangeEvent): void => {
+    const target = event.target
+    if (target instanceof HTMLInputElement && !target.value.trim()) {
+      setError(key, undefined)
     }
   }
 
@@ -144,18 +153,28 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
     ref,
     () => ({
       commitDrafts: (): SpamFilter | undefined => {
-        const drafts = LIST_KEYS.map((key) => {
-          const input = draftInput(key)
-          const draft = input?.value.trim() ?? ''
-          return { draft, error: draft ? LISTS[key].errorFor(value[key], draft) : undefined, input, key }
-        })
+        const drafts = LIST_KEYS.map((key) => ({ input: inputRefs.current[key], key }))
+          .filter(
+            (field): field is { input: HTMLInputElement; key: ListKey } => field.input instanceof HTMLInputElement,
+          )
+          .map(({ input, key }) => {
+            const draft = input.value.trim()
+            const repeat = draft !== '' && isExactRepeat(value[key], draft)
+            const error = draft && !repeat ? LISTS[key].errorFor(value[key], draft) : undefined
+            return { draft, error, input, key, repeat }
+          })
         const rejected = drafts.filter((draft) => draft.error !== undefined)
         if (rejected.length > 0) {
           setErrors((current) => ({ ...current, ...Object.fromEntries(rejected.map((d) => [d.key, d.error])) }))
-          rejected[0].input?.focus()
+          rejected[0].input.focus()
           return undefined
         }
-        const pending = drafts.filter((draft) => draft.draft)
+        const typed = drafts.filter((draft) => draft.draft)
+        typed.forEach(({ input }) => (input.value = ''))
+        if (typed.length > 0) {
+          setErrors({})
+        }
+        const pending = typed.filter((draft) => !draft.repeat)
         if (pending.length === 0) {
           return value
         }
@@ -163,8 +182,6 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
           (filter, { draft, key }) => ({ ...filter, [key]: [...filter[key], draft] }),
           value,
         )
-        pending.forEach(({ input }) => input && (input.value = ''))
-        setErrors({})
         onChange(next)
         return next
       },
@@ -182,10 +199,8 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
       <div
         className="mt-5"
         onBlur={(event: React.FocusEvent) => explainRefusal(key, event)}
+        onChange={(event: React.ChangeEvent) => clearErrorWhenEmptied(key, event)}
         onKeyDown={(event: React.KeyboardEvent) => event.key === 'Enter' && explainRefusal(key, event)}
-        ref={(element: HTMLDivElement | null) => {
-          fieldRefs.current[key] = element
-        }}
       >
         {/* The error is also said in words beside an icon, so the accent border is never the only signal. */}
         <div className="rounded-md" style={{ border: `1px solid ${error ? 'var(--accent)' : 'var(--paper-border)'}` }}>
@@ -194,6 +209,9 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
             disabled={disabled}
             enterKeyHint="done"
             inputId={inputId}
+            inputRef={(element: HTMLInputElement | null) => {
+              inputRefs.current[key] = element
+            }}
             invalid={error !== undefined}
             label={list.label}
             onInvalid={(entry: string) => setError(key, list.errorFor(value[key], entry))}

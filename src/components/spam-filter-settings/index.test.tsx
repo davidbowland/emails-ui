@@ -2,7 +2,7 @@ import React from 'react'
 
 import SpamFilterSettings, { blockPhraseError, SpamFilterSettingsHandle, trustedSenderError } from './index'
 import '@testing-library/jest-dom'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SpamFilter } from '@types'
 
@@ -196,6 +196,35 @@ describe('SpamFilterSettings', () => {
       expect(phraseBox()).toBeValid()
     })
 
+    it('explains a refused repeat once the box loses focus', async () => {
+      renderSettings()
+
+      await userEvent.type(phraseBox(), 'crypto')
+      await userEvent.tab()
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(screen.getByText('“crypto” is already on your list.')).toBeVisible()
+    })
+
+    it('clears the reason once the box is emptied', async () => {
+      renderSettings()
+
+      await addPhrase('!!!')
+      await userEvent.clear(phraseBox())
+
+      expect(screen.queryByText('Add at least one letter or number.')).not.toBeInTheDocument()
+      expect(phraseBox()).toBeValid()
+    })
+
+    it('clears the reason when an emptied box loses focus', async () => {
+      renderSettings()
+
+      await addPhrase('!!!')
+      fireEvent.blur(phraseBox(), { target: { value: '' } })
+
+      expect(screen.queryByText('Add at least one letter or number.')).not.toBeInTheDocument()
+    })
+
     it('reports a removed phrase', async () => {
       renderSettings()
 
@@ -309,6 +338,51 @@ describe('SpamFilterSettings', () => {
       expect(senderBox()).toHaveValue('')
     })
 
+    it('adds the entries still in both boxes and clears them both', () => {
+      const ref = React.createRef<SpamFilterSettingsHandle>()
+      renderSettings(spamFilter, false, ref)
+
+      fireEvent.change(phraseBox(), { target: { value: 'invoice' } })
+      fireEvent.change(senderBox(), { target: { value: '@new.com' } })
+      const result = commit(ref)
+
+      const expected = {
+        ...spamFilter,
+        blockPhrases: ['crypto', 'invoice'],
+        trustedSenders: ['@harbor.org', '@new.com'],
+      }
+      expect(result).toEqual(expected)
+      expect(onChange).toHaveBeenCalledWith(expected)
+      expect(phraseBox()).toHaveValue('')
+      expect(senderBox()).toHaveValue('')
+    })
+
+    it('drops an exact repeat silently, clearing its box without blocking the save', () => {
+      const ref = React.createRef<SpamFilterSettingsHandle>()
+      renderSettings(spamFilter, false, ref)
+
+      fireEvent.change(senderBox(), { target: { value: '@HARBOR.org' } })
+      const result = commit(ref)
+
+      expect(result).toEqual(spamFilter)
+      expect(onChange).not.toHaveBeenCalled()
+      expect(senderBox()).toHaveValue('')
+      expect(senderBox()).toBeValid()
+      expect(screen.queryByText('“@HARBOR.org” is already on your list.')).not.toBeInTheDocument()
+    })
+
+    it('drops a repeat and still adds the other box’s entry', () => {
+      const ref = React.createRef<SpamFilterSettingsHandle>()
+      renderSettings(spamFilter, false, ref)
+
+      fireEvent.change(phraseBox(), { target: { value: 'crypto' } })
+      fireEvent.change(senderBox(), { target: { value: '@new.com' } })
+      const result = commit(ref)
+
+      expect(result).toEqual({ ...spamFilter, trustedSenders: ['@harbor.org', '@new.com'] })
+      expect(phraseBox()).toHaveValue('')
+    })
+
     it('returns the filter unchanged and reports nothing when both boxes are empty', () => {
       const ref = React.createRef<SpamFilterSettingsHandle>()
       renderSettings(spamFilter, false, ref)
@@ -331,6 +405,22 @@ describe('SpamFilterSettings', () => {
       expect(onChange).not.toHaveBeenCalled()
       expect(senderBox()).toHaveFocus()
       expect(senderBox()).toHaveValue('*')
+      expect(
+        screen.getByText('Trusting everyone would turn the filter off. Enter an address or a domain.'),
+      ).toBeVisible()
+    })
+
+    it('focuses the first refused box when both boxes hold refused entries', () => {
+      const ref = React.createRef<SpamFilterSettingsHandle>()
+      renderSettings(spamFilter, false, ref)
+
+      fireEvent.change(phraseBox(), { target: { value: '!!!' } })
+      fireEvent.change(senderBox(), { target: { value: '*' } })
+      const result = commit(ref)
+
+      expect(result).toBeUndefined()
+      expect(phraseBox()).toHaveFocus()
+      expect(screen.getByText('Add at least one letter or number.')).toBeVisible()
       expect(
         screen.getByText('Trusting everyone would turn the filter off. Enter an address or a domain.'),
       ).toBeVisible()

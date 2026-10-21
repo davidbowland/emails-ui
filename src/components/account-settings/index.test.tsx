@@ -7,7 +7,7 @@ import BounceSenderInput from '@components/bounce-sender-input'
 import * as emails from '@services/emails'
 import { account, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DEFAULT_SPAM_FILTER, EmailBatch, SpamFilter } from '@types'
 
@@ -547,7 +547,7 @@ describe('AccountSettings component', () => {
       await userEvent.click(await screen.findByText('Add invoice phrase'))
       await userEvent.click(await findSaveButton())
 
-      expect(console.error).toHaveBeenCalledWith('getAllReceivedEmails', expect.anything())
+      await waitFor(() => expect(console.error).toHaveBeenCalledWith('getAllReceivedEmails', expect.anything()))
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
       expect(emails.putAccount).toHaveBeenCalledWith(
         user.username,

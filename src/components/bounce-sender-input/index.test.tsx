@@ -293,6 +293,33 @@ describe('BounceSenderInput component', () => {
     })
   })
 
+  it('should disable each chip remove button while disabled', async () => {
+    render(<BounceSenderInput disabled={true} label="Bounce:" rules={['spam.com']} setRules={setRules} />)
+
+    const button = screen.getByRole('button', { name: 'Remove spam.com' })
+    await userEvent.click(button)
+
+    expect(button).toBeDisabled()
+    expect(setRules).not.toHaveBeenCalled()
+  })
+
+  it('should give each chip remove button a 24px target without growing the chip', () => {
+    render(<BounceSenderInput label="Bounce:" rules={['spam.com']} setRules={setRules} />)
+
+    expect(screen.getByRole('button', { name: 'Remove spam.com' })).toHaveStyle({
+      margin: '-6px',
+      minHeight: '24px',
+      minWidth: '24px',
+    })
+  })
+
+  it('should hand the input to inputRef', () => {
+    const inputRef = React.createRef<HTMLInputElement>()
+    render(<BounceSenderInput inputRef={inputRef} label="Bounce:" rules={[]} setRules={setRules} />)
+
+    expect(inputRef.current).toBe(screen.getByRole('textbox'))
+  })
+
   it('should not accept typing while disabled', async () => {
     render(<BounceSenderInput disabled={true} label="Bounce:" rules={[]} setRules={setRules} />)
 

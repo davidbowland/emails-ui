@@ -1,7 +1,21 @@
 import { X } from 'lucide-react'
 import React from 'react'
 
-export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
+export interface RuleChipProps {
+  disabled?: boolean
+  label: string
+  onDelete?: () => void
+}
+
+// The 12px icon sits in a 24x24 target; the negative margin keeps the chip its visual size.
+const deleteButtonStyle: React.CSSProperties = {
+  justifyContent: 'center',
+  margin: '-6px',
+  minHeight: '24px',
+  minWidth: '24px',
+}
+
+export const RuleChip = ({ disabled, label, onDelete }: RuleChipProps): React.ReactNode => (
   <span
     className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
     style={{
@@ -17,7 +31,10 @@ export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => 
         aria-label={`Remove ${label}`}
         className="chip-delete inline-flex items-center transition-colors"
         data-testid="CancelIcon"
+        disabled={disabled}
         onClick={onDelete}
+        style={{ ...deleteButtonStyle, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        type="button"
       >
         <X aria-hidden="true" size={12} strokeWidth={1.5} />
       </button>
@@ -32,6 +49,7 @@ export interface RuleInputProps {
   disabled: boolean
   enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
   inputId?: string
+  inputRef?: React.Ref<HTMLInputElement>
   invalid?: boolean
   // Returns whether the entry was accepted; a rejected entry stays in the box so it can be fixed.
   onAdd: (value: string) => boolean
@@ -44,6 +62,7 @@ export const RuleInput = ({
   disabled,
   enterKeyHint,
   inputId,
+  inputRef,
   invalid,
   onAdd,
   placeholder,
@@ -78,6 +97,7 @@ export const RuleInput = ({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
+      ref={inputRef}
       style={{
         minWidth: '180px',
         flex: '1 1 auto',

@@ -11,6 +11,8 @@ export interface BounceSenderInputProps {
   enterKeyHint?: RuleInputProps['enterKeyHint']
   // When given, the label becomes a <label> for this id and names the input.
   inputId?: string
+  // Lets a caller read or clear what is still typed in the box (e.g. to commit it on Save).
+  inputRef?: RuleInputProps['inputRef']
   invalid?: boolean
   label: string
   // Called with the typed text when it fails validation, so the caller can show why.
@@ -54,6 +56,7 @@ const BounceSenderInput = ({
   disabled = false,
   enterKeyHint,
   inputId,
+  inputRef,
   invalid,
   label,
   onInvalid,
@@ -118,6 +121,7 @@ const BounceSenderInput = ({
       <div className="flex flex-1 flex-wrap items-center gap-1">
         {rules.map((rule, index) => (
           <RuleChip
+            disabled={disabled}
             key={index}
             label={formatRuleDisplay(rule)}
             onDelete={setRules ? () => handleDelete(index) : undefined}
@@ -130,6 +134,7 @@ const BounceSenderInput = ({
             disabled={disabled}
             enterKeyHint={enterKeyHint}
             inputId={inputId}
+            inputRef={inputRef}
             invalid={invalid}
             onAdd={handleAdd}
             placeholder={placeholder}

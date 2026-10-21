@@ -220,9 +220,9 @@ describe('spam-impact', () => {
   })
 
   describe('wouldExceedLimits', () => {
-    it('should return undefined for lists at the limit', () => {
+    it('should return undefined for lists that grow to the limit', () => {
       expect(
-        wouldExceedLimits({
+        wouldExceedLimits(DEFAULT_SPAM_FILTER, {
           ...DEFAULT_SPAM_FILTER,
           blockPhrases: listOf(SPAM_FILTER_LIST_LIMIT, 'p'),
           trustedSenders: listOf(SPAM_FILTER_LIST_LIMIT, 's'),
@@ -230,12 +230,30 @@ describe('spam-impact', () => {
       ).toBeUndefined()
     })
 
-    it('should report block phrases over the limit', () => {
-      expect(wouldExceedLimits({ ...DEFAULT_SPAM_FILTER, blockPhrases: listOf(101, 'p') })).toEqual('blockPhrases')
+    it('should report block phrases that grow past the limit', () => {
+      expect(
+        wouldExceedLimits(
+          { ...DEFAULT_SPAM_FILTER, blockPhrases: listOf(100, 'p') },
+          { ...DEFAULT_SPAM_FILTER, blockPhrases: listOf(101, 'p') },
+        ),
+      ).toEqual('blockPhrases')
     })
 
-    it('should report trusted senders over the limit', () => {
-      expect(wouldExceedLimits({ ...DEFAULT_SPAM_FILTER, trustedSenders: listOf(101, 's') })).toEqual('trustedSenders')
+    it('should report trusted senders that grow past the limit', () => {
+      expect(
+        wouldExceedLimits(
+          { ...DEFAULT_SPAM_FILTER, trustedSenders: listOf(100, 's') },
+          { ...DEFAULT_SPAM_FILTER, trustedSenders: listOf(101, 's') },
+        ),
+      ).toEqual('trustedSenders')
+    })
+
+    it('should ignore lists already over the limit that do not grow', () => {
+      const overFull = { ...DEFAULT_SPAM_FILTER, blockPhrases: listOf(101, 'p'), trustedSenders: listOf(102, 's') }
+
+      expect(
+        wouldExceedLimits(overFull, { ...overFull, sensitivity: 'high', trustedSenders: listOf(101, 's') }),
+      ).toBeUndefined()
     })
   })
 })

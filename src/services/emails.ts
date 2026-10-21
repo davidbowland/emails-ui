@@ -28,6 +28,17 @@ const authHeaders = async (): Promise<Record<string, string>> => {
   return {}
 }
 
+// The string `code` from an error body, or undefined when the body is missing, not JSON, or has none.
+const errorCode = async (response: Response): Promise<string | undefined> => {
+  try {
+    const body: unknown = await response.json()
+    const code = (body as { code?: unknown } | null)?.code
+    return typeof code === 'string' ? code : undefined
+  } catch {
+    return undefined
+  }
+}
+
 // A failed request throws, and nothing is ever sent twice. Callers report the failure and let the
 // user decide what to do, which for a mutation means re-reading state rather than guessing.
 const send = async (method: string, path: string, body?: unknown): Promise<Response> => {
@@ -42,9 +53,10 @@ const send = async (method: string, path: string, body?: unknown): Promise<Respo
     // can send to that browser. The API redacts it from its logs; callers of this hand the
     // message straight to console.error, so it must not carry it either.
     // The status rides along so callers can tell a 403, 429 or 503 apart without parsing text.
+    const code = await errorCode(response)
     const error: HttpError = Object.assign(
       new Error(`${method} ${path.split('?')[0]} responded with ${response.status}`),
-      { status: response.status },
+      code === undefined ? { status: response.status } : { code, status: response.status },
     )
     throw error
   }

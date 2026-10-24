@@ -537,7 +537,8 @@ const Mailbox = ({
       receivedEmails.length > 0 &&
       receivedEmails.find((email) => email.id === selectedEmailId) === undefined
     ) {
-      emailSelectClick(loggedInUser?.username, receivedEmails[0].id)
+      // Below md the first email is loaded for later but the list stays on screen.
+      emailSelectClick(loggedInUser?.username, receivedEmails[0].id, isWideViewport())
     }
   }, [receivedEmails])
 

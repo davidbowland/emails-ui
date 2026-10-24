@@ -575,6 +575,30 @@ describe('Mailbox component', () => {
 
     const noticeOf = (text: string | RegExp): HTMLElement => screen.getByText(text).closest('section') as HTMLElement
 
+    describe('first load', () => {
+      const unread = { ...first, data: { ...first.data, viewed: false } }
+      const listPanel = (): HTMLElement =>
+        screen.getByRole('navigation', { name: 'Inbox emails' }).closest('.flex-col') as HTMLElement
+
+      it('should open the first email at md and up', async () => {
+        await setup('inbox', [unread, second])
+
+        expect(getEmailContents).toHaveBeenCalledWith(accountId, 's1')
+        await waitFor(() =>
+          expect(patchEmail).toHaveBeenCalledWith(accountId, 's1', [{ op: 'replace', path: '/viewed', value: true }]),
+        )
+      })
+
+      it('should stay on the list below md, loading the first email without marking it read', async () => {
+        await setup('inbox', [unread, second], false)
+
+        expect(getEmailContents).toHaveBeenCalledWith(accountId, 's1')
+        expect(listPanel()).toHaveClass('w-full')
+        expect(listPanel()).not.toHaveClass('hidden')
+        expect(patchEmail).not.toHaveBeenCalled()
+      })
+    })
+
     describe('Not spam', () => {
       it('should move the email to the Inbox, refresh, select the next email and focus the notice', async () => {
         await setup('spam', [first, second, third])

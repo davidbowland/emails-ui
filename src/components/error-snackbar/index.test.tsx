@@ -27,4 +27,19 @@ describe('ErrorSnackbar component', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('should show a long message in full alongside the close button', () => {
+    const longMessage = "We couldn't save those changes. Your picks are still here — try again."
+    render(<ErrorSnackbar message={longMessage} onClose={onClose} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(longMessage)
+    expect(screen.getByRole('button', { name: 'Close' })).toBeVisible()
+  })
+
+  it('should show an icon, not a text glyph, on the close button', () => {
+    render(<ErrorSnackbar message="Something went wrong" onClose={onClose} />)
+
+    expect(screen.getByRole('button', { name: 'Close' })).not.toHaveTextContent('✕')
+    expect(screen.getByTestId('icon-X')).toBeInTheDocument()
+  })
 })

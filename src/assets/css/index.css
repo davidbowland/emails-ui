@@ -180,6 +180,45 @@ body {
   animation-delay: 260ms;
 }
 
+/* ─── Reduced motion ─────────────────────────────────────────── */
+/* Readers who ask the OS for less motion get content in place, without entrance animations,
+   staggered rows or transitions. Rows start at opacity 0 for their entrance, so they are made
+   visible here rather than left hidden. Spinners (animate-spin) keep turning: a frozen spinner
+   reads as a hang, and the rotation is small and essential. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .email-row,
+  [class*='animate-']:not(.animate-spin) {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* ─── Focus rings ────────────────────────────────────────────── */
+/* Keyboard focus only (`:focus-visible`), never the pointer. --accent clears the 3:1 bar for UI
+   components on both surfaces (3.8:1 on paper), so it is the default; shell controls get
+   --accent-hover, which reads 5.88:1 there. `:where` keeps these at zero specificity so a
+   component's own focus style still wins. */
+:where(button, [href], input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:where(.btn-shell, .email-row):focus-visible {
+  outline-color: var(--accent-hover);
+}
+
 /* ─── AWS Amplify Auth ───────────────────────────────────────── */
 [data-amplify-authenticator] {
   --amplify-components-authenticator-state-inactive-background-color: rgba(255, 255, 255, 0.04);
@@ -290,9 +329,9 @@ body {
 .amplify-button--primary {
   background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%) !important;
   /* Amplify paints this button's label with `font-inverse`, which its dark-mode override flips
-     to near-black — so the label's colour tracked the OS colour scheme (white at 4.44:1, black
+     to near-black — so the label's color tracked the OS color scheme (white at 4.44:1, black
      at 3.94:1; both fail AA). Pin it to white and let the deeper gradient carry it: 5.34:1 at
-     the dark end, 4.79:1 at the light one, in either colour mode. */
+     the dark end, 4.79:1 at the light one, in either color mode. */
   color: #fff !important;
   border: none !important;
   border-radius: 10px !important;
@@ -317,7 +356,7 @@ body {
 }
 
 /* While the sign-in request is in flight Amplify swaps the button to its loading tokens, which
-   grey the label out to `font-disabled` and expect a transparent background to go with it. Our
+   gray the label out to `font-disabled` and expect a transparent background to go with it. Our
    `background` shorthand keeps the violet gradient, so "Signing in" landed at 1.4:1 — invisible.
    Hold the resting appearance instead, and give the spinner a white arc (5.3:1, clearing the
    3:1 that WCAG asks of meaningful graphics) over a faint white track. */
@@ -348,14 +387,16 @@ body {
     color 0.15s ease,
     transform 0.1s ease;
 }
-.btn-ghost-paper:hover:not(:disabled) {
+.btn-ghost-paper:hover:not(:disabled):not([aria-disabled='true']) {
   background: var(--paper-border);
   color: var(--text-paper);
 }
-.btn-ghost-paper:active:not(:disabled) {
+.btn-ghost-paper:active:not(:disabled):not([aria-disabled='true']) {
   transform: scale(0.97);
 }
-.btn-ghost-paper:disabled {
+/* aria-disabled keeps the button in the tab order while busy, so it looks and points as :disabled. */
+.btn-ghost-paper:disabled,
+.btn-ghost-paper[aria-disabled='true'] {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -381,7 +422,8 @@ body {
   transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(124, 93, 244, 0.3);
 }
-.btn-accent:disabled {
+.btn-accent:disabled,
+.btn-accent[aria-disabled='true'] {
   background: var(--shell-border);
   color: var(--text-muted);
   box-shadow: none;

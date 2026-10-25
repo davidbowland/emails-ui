@@ -7,17 +7,20 @@ import {
   getAccount,
   getAllReceivedEmails,
   getAllSentEmails,
+  getAllSpamEmails,
   getReceivedAttachment,
   getReceivedEmailContents,
   getSentAttachment,
   getSentEmailContents,
   getVapidPublicKey,
+  moveReceivedEmail,
   patchReceivedEmail,
   patchSentEmail,
   postBounceEmail,
   postPushSubscription,
   postSentAttachment,
   postSentEmail,
+  postSpamSuggestions,
   putAccount,
 } from './emails'
 import {
@@ -35,6 +38,7 @@ import {
   pushEndpoint,
   pushSubscription,
 } from '@test/__mocks__'
+import { HttpError, SpamSuggestionsResponse } from '@types'
 
 jest.mock('@aws-amplify/analytics')
 jest.mock('@config/amplify', () => ({
@@ -76,6 +80,43 @@ describe('Emails service', () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Internal server error' }, false, 500))
 
       await expect(getAccount(accountId)).rejects.toThrow(`GET /accounts/${accountId} responded with 500`)
+    })
+
+    it('should expose the response status on the error', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Too many requests' }, false, 429))
+
+      const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+      expect(error.status).toEqual(429)
+    })
+
+    it('should expose a string code from the error body', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ code: 'DAILY_LIMIT', message: 'Too many requests' }, false, 429))
+
+      const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+      expect(error.code).toEqual('DAILY_LIMIT')
+    })
+
+    it.each([[{ message: 'Too many requests' }], [{ code: 7 }], [null]])(
+      'should leave the code out when the body is %j',
+      async (body) => {
+        mockFetch.mockResolvedValueOnce(mockResponse(body, false, 429))
+
+        const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+        expect(error.code).toBeUndefined()
+        expect(error.status).toEqual(429)
+      },
+    )
+
+    it('should leave the code out when the error body is not JSON', async () => {
+      mockFetch.mockResolvedValueOnce({ json: () => Promise.reject(new SyntaxError('bad')), ok: false, status: 502 })
+
+      const error: HttpError = await getAccount(accountId).catch((thrown) => thrown)
+
+      expect(error.code).toBeUndefined()
+      expect(error.status).toEqual(502)
     })
 
     // A push endpoint is a capability: anyone holding it can send to that browser. The API
@@ -240,11 +281,77 @@ describe('Emails service', () => {
 
         const result = await getAllReceivedEmails(accountId)
 
-        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received`, {
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received?folder=inbox`, {
           headers: authorizedHeaders,
           method: 'GET',
         })
         expect(result).toEqual(emailBatch)
+      })
+
+      it('should request the folder it is given', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailBatch))
+
+        await getAllReceivedEmails(accountId, 'spam')
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received?folder=spam`, {
+          headers: authorizedHeaders,
+          method: 'GET',
+        })
+      })
+    })
+
+    describe('getAllSpamEmails', () => {
+      it('should request the spam folder', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(emailBatch))
+
+        const result = await getAllSpamEmails(accountId)
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received?folder=spam`, {
+          headers: authorizedHeaders,
+          method: 'GET',
+        })
+        expect(result).toEqual(emailBatch)
+      })
+    })
+
+    describe('moveReceivedEmail', () => {
+      it('should replace the folder with a patch', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(email))
+
+        const result = await moveReceivedEmail(accountId, emailId, 'spam')
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/emails/received/${emailId}`, {
+          body: JSON.stringify([{ op: 'replace', path: '/folder', value: 'spam' }]),
+          headers: jsonHeaders,
+          method: 'PATCH',
+        })
+        expect(result).toEqual(email)
+      })
+    })
+
+    describe('postSpamSuggestions', () => {
+      const suggestionsResponse: SpamSuggestionsResponse = {
+        suggestions: [{ id: 's1', kind: 'addBlockPhrase', reason: 'Pitch line', value: 'reply with no' }],
+      }
+
+      it('should return the suggestions from the API call', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(suggestionsResponse))
+
+        const result = await postSpamSuggestions(accountId, emailId)
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/accounts/${accountId}/emails/received/${emailId}/spam-suggestions`,
+          { headers: authorizedHeaders, method: 'POST' },
+        )
+        expect(result).toEqual(suggestionsResponse)
+      })
+
+      it.each([403, 429, 503])('should reject with status %s', async (status) => {
+        mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Failed' }, false, status))
+
+        const error: HttpError = await postSpamSuggestions(accountId, emailId).catch((thrown) => thrown)
+
+        expect(error.status).toEqual(status)
       })
     })
 

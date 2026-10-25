@@ -8,6 +8,8 @@ import {
   EmailDivider,
   ForwardButton,
   LoadingOverlay,
+  MoveToSpamButton,
+  NotSpamButton,
   ReplyAllButton,
   ReplyButton,
   ShowImagesButton,
@@ -26,6 +28,7 @@ const HTTP_LEAK_ATTRIBUTES = ['action', 'background', 'poster', 'src']
 type bounceEmailFn = (accountId: string, emailId: string) => Promise<any>
 type deleteEmailFn = (accountId: string, emailId: string) => Promise<any>
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
+type moveEmailFn = (accountId: string, emailId: string) => Promise<void>
 
 enum ComposeMode {
   NONE = 0,
@@ -42,7 +45,14 @@ export interface EmailViewerProps {
   email: EmailContents
   emailId: string
   getAttachment: getAttachmentFn
+  // Shown in Inbox: moves the email to Spam.
+  onMoveToSpam?: moveEmailFn
+  // Shown in Spam: moves the email back to the Inbox.
+  onNotSpam?: moveEmailFn
 }
+
+const MOVE_TO_INBOX_FAILURE = "Couldn't move this email to your Inbox. Refresh the page and try again."
+const MOVE_TO_SPAM_FAILURE = "Couldn't move this email to Spam. Refresh the page and try again."
 
 const EmailViewer = ({
   accountId,
@@ -52,6 +62,8 @@ const EmailViewer = ({
   email,
   emailId,
   getAttachment,
+  onMoveToSpam,
+  onNotSpam,
 }: EmailViewerProps): React.ReactNode => {
   const [backdropShown, setBackdropShown] = useState(false)
   const [composeMode, setComposeMode] = useState<ComposeMode>(ComposeMode.NONE)
@@ -88,6 +100,17 @@ const EmailViewer = ({
     } catch (error: any) {
       console.error('deleteEmailClick', { accountId, emailId, error })
       setErrorMessage('Error deleting email. Please refresh and try again.')
+    }
+    setBackdropShown(false)
+  }
+
+  const moveEmailClick = async (move: moveEmailFn, failureMessage: string): Promise<void> => {
+    setBackdropShown(true)
+    try {
+      await move(accountId, emailId)
+    } catch (error: unknown) {
+      console.error('moveEmailClick', { accountId, emailId, error })
+      setErrorMessage(failureMessage)
     }
     setBackdropShown(false)
   }
@@ -184,10 +207,13 @@ const EmailViewer = ({
         {/* Action bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-8 pb-4">
           <ShowImagesButton onClick={() => setShowImages(!showImages)} showImages={showImages} />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* data-email-actions: Mailbox returns focus to the first of these when its notice closes. */}
+          <div className="flex flex-wrap items-center justify-end gap-2" data-email-actions="">
+            {onNotSpam && <NotSpamButton onClick={() => moveEmailClick(onNotSpam, MOVE_TO_INBOX_FAILURE)} />}
             <ReplyButton onClick={() => setComposeMode(ComposeMode.REPLY)} />
             <ReplyAllButton onClick={() => setComposeMode(ComposeMode.REPLY_ALL)} />
             <ForwardButton onClick={() => setComposeMode(ComposeMode.FORWARD)} />
+            {onMoveToSpam && <MoveToSpamButton onClick={() => moveEmailClick(onMoveToSpam, MOVE_TO_SPAM_FAILURE)} />}
             {bounceEmail && <BounceButton onClick={() => setShowBounceDialog(true)} />}
             {deleteEmail && <DeleteButton onClick={() => setShowDeleteDialog(true)} />}
           </div>

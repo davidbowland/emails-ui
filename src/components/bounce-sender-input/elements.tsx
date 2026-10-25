@@ -1,6 +1,21 @@
+import { X } from 'lucide-react'
 import React from 'react'
 
-export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
+export interface RuleChipProps {
+  disabled?: boolean
+  label: string
+  onDelete?: () => void
+}
+
+// The 12px icon sits in a 24x24 target; the negative margin keeps the chip its visual size.
+const deleteButtonStyle: React.CSSProperties = {
+  justifyContent: 'center',
+  margin: '-6px',
+  minHeight: '24px',
+  minWidth: '24px',
+}
+
+export const RuleChip = ({ disabled, label, onDelete }: RuleChipProps): React.ReactNode => (
   <span
     className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
     style={{
@@ -14,26 +29,46 @@ export const RuleChip = ({ label, onDelete }: { label: string; onDelete?: () => 
     {onDelete && (
       <button
         aria-label={`Remove ${label}`}
-        className="chip-delete transition-colors"
+        className="chip-delete inline-flex items-center transition-colors"
         data-testid="CancelIcon"
+        disabled={disabled}
         onClick={onDelete}
+        style={{ ...deleteButtonStyle, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        type="button"
       >
-        ✕
+        <X aria-hidden="true" size={12} strokeWidth={1.5} />
       </button>
     )}
   </span>
 )
 
-export const RuleInput = ({
-  disabled,
-  onAdd,
-}: {
+export interface RuleInputProps {
+  // Omit when a <label htmlFor={inputId}> names the input instead.
+  ariaLabel?: string
+  describedBy?: string
   disabled: boolean
-  onAdd: (value: string) => void
-}): React.ReactNode => {
+  enterKeyHint?: React.InputHTMLAttributes<HTMLInputElement>['enterKeyHint']
+  inputId?: string
+  inputRef?: React.Ref<HTMLInputElement>
+  invalid?: boolean
+  // Returns whether the entry was accepted; a rejected entry stays in the box so it can be fixed.
+  onAdd: (value: string) => boolean
+  placeholder: string
+}
+
+export const RuleInput = ({
+  ariaLabel,
+  describedBy,
+  disabled,
+  enterKeyHint,
+  inputId,
+  inputRef,
+  invalid,
+  onAdd,
+  placeholder,
+}: RuleInputProps): React.ReactNode => {
   const commitValue = (input: HTMLInputElement): void => {
-    if (input.value.trim()) {
-      onAdd(input.value)
+    if (input.value.trim() && onAdd(input.value)) {
       input.value = ''
     }
   }
@@ -51,12 +86,18 @@ export const RuleInput = ({
 
   return (
     <input
-      aria-label="Sender to block"
-      className="rounded-md px-3 py-1.5 text-sm outline-none"
+      aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
+      aria-label={ariaLabel}
+      // No outline utility here: the global :focus-visible ring in index.css must stay visible.
+      className="rounded-md px-3 py-1.5 text-sm"
       disabled={disabled}
+      enterKeyHint={enterKeyHint}
+      id={inputId}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      placeholder="Email, @domain.com, or * for all"
+      placeholder={placeholder}
+      ref={inputRef}
       style={{
         minWidth: '180px',
         flex: '1 1 auto',

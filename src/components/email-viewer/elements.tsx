@@ -1,5 +1,5 @@
 import { Spinner } from '@heroui/react'
-import { AlertCircle, Ban, Eye, EyeOff, Forward, Reply, ReplyAll, Trash2 } from 'lucide-react'
+import { AlertCircle, Ban, Eye, EyeOff, Forward, Inbox, Reply, ReplyAll, ShieldAlert, Trash2 } from 'lucide-react'
 import React from 'react'
 
 export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: string }): React.ReactNode => (
@@ -115,6 +115,19 @@ export const ReplyAllButton = ({ onClick }: { onClick: () => void }): React.Reac
 
 export const ForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
   <ActionButton icon={<Forward size={12} strokeWidth={1.5} />} label="Forward" onClick={onClick} />
+)
+
+export const NotSpamButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
+  <ActionButton icon={<Inbox size={12} strokeWidth={1.5} />} label="Not spam" onClick={onClick} />
+)
+
+export const MoveToSpamButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
+  <ActionButton
+    icon={<ShieldAlert size={12} strokeWidth={1.5} />}
+    label="Move to spam"
+    onClick={onClick}
+    variant="danger"
+  />
 )
 
 export const BounceButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (

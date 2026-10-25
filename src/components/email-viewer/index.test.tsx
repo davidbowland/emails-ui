@@ -674,4 +674,119 @@ describe('Email viewer component', () => {
       expect(await screen.findByText(/Couldn't reject this email. Refresh the page and try again./i)).toBeVisible()
     })
   })
+
+  describe('move', () => {
+    const moveEmail = jest.fn()
+
+    beforeAll(() => {
+      moveEmail.mockResolvedValue(undefined)
+    })
+
+    const actionLabels = (): (string | null)[] =>
+      screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))
+
+    it('should show Not spam first in the action group, and no Move to spam, in Spam', () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          deleteEmail={deleteReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+          onNotSpam={moveEmail}
+        />,
+      )
+
+      expect(actionLabels()).toEqual(['Show images', 'Not spam', 'Reply', 'Reply all', 'Forward', 'Delete email'])
+      expect(screen.getByTestId('icon-Inbox')).toBeInTheDocument()
+    })
+
+    it('should show Move to spam just before Bounce, and no Not spam, in Inbox', () => {
+      render(
+        <EmailViewer
+          accountId={accountId}
+          bounceEmail={bounceReceivedEmail}
+          deleteEmail={deleteReceivedEmail}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+          onMoveToSpam={moveEmail}
+        />,
+      )
+
+      expect(actionLabels()).toEqual([
+        'Show images',
+        'Reply',
+        'Reply all',
+        'Forward',
+        'Move to spam',
+        'Bounce email',
+        'Delete email',
+      ])
+      expect(screen.getByTestId('icon-ShieldAlert')).toBeInTheDocument()
+    })
+
+    it('should show neither move action without move callbacks', () => {
+      render(
+        <EmailViewer accountId={accountId} email={emailContents} emailId={emailId} getAttachment={getAttachment} />,
+      )
+
+      expect(screen.queryByRole('button', { name: 'Not spam' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Move to spam' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+      ['Not spam', 'onNotSpam'],
+      ['Move to spam', 'onMoveToSpam'],
+    ])('should move the email under the loading overlay when %s is clicked', async (label, prop) => {
+      const resolvers: (() => void)[] = []
+      moveEmail.mockImplementationOnce(() => new Promise<void>((resolve) => resolvers.push(resolve)))
+      render(
+        <EmailViewer
+          accountId={accountId}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+          {...{ [prop]: moveEmail }}
+        />,
+      )
+
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: label }))
+      })
+
+      expect(moveEmail).toHaveBeenCalledWith(accountId, emailId)
+      expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
+
+      await act(async () => {
+        resolvers.forEach((resolve) => resolve())
+      })
+
+      expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it.each([
+      ['Not spam', 'onNotSpam', "Couldn't move this email to your Inbox. Refresh the page and try again."],
+      ['Move to spam', 'onMoveToSpam', "Couldn't move this email to Spam. Refresh the page and try again."],
+    ])('should report a failed %s move', async (label, prop, message) => {
+      moveEmail.mockRejectedValueOnce(new Error('Network Error'))
+      render(
+        <EmailViewer
+          accountId={accountId}
+          email={emailContents}
+          emailId={emailId}
+          getAttachment={getAttachment}
+          {...{ [prop]: moveEmail }}
+        />,
+      )
+
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: label }))
+      })
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(message)
+      expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument()
+    })
+  })
 })

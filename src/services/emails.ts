@@ -6,10 +6,13 @@ import {
   Email,
   EmailBatch,
   EmailContents,
+  EmailFolder,
   EmailOutbound,
+  HttpError,
   PatchOperation,
   PostSignedUrl,
   SignedUrl,
+  SpamSuggestionsResponse,
 } from '@types'
 
 const authHeaders = async (): Promise<Record<string, string>> => {
@@ -25,6 +28,17 @@ const authHeaders = async (): Promise<Record<string, string>> => {
   return {}
 }
 
+// The string `code` from an error body, or undefined when the body is missing, not JSON, or has none.
+const errorCode = async (response: Response): Promise<string | undefined> => {
+  try {
+    const body: unknown = await response.json()
+    const code = (body as { code?: unknown } | null)?.code
+    return typeof code === 'string' ? code : undefined
+  } catch {
+    return undefined
+  }
+}
+
 // A failed request throws, and nothing is ever sent twice. Callers report the failure and let the
 // user decide what to do, which for a mutation means re-reading state rather than guessing.
 const send = async (method: string, path: string, body?: unknown): Promise<Response> => {
@@ -38,7 +52,13 @@ const send = async (method: string, path: string, body?: unknown): Promise<Respo
     // Path only, never the query string: the push endpoint travels there, and anyone holding it
     // can send to that browser. The API redacts it from its logs; callers of this hand the
     // message straight to console.error, so it must not carry it either.
-    throw new Error(`${method} ${path.split('?')[0]} responded with ${response.status}`)
+    // The status rides along so callers can tell a 403, 429 or 503 apart without parsing text.
+    const code = await errorCode(response)
+    const error: HttpError = Object.assign(
+      new Error(`${method} ${path.split('?')[0]} responded with ${response.status}`),
+      code === undefined ? { status: response.status } : { code, status: response.status },
+    )
+    throw error
   }
   return response
 }
@@ -83,8 +103,13 @@ export const postPushSubscription = (accountId: string, subscription: PushSubscr
 export const deleteReceivedEmail = (accountId: string, emailId: string): Promise<Email> =>
   request<Email>('DELETE', `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}`)
 
-export const getAllReceivedEmails = (accountId: string): Promise<EmailBatch[]> =>
-  request<EmailBatch[]>('GET', `/accounts/${encodeURIComponent(accountId)}/emails/received`)
+export const getAllReceivedEmails = (accountId: string, folder: EmailFolder = 'inbox'): Promise<EmailBatch[]> =>
+  request<EmailBatch[]>(
+    'GET',
+    `/accounts/${encodeURIComponent(accountId)}/emails/received?folder=${encodeURIComponent(folder)}`,
+  )
+
+export const getAllSpamEmails = (accountId: string): Promise<EmailBatch[]> => getAllReceivedEmails(accountId, 'spam')
 
 export const getReceivedAttachment = (accountId: string, emailId: string, attachmentId: string): Promise<SignedUrl> =>
   request<SignedUrl>(
@@ -109,6 +134,15 @@ export const patchReceivedEmail = (
     'PATCH',
     `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}`,
     patchOperations,
+  )
+
+export const moveReceivedEmail = (accountId: string, emailId: string, folder: EmailFolder): Promise<Email> =>
+  patchReceivedEmail(accountId, emailId, [{ op: 'replace', path: '/folder', value: folder }])
+
+export const postSpamSuggestions = (accountId: string, emailId: string): Promise<SpamSuggestionsResponse> =>
+  request<SpamSuggestionsResponse>(
+    'POST',
+    `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}/spam-suggestions`,
   )
 
 export const postBounceEmail = (accountId: string, emailId: string): Promise<Email> =>

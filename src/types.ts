@@ -28,12 +28,29 @@ export interface AttachmentCommon {
 export type NotificationPreview = 'sender-and-subject' | 'sender-only' | 'none'
 export const DEFAULT_NOTIFICATION_PREVIEW: NotificationPreview = 'sender-and-subject'
 
+// The owner's spam rules. Sensitivity picks the score threshold; block phrases send matching mail
+// to Spam; trusted senders skip the content filter when the sender authenticates. The constant
+// sits beside the type for the same reason as DEFAULT_NOTIFICATION_PREVIEW.
+export type SpamSensitivity = 'low' | 'medium' | 'high'
+
+export interface SpamFilter {
+  blockPhrases: string[]
+  sensitivity: SpamSensitivity
+  trustedSenders: string[]
+}
+
+export const DEFAULT_SPAM_FILTER: SpamFilter = { blockPhrases: [], sensitivity: 'medium', trustedSenders: [] }
+
 export interface Account {
   bounceSenders: string[]
   forwardTargets: string[]
   name: string
   notificationPreview: NotificationPreview
   id?: string
+  // Optional, unlike notificationPreview: an account saved before the spam filter existed has
+  // none (read it as `account.spamFilter ?? DEFAULT_SPAM_FILTER`), and the API keeps the stored
+  // value when a PUT omits it, so leaving it out never resets the owner's rules.
+  spamFilter?: SpamFilter
 }
 
 export interface AccountBatch {
@@ -54,12 +71,16 @@ export interface EmailAttachment {
   type: string
 }
 
+// A stored email with no folder is in the Inbox: mail received before the spam filter has none.
+export type EmailFolder = 'inbox' | 'spam'
+
 export interface Email {
   attachments?: EmailAttachment[]
   bcc?: string[]
   bounced?: boolean
   canBeBounced?: boolean
   cc?: string[]
+  folder?: EmailFolder
   from: string
   subject: string
   timestamp: number
@@ -132,6 +153,19 @@ export type InstallState = 'chromium' | 'hidden' | 'ios' | 'menu' | 'promptable'
 // warm-linen paper (Settings). Drives which token set the component reaches for.
 export type InstallSurface = 'paper' | 'shell'
 
+// A new block phrase and the Inbox subjects it would match.
+export interface PhraseMatch {
+  phrase: string
+  subjects: string[]
+}
+
+// What a failed API call throws: the status lets callers tell 403, 429 and 503 apart, and the
+// code (when the body names one) tells two errors with the same status apart.
+export interface HttpError extends Error {
+  code?: string
+  status?: number
+}
+
 export interface PostSignedUrl {
   fields: StringObject
   url: string
@@ -139,4 +173,19 @@ export interface PostSignedUrl {
 
 export interface SignedUrl {
   url: string
+}
+
+// Only changes that make the filter stricter. The API drops any other kind before it reaches
+// the UI. For raiseSensitivity, `value` is the new SpamSensitivity.
+export type SpamSuggestionKind = 'addBlockPhrase' | 'removeTrustedSender' | 'raiseSensitivity'
+
+export interface SpamSuggestion {
+  id: string
+  kind: SpamSuggestionKind
+  reason: string
+  value: string
+}
+
+export interface SpamSuggestionsResponse {
+  suggestions: SpamSuggestion[]
 }

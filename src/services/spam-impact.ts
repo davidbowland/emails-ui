@@ -1,4 +1,4 @@
-import { EmailBatch, PhraseMatch, SpamFilter, SpamSensitivity, SpamSuggestion } from '@types'
+import { SpamFilter, SpamSensitivity, SpamSuggestion } from '@types'
 
 // The API rejects a list longer than this; the UI checks first so it never sends one.
 export const SPAM_FILTER_LIST_LIMIT = 100
@@ -50,24 +50,6 @@ export const containsPhrase = (textWords: string[], phraseWords: string[]): bool
       start + phraseWords.length <= textWords.length &&
       phraseWords.every((word, offset) => textWords[start + offset] === word),
   )
-
-/* Impact on the Inbox */
-
-// The subjects of the given emails that contain the phrase. The list API returns no bodies, so
-// subjects are all the UI can check.
-export const matchInboxSubjects = (phrase: string, emails: EmailBatch[]): string[] => {
-  const phraseWords = toWords(phrase)
-  return emails
-    .map((email) => email.data.subject || '')
-    .filter((subject) => containsPhrase(toWords(subject), phraseWords))
-}
-
-// Each phrase in `next` that is not in `saved` and matches at least one Inbox subject.
-export const newPhraseMatches = (saved: string[], next: string[], emails: EmailBatch[]): PhraseMatch[] =>
-  next
-    .filter((phrase) => !saved.includes(phrase))
-    .map((phrase) => ({ phrase, subjects: matchInboxSubjects(phrase, emails) }))
-    .filter((match) => match.subjects.length > 0)
 
 /* Trust */
 

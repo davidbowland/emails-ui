@@ -153,12 +153,6 @@ export type InstallState = 'chromium' | 'hidden' | 'ios' | 'menu' | 'promptable'
 // warm-linen paper (Settings). Drives which token set the component reaches for.
 export type InstallSurface = 'paper' | 'shell'
 
-// A new block phrase and the Inbox subjects it would match.
-export interface PhraseMatch {
-  phrase: string
-  subjects: string[]
-}
-
 // What a failed API call throws: the status lets callers tell 403, 429 and 503 apart, and the
 // code (when the body names one) tells two errors with the same status apart.
 export interface HttpError extends Error {

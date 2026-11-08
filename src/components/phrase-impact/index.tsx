@@ -167,8 +167,11 @@ export const PhraseImpact = ({ checked, id, impact, inboxIncomplete }: PhraseImp
   </span>
 )
 
+// No live region of its own: one per row would announce "Checking your mail…" once per phrase, and a
+// region inserted with its text is often not announced at all. Callers announce through a region that
+// stays mounted.
 export const PhraseImpactPending = ({ id }: { id: string }): React.ReactNode => (
-  <span className={LINE_CLASS} id={id} role="status" style={LINE_STYLE}>
+  <span className={LINE_CLASS} id={id} style={LINE_STYLE}>
     <span
       aria-hidden="true"
       className="mt-px inline-block h-3 w-3 flex-shrink-0 animate-spin rounded-full"

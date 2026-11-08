@@ -447,9 +447,13 @@ describe('AccountSettings component', () => {
   describe('impact check', () => {
     const inboxLead =
       'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
-    const incompleteLead = "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
-    const failedLead = "We couldn't check your new phrases against your mail. You can save them anyway."
-    const spamLead = "Here's the mail in Spam that your new phrases match."
+    const incompleteLead = "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
+    const failedLead = "We couldn't check your new phrase against your mail. You can save it anyway."
+    const spamLead = "Here's the mail in Spam that your new phrase matches."
+    const pluralIncompleteLead =
+      "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
+    const pluralFailedLead = "We couldn't check your new phrases against your mail. You can save them anyway."
+    const pluralSpamLead = "Here's the mail in Spam that your new phrases match."
 
     it('expect only the new phrases checked, with no email excluded', async () => {
       jest.mocked(emails).getAccount.mockResolvedValueOnce({
@@ -525,8 +529,11 @@ describe('AccountSettings component', () => {
       expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
     })
 
-    it('expect the plural lead when more than one new phrase is checked', async () => {
-      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+    it('expect the plural Inbox lead when more than one new phrase matches the Inbox', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        phrases: [spamImpactResponse.phrases[0], spamImpactResponse.phrases[0]],
+      })
 
       await saveTwoNewPhrases()
 
@@ -618,7 +625,7 @@ describe('AccountSettings component', () => {
       const dialog = await findImpactDialog()
       expect(within(dialog).getByText('“free lunch”')).toBeVisible()
       expect(within(dialog).getByText('“lottery winner”')).toBeVisible()
-      expect(within(dialog).getByText(spamLead)).toBeVisible()
+      expect(within(dialog).getByText(pluralSpamLead)).toBeVisible()
     })
 
     it('expect each new phrase listed with its lines and the footnote', async () => {
@@ -684,13 +691,66 @@ describe('AccountSettings component', () => {
       )
     })
 
-    it('expect the Inbox never loaded', async () => {
-      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+    it('expect the plural failed lead when more than one new phrase is checked', async () => {
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(new Error('throttled'))
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralFailedLead)).toBeVisible()
+    })
+
+    it('expect the plural incomplete lead when more than one new phrase is checked', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        inboxIncomplete: true,
+        phrases: [spamImpactResponse.phrases[1], spamImpactResponse.phrases[1]],
+      })
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralIncompleteLead)).toBeVisible()
+    })
+
+    it('expect the singular Inbox lead when two phrases are checked and only one matches the Inbox', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(inboxLead)).toBeVisible()
+    })
+
+    it('expect the check announced in the status region', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
 
       await saveNewPhrase()
-      await findImpactDialog()
 
-      expect(emails.getAllReceivedEmails).not.toHaveBeenCalled()
+      expect(await within(screen.getByRole('status')).findByText('Checking your mail…')).toBeVisible()
+    })
+
+    it('expect the forward and bounce lists locked while the check runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+
+      await saveNewPhrase()
+      await screen.findByRole('button', { name: 'Checking your mail…' })
+
+      expect(AddressLine).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
+      expect(BounceSenderInput).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
+    })
+
+    it('expect an edit attempted during the check not to change what is saved', async () => {
+      let finishCheck: (response: SpamImpactResponse) => void = () => undefined
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise((resolve) => (finishCheck = resolve)))
+
+      await saveNewPhrase()
+      await screen.findByRole('button', { name: 'Checking your mail…' })
+      await userEvent.type(screen.getByLabelText(/From name/i), ' Jr')
+      finishCheck(noMatches)
+
+      expect(await screen.findByText('Settings saved.')).toBeVisible()
+      expect(emails.putAccount).toHaveBeenCalledWith(
+        user.username,
+        expect.objectContaining({ name: account.name, spamFilter: withInvoice }),
+      )
     })
   })
 })

@@ -4,6 +4,7 @@ import AddressLine from './index'
 import { addresses } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 describe('Address line component', () => {
   const setAddresses = jest.fn()
@@ -81,6 +82,22 @@ describe('Address line component', () => {
     const input = (await screen.findByRole('textbox')) as HTMLInputElement
     fireEvent.change(input, { target: { value: '   ' } })
     fireEvent.blur(input)
+
+    expect(setAddresses).not.toHaveBeenCalled()
+  })
+
+  it('should add nothing while disabled', async () => {
+    render(<AddressLine addresses={addresses} disabled label="To:" setAddresses={setAddresses} />)
+
+    await userEvent.type(await screen.findByRole('textbox'), 'late@domain.com{Enter}')
+
+    expect(setAddresses).not.toHaveBeenCalled()
+  })
+
+  it('should remove nothing while disabled', async () => {
+    render(<AddressLine addresses={addresses} disabled label="To:" setAddresses={setAddresses} />)
+
+    await userEvent.click((await screen.findAllByTestId('CancelIcon'))[0])
 
     expect(setAddresses).not.toHaveBeenCalled()
   })

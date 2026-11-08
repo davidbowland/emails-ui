@@ -64,17 +64,26 @@ const needsReview = (check: ImpactCheck): boolean =>
 const impactLead = (check: ImpactCheck): string => {
   const several = check.phrases.length > 1
   if (hasMatch(check, 'inbox')) {
-    return several
+    // Plural only when more than one of the phrases is the one matching the Inbox.
+    const matching =
+      check.result === 'failed' ? 0 : check.result.phrases.filter((impact) => impact.inbox.count > 0).length
+    return matching > 1
       ? 'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'
       : 'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
   }
   if (check.result === 'failed') {
-    return "We couldn't check your new phrases against your mail. You can save them anyway."
+    return several
+      ? "We couldn't check your new phrases against your mail. You can save them anyway."
+      : "We couldn't check your new phrase against your mail. You can save it anyway."
   }
   if (check.result.inboxIncomplete) {
-    return "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
+    return several
+      ? "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
+      : "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
   }
-  return "Here's the mail in Spam that your new phrases match."
+  return several
+    ? "Here's the mail in Spam that your new phrases match."
+    : "Here's the mail in Spam that your new phrase matches."
 }
 
 // Matches in Spam alone are information, not a warning, so the button does not say "anyway".
@@ -297,7 +306,12 @@ const AccountSettings = (): React.ReactNode => {
               We&apos;ll forward incoming emails to these addresses.
             </p>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
-              <AddressLine addresses={forwardAddresses} label="To:" setAddresses={setForwardAddresses} />
+              <AddressLine
+                addresses={forwardAddresses}
+                disabled={isSaving || isChecking}
+                label="To:"
+                setAddresses={setForwardAddresses}
+              />
             </div>
           </section>
         )}
@@ -314,7 +328,12 @@ const AccountSettings = (): React.ReactNode => {
               Bounce rules
             </div>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
-              <BounceSenderInput label="Reject emails from:" rules={bounceSenders} setRules={setBounceSenders} />
+              <BounceSenderInput
+                disabled={isSaving || isChecking}
+                label="Reject emails from:"
+                rules={bounceSenders}
+                setRules={setBounceSenders}
+              />
             </div>
             <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
               Block senders by address (user@domain.com), domain (@domain.com), or enter * to block everyone. Blocked
@@ -396,7 +415,7 @@ const AccountSettings = (): React.ReactNode => {
                 minHeight: '1.25rem',
               }}
             >
-              {hasUnsavedChanges ? '' : saveStatus}
+              {isChecking ? 'Checking your mail…' : hasUnsavedChanges ? '' : saveStatus}
             </p>
             {/* Go back returns focus to Save (ConfirmDialog's trigger) and saves nothing. */}
             <ConfirmDialog

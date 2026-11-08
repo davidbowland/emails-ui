@@ -1,6 +1,14 @@
 import React, { useState } from 'react'
 
-export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () => void }): React.ReactNode => (
+export const AddressChip = ({
+  disabled = false,
+  label,
+  onDelete,
+}: {
+  disabled?: boolean
+  label: string
+  onDelete?: () => void
+}): React.ReactNode => (
   <span
     className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-xs overflow-hidden"
     style={{
@@ -17,6 +25,7 @@ export const AddressChip = ({ label, onDelete }: { label: string; onDelete?: () 
         aria-label={`Remove ${label}`}
         className="chip-delete flex h-3 w-3 items-center justify-center rounded-full text-xs transition-colors"
         data-testid="CancelIcon"
+        disabled={disabled}
         onClick={onDelete}
       >
         ✕

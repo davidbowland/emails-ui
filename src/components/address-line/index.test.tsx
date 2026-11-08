@@ -94,6 +94,22 @@ describe('Address line component', () => {
     expect(setAddresses).not.toHaveBeenCalled()
   })
 
+  it('should show an icon, not a text glyph, on the remove button', async () => {
+    render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    const button = await screen.findByRole('button', { name: 'Remove b@domain.com' })
+    expect(button).not.toHaveTextContent('✕')
+    expect(screen.getAllByTestId('icon-X')).toHaveLength(addresses.length)
+  })
+
+  it('should remove an address when its named remove button is clicked', async () => {
+    render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove b@domain.com' }))
+
+    expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: '' }])
+  })
+
   it('should remove nothing while disabled', async () => {
     render(<AddressLine addresses={addresses} disabled label="To:" setAddresses={setAddresses} />)
 

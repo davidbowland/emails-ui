@@ -1,4 +1,12 @@
+import { X } from 'lucide-react'
 import React, { useState } from 'react'
+
+// The 12px icon sits in a 24x24 target; the negative margin keeps the chip its visual size.
+const deleteButtonStyle: React.CSSProperties = {
+  margin: '-6px',
+  minHeight: '24px',
+  minWidth: '24px',
+}
 
 export const AddressChip = ({
   disabled = false,
@@ -10,7 +18,7 @@ export const AddressChip = ({
   onDelete?: () => void
 }): React.ReactNode => (
   <span
-    className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-xs overflow-hidden"
+    className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
     style={{
       background: 'var(--paper-surface)',
       border: '1px solid var(--paper-border)',
@@ -23,12 +31,13 @@ export const AddressChip = ({
     {onDelete && (
       <button
         aria-label={`Remove ${label}`}
-        className="chip-delete flex h-3 w-3 items-center justify-center rounded-full text-xs transition-colors"
+        className="chip-delete flex shrink-0 items-center justify-center rounded-full transition-colors"
         data-testid="CancelIcon"
         disabled={disabled}
         onClick={onDelete}
+        style={deleteButtonStyle}
       >
-        ✕
+        <X aria-hidden="true" size={12} />
       </button>
     )}
   </span>

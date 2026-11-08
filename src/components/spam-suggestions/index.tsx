@@ -64,6 +64,16 @@ const OVER_LIMIT: Readonly<Record<'blockPhrases' | 'trustedSenders', string>> = 
 
 const plural = (count: number, one: string, many: string): string => (count === 1 ? one : many)
 
+// The screen-reader summary once the check is done. An incomplete Inbox check says so first, since
+// any count it gives could be short.
+const impactDoneStatus = (response: SpamImpactResponse): string => {
+  if (response.inboxIncomplete) return " We couldn't check all of your Inbox."
+  const inboxMatching = response.phrases.filter((impact) => impact.inbox.count > 0).length
+  return inboxMatching > 0
+    ? ` ${inboxMatching} suggested ${plural(inboxMatching, 'phrase matches', 'phrases match')} emails in your Inbox.`
+    : ' We finished checking your mail.'
+}
+
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1)
 
 const changeLabel = (suggestion: SpamSuggestion): React.ReactNode => {
@@ -340,10 +350,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
           <span className="sr-only">
             {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
             {impactState.status === 'checking' && ' Checking your mail…'}
-            {impactState.status === 'done' &&
-              (impactState.response.inboxIncomplete
-                ? " We couldn't check all of your Inbox."
-                : ' We finished checking your mail.')}
+            {impactState.status === 'done' && impactDoneStatus(impactState.response)}
             {impactState.status === 'failed' && " We couldn't check your mail."}
           </span>
         )}
@@ -457,7 +464,11 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
           {impactState.status === 'done' &&
             (impactState.response.checked.inbox.total > 0 || impactState.response.checked.spam.total > 0) && (
               <div className="mt-3">
-                <ImpactFootnote checked={impactState.response.checked} phraseCount={phraseSuggestions.length} />
+                <ImpactFootnote
+                  checked={impactState.response.checked}
+                  mode="suggest"
+                  phraseCount={phraseSuggestions.length}
+                />
               </div>
             )}
         </>

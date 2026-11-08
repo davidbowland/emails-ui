@@ -566,6 +566,16 @@ describe('AccountSettings component', () => {
       expect(within(dialog).queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
     })
 
+    it('expect a failed check logged without the phrases', async () => {
+      const error = new Error('throttled')
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(error)
+
+      await saveNewPhrase()
+      await findImpactDialog()
+
+      expect(console.error).toHaveBeenCalledWith('postSpamImpact', { accountId: user.username, error })
+    })
+
     it('expect a malformed response to count as a failed check', async () => {
       // Two phrase entries for one phrase sent.
       jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
@@ -614,7 +624,7 @@ describe('AccountSettings component', () => {
       expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
     })
 
-    it('expect the dialog to open for a Spam match in only one of two phrases, and list both', async () => {
+    it('expect the dialog to open for a Spam match in only one of two phrases, list both, and use the singular lead', async () => {
       jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
         ...spamImpactResponse,
         phrases: [spamImpactResponse.phrases[1], { ...spamImpactResponse.phrases[0], inbox: { count: 0, emails: [] } }],
@@ -625,7 +635,28 @@ describe('AccountSettings component', () => {
       const dialog = await findImpactDialog()
       expect(within(dialog).getByText('“free lunch”')).toBeVisible()
       expect(within(dialog).getByText('“lottery winner”')).toBeVisible()
-      expect(within(dialog).getByText(pluralSpamLead)).toBeVisible()
+      expect(within(dialog).getByText(spamLead)).toBeVisible()
+      expect(within(dialog).queryByText(pluralSpamLead)).not.toBeInTheDocument()
+    })
+
+    it('expect the plural Spam lead when more than one new phrase matches Spam', async () => {
+      const spamOnlyImpact = { ...spamImpactResponse.phrases[0], inbox: { count: 0, emails: [] } }
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        phrases: [spamOnlyImpact, spamOnlyImpact],
+      })
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralSpamLead)).toBeVisible()
+    })
+
+    it('expect the dialog described by its lead, so a screen reader reads it with the title', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamOnly)
+
+      await saveNewPhrase()
+
+      expect(await findImpactDialog()).toHaveAccessibleDescription(spamLead)
     })
 
     it('expect each new phrase listed with its lines and the footnote', async () => {

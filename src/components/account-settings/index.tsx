@@ -56,18 +56,23 @@ interface ImpactCheck {
 const hasMatch = (check: ImpactCheck, folder: 'inbox' | 'spam'): boolean =>
   check.result !== 'failed' && check.result.phrases.some((impact) => impact[folder].count > 0)
 
+// How many of the new phrases match at least one email in the folder.
+const countMatching = (check: ImpactCheck, folder: 'inbox' | 'spam'): number =>
+  check.result === 'failed' ? 0 : check.result.phrases.filter((impact) => impact[folder].count > 0).length
+
 // Whether the owner needs to see the result before the phrases save.
 const needsReview = (check: ImpactCheck): boolean =>
   check.result === 'failed' || check.result.inboxIncomplete || hasMatch(check, 'inbox') || hasMatch(check, 'spam')
+
+// The dialog's description, so a screen reader reads the lead when focus lands on Go back.
+const IMPACT_LEAD_ID = 'settings-impact-lead'
 
 // Tried in order; the first row that applies sets the lead.
 const impactLead = (check: ImpactCheck): string => {
   const several = check.phrases.length > 1
   if (hasMatch(check, 'inbox')) {
     // Plural only when more than one of the phrases is the one matching the Inbox.
-    const matching =
-      check.result === 'failed' ? 0 : check.result.phrases.filter((impact) => impact.inbox.count > 0).length
-    return matching > 1
+    return countMatching(check, 'inbox') > 1
       ? 'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'
       : 'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
   }
@@ -81,7 +86,8 @@ const impactLead = (check: ImpactCheck): string => {
       ? "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
       : "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
   }
-  return several
+  // Plural only when more than one of the phrases is the one matching Spam.
+  return countMatching(check, 'spam') > 1
     ? "Here's the mail in Spam that your new phrases match."
     : "Here's the mail in Spam that your new phrase matches."
 }
@@ -90,11 +96,11 @@ const impactLead = (check: ImpactCheck): string => {
 const impactConfirmLabel = (check: ImpactCheck): string =>
   check.result !== 'failed' && !check.result.inboxIncomplete && !hasMatch(check, 'inbox') ? 'Save' : 'Save anyway'
 
-const ImpactDialogBody = ({ check }: { check: ImpactCheck }): React.ReactNode => {
+const ImpactDialogBody = ({ check, leadId }: { check: ImpactCheck; leadId: string }): React.ReactNode => {
   const { result } = check
   return (
     <>
-      <p>{impactLead(check)}</p>
+      <p id={leadId}>{impactLead(check)}</p>
       <ul className="mt-3 flex flex-col gap-2.5" style={{ listStyle: 'none', padding: 0 }}>
         {check.phrases.map((phrase, index) => (
           <li
@@ -124,7 +130,7 @@ const ImpactDialogBody = ({ check }: { check: ImpactCheck }): React.ReactNode =>
       </ul>
       {result !== 'failed' && (
         <div className="mt-3">
-          <ImpactFootnote checked={result.checked} phraseCount={check.phrases.length} />
+          <ImpactFootnote checked={result.checked} mode="save" phraseCount={check.phrases.length} />
         </div>
       )}
     </>
@@ -241,7 +247,7 @@ const AccountSettings = (): React.ReactNode => {
         spamFilter: nextSpamFilter,
       }))
       .catch((error: any) => {
-        console.error('postSpamImpact', { accountId, error, newPhrases })
+        console.error('postSpamImpact', { accountId, error })
         return { phrases: newPhrases, result: 'failed' as const, spamFilter: nextSpamFilter }
       })
     setIsChecking(false)
@@ -421,13 +427,14 @@ const AccountSettings = (): React.ReactNode => {
             <ConfirmDialog
               cancelLabel="Go back"
               confirmLabel={impactCheck ? impactConfirmLabel(impactCheck) : 'Save anyway'}
+              describedBy={IMPACT_LEAD_ID}
               onCancel={() => setImpactCheck(undefined)}
               onConfirm={() => handleSaveAnyway(loggedInUser.username, account)}
               open={impactCheck !== undefined}
               scrollable
               title="Check your new block phrases"
             >
-              {impactCheck && <ImpactDialogBody check={impactCheck} />}
+              {impactCheck && <ImpactDialogBody check={impactCheck} leadId={IMPACT_LEAD_ID} />}
             </ConfirmDialog>
           </div>
         )}

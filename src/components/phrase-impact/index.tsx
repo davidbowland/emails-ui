@@ -222,12 +222,25 @@ export const PhraseImpactFailed = ({ id }: { id: string }): React.ReactNode => (
   </span>
 )
 
+// Where the footnote appears: 'suggest' before anything is added, so its last sentence is conditional;
+// 'save' while the owner is saving the phrases.
+export type ImpactFootnoteMode = 'save' | 'suggest'
+
+const futureMailSentence = (mode: ImpactFootnoteMode, phraseCount: number): string => {
+  const several = phraseCount !== 1
+  return mode === 'suggest'
+    ? `If you add ${several ? 'these phrases' : 'this phrase'}, future mail with ${several ? 'them' : 'it'} will go to Spam, unless it comes from a trusted sender.`
+    : `Future mail with ${several ? 'these phrases' : 'this phrase'} will go to Spam, unless it comes from a trusted sender.`
+}
+
 // `phraseCount` is the number of phrases checked, for "this phrase" or "these phrases".
 export const ImpactFootnote = ({
   checked,
+  mode,
   phraseCount,
 }: {
   checked: Checked
+  mode: ImpactFootnoteMode
   phraseCount: number
 }): React.ReactNode => {
   const { inbox, spam } = checked
@@ -238,7 +251,7 @@ export const ImpactFootnote = ({
   ].join(' and ')
   return (
     <p className="text-xs" style={{ color: 'var(--text-paper-muted)' }}>
-      {`We checked subjects and message text in ${clauses}, newest first. We didn't check attachments or older mail. Future mail with ${phraseCount === 1 ? 'this phrase' : 'these phrases'} will go to Spam, unless it comes from a trusted sender.`}
+      {`We checked subjects and message text in ${clauses}, newest first. We didn't check attachments or older mail. ${futureMailSentence(mode, phraseCount)}`}
     </p>
   )
 }

@@ -226,8 +226,8 @@ describe('PhraseImpactFailed', () => {
 })
 
 describe('ImpactFootnote', () => {
-  it('shows the full sentence', () => {
-    render(<ImpactFootnote checked={checked} phraseCount={2} />)
+  it('shows the full sentence when saving', () => {
+    render(<ImpactFootnote checked={checked} mode="save" phraseCount={2} />)
 
     expect(
       screen.getByText(
@@ -236,8 +236,8 @@ describe('ImpactFootnote', () => {
     ).toBeInTheDocument()
   })
 
-  it('says "this phrase" when one phrase was checked', () => {
-    render(<ImpactFootnote checked={checked} phraseCount={1} />)
+  it('says "this phrase" when saving one phrase', () => {
+    render(<ImpactFootnote checked={checked} mode="save" phraseCount={1} />)
 
     expect(
       screen.getByText(/Future mail with this phrase will go to Spam, unless it comes from a trusted sender\.$/),
@@ -245,14 +245,40 @@ describe('ImpactFootnote', () => {
     expect(screen.queryByText(/these phrases/)).not.toBeInTheDocument()
   })
 
+  it('says what adding several suggested phrases would do', () => {
+    render(<ImpactFootnote checked={checked} mode="suggest" phraseCount={2} />)
+
+    expect(
+      screen.getByText(
+        "We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first. We didn't check attachments or older mail. If you add these phrases, future mail with them will go to Spam, unless it comes from a trusted sender.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('says what adding one suggested phrase would do', () => {
+    render(<ImpactFootnote checked={checked} mode="suggest" phraseCount={1} />)
+
+    expect(
+      screen.getByText(
+        /older mail\. If you add this phrase, future mail with it will go to Spam, unless it comes from a trusted sender\.$/,
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('uses the singular for one email in a folder', () => {
-    render(<ImpactFootnote checked={counts({ checked: 1, total: 1 }, { checked: 1, total: 1 })} phraseCount={2} />)
+    render(
+      <ImpactFootnote
+        checked={counts({ checked: 1, total: 1 }, { checked: 1, total: 1 })}
+        mode="save"
+        phraseCount={2}
+      />,
+    )
 
     expect(screen.getByText(/in 1 of 1 Inbox email and 1 of 1 Spam email, newest first\./)).toBeInTheDocument()
   })
 
   it('drops the Spam clause when there are no Spam emails', () => {
-    render(<ImpactFootnote checked={counts(checked.inbox, { checked: 0, total: 0 })} phraseCount={2} />)
+    render(<ImpactFootnote checked={counts(checked.inbox, { checked: 0, total: 0 })} mode="save" phraseCount={2} />)
 
     expect(
       screen.getByText(/^We checked subjects and message text in 100 of 150 Inbox emails, newest first\./),
@@ -261,7 +287,7 @@ describe('ImpactFootnote', () => {
   })
 
   it('drops the Inbox clause when there are no Inbox emails', () => {
-    render(<ImpactFootnote checked={counts({ checked: 0, total: 0 }, checked.spam)} phraseCount={2} />)
+    render(<ImpactFootnote checked={counts({ checked: 0, total: 0 }, checked.spam)} mode="save" phraseCount={2} />)
 
     expect(
       screen.getByText(/^We checked subjects and message text in 25 of 40 Spam emails, newest first\./),
@@ -271,7 +297,11 @@ describe('ImpactFootnote', () => {
 
   it('renders nothing when both folders are empty', () => {
     const { container } = render(
-      <ImpactFootnote checked={counts({ checked: 0, total: 0 }, { checked: 0, total: 0 })} phraseCount={2} />,
+      <ImpactFootnote
+        checked={counts({ checked: 0, total: 0 }, { checked: 0, total: 0 })}
+        mode="save"
+        phraseCount={2}
+      />,
     )
 
     expect(container).toBeEmptyDOMElement()

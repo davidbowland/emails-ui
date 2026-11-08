@@ -4,6 +4,8 @@ export interface ConfirmDialogProps {
   cancelLabel?: string
   children: React.ReactNode
   confirmLabel?: string
+  // The id of an element inside the dialog that describes it, read after the title.
+  describedBy?: string
   // Replaces the Cancel/Confirm pair. The dialog still closes on Escape through onCancel.
   footer?: React.ReactNode
   onCancel: () => void
@@ -22,6 +24,7 @@ const ConfirmDialog = ({
   cancelLabel = 'Cancel',
   children,
   confirmLabel = 'Confirm',
+  describedBy,
   footer,
   onCancel,
   onConfirm,
@@ -77,6 +80,7 @@ const ConfirmDialog = ({
 
   return (
     <div
+      aria-describedby={describedBy}
       aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center"

@@ -74,7 +74,7 @@ describe('SpamSuggestions component', () => {
   const renderResults = async (overrides: Partial<SpamSuggestionsProps> = {}): Promise<void> => {
     render(<SpamSuggestions {...props} {...overrides} />)
     await screen.findByRole('checkbox', { name: 'Add “app development” to block phrases' })
-    await screen.findByText(/Finished checking your mail/)
+    await screen.findByText(/We finished checking your mail/)
   }
 
   const pick = async (name: string): Promise<void> => {
@@ -239,7 +239,7 @@ describe('SpamSuggestions component', () => {
     it('announces when the check finishes', async () => {
       await renderResults()
 
-      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. Finished checking your mail.')
+      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. We finished checking your mail.')
     })
 
     it('describes a row with its reason and impact', async () => {
@@ -250,7 +250,7 @@ describe('SpamSuggestions component', () => {
       )
     })
 
-    it('shows each phrase the result in its own position', async () => {
+    it("shows each phrase's result in its own position", async () => {
       const response: SpamImpactResponse = {
         ...impactResponse,
         phrases: [phraseImpact('lottery', { inbox: inboxHit }), phraseImpact('app development', {})],
@@ -260,7 +260,7 @@ describe('SpamSuggestions component', () => {
       })
       jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(response)
       render(<SpamSuggestions {...props} />)
-      await screen.findByText(/Finished checking your mail/)
+      await screen.findByText(/We finished checking your mail/)
 
       expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['lottery', 'app development'], emailId)
       expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toHaveAccessibleDescription(
@@ -274,7 +274,45 @@ describe('SpamSuggestions component', () => {
     it('lists the matching emails the API sent', async () => {
       await renderResults()
 
-      expect(screen.getAllByText(/Lunch on Friday/).length).toBeGreaterThan(0)
+      const description = screen.getByRole('checkbox', {
+        name: 'Add “app development” to block phrases',
+      })
+      expect(description).toHaveAccessibleDescription(/Lunch on Friday.*friend@domain\.com/)
+      expect(description).toHaveAccessibleDescription(/Your receipt.*billing@shop\.com/)
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).not.toHaveAccessibleDescription(
+        /Lunch on Friday/,
+      )
+    })
+
+    it('drops the old check result when the email changes while open', async () => {
+      const response = deferred<SpamImpactResponse>()
+      const { rerender } = render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(response.promise)
+
+      rerender(<SpamSuggestions {...props} emailId="other" />)
+      await screen.findAllByText('Checking your mail…')
+
+      expect(emails.postSpamImpact).toHaveBeenLastCalledWith(
+        accountId,
+        ['app development', 'lottery', 'crypto'],
+        'other',
+      )
+      expect(screen.queryByText(/Matches 2 of 100 Inbox emails/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
+    })
+
+    it('leaves a dropped malformed phrase out of the check', async () => {
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [{ id: 'x', kind: 'addBlockPhrase', reason: 'Odd value.', value: 7 }, lottery, raiseHigh],
+      } as unknown as SpamSuggestionsResponse)
+      jest
+        .mocked(emails)
+        .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [impactResponse.phrases[1]] })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['lottery'], emailId)
     })
 
     it.each([
@@ -449,7 +487,7 @@ describe('SpamSuggestions component', () => {
         phrases: [phraseImpact('app development', {}), phraseImpact('lottery', {}), phraseImpact('crypto', {})],
       })
       render(<SpamSuggestions {...props} />)
-      await screen.findByText(/Finished checking your mail/)
+      await screen.findByText(/We finished checking your mail/)
       await pick('Add “lottery” to block phrases')
 
       expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()
@@ -465,7 +503,7 @@ describe('SpamSuggestions component', () => {
         ],
       })
       render(<SpamSuggestions {...props} />)
-      await screen.findByText(/Finished checking your mail/)
+      await screen.findByText(/We finished checking your mail/)
       await pick('Add “app development” to block phrases')
 
       expect(screen.getByRole('button', { name: 'Apply 1 change' })).toBeInTheDocument()

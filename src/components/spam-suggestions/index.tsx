@@ -165,6 +165,8 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
       return
     }
     let current = true
+    // A new email gets its own check, so an answer for the last one never shows against it.
+    setImpactState({ status: 'idle' })
     postSpamSuggestions(accountId, emailId)
       .then(({ suggestions: received }) => {
         if (!current) return
@@ -336,7 +338,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
         {showRows && (
           <span className="sr-only">
             {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
-            {impactState.status === 'done' && ' Finished checking your mail.'}
+            {impactState.status === 'done' && ' We finished checking your mail.'}
             {impactState.status === 'failed' && " We couldn't check your mail."}
           </span>
         )}
@@ -442,11 +444,12 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
               )
             })}
           </ul>
-          {impactState.status === 'done' && (
-            <div className="mt-3">
-              <ImpactFootnote checked={impactState.response.checked} />
-            </div>
-          )}
+          {impactState.status === 'done' &&
+            (impactState.response.checked.inbox.total > 0 || impactState.response.checked.spam.total > 0) && (
+              <div className="mt-3">
+                <ImpactFootnote checked={impactState.response.checked} />
+              </div>
+            )}
         </>
       )}
     </ConfirmDialog>

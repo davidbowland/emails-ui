@@ -1,6 +1,13 @@
 import React from 'react'
 
-import { ImpactFootnote, isSpamImpactResponse, PhraseImpact, PhraseImpactFailed, PhraseImpactPending } from './index'
+import {
+  ImpactFootnote,
+  impactSummaryIds,
+  isSpamImpactResponse,
+  PhraseImpact,
+  PhraseImpactFailed,
+  PhraseImpactPending,
+} from './index'
 import { spamImpactIncomplete, spamImpactResponse } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
@@ -79,14 +86,16 @@ describe('PhraseImpact', () => {
     const [phrase] = spamImpactIncomplete.phrases
     render(<PhraseImpact checked={spamImpactIncomplete.checked} id="impact" impact={phrase} inboxIncomplete />)
 
-    expect(screen.getByText("No matches in 62 Inbox emails, but we couldn't check them all.")).toBeInTheDocument()
+    expect(
+      screen.getByText("No matches in 62 Inbox emails, but we couldn't check the rest of your Inbox."),
+    ).toBeInTheDocument()
   })
 
   it('shows Inbox matches even when the check was incomplete', () => {
     render(<PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete />)
 
     expect(screen.getByText(/Matches 2 of 100 Inbox emails:/)).toBeInTheDocument()
-    expect(screen.queryByText(/couldn't check them all/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/couldn't check the rest of your Inbox/)).not.toBeInTheDocument()
   })
 
   it('shows no Spam line when no Spam email was checked', () => {
@@ -95,6 +104,24 @@ describe('PhraseImpact', () => {
 
     expect(screen.getByText('No matches in 100 Inbox emails')).toBeInTheDocument()
     expect(screen.queryByText(/Spam/)).not.toBeInTheDocument()
+  })
+
+  it('drops "Also" from the Spam line when nothing in the Inbox matches', () => {
+    render(
+      <PhraseImpact checked={checked} id="impact" impact={{ ...matching, inbox: folder(0) }} inboxIncomplete={false} />,
+    )
+
+    expect(screen.getByText(/^Matches 3 of 25 Spam emails:/)).toBeInTheDocument()
+    expect(screen.queryByText(/Also matches/)).not.toBeInTheDocument()
+  })
+
+  it('uses the singular for one Inbox email checked when the check was incomplete', () => {
+    const one = counts({ checked: 1, total: 40 }, checked.spam)
+    render(<PhraseImpact checked={one} id="impact" impact={clean} inboxIncomplete />)
+
+    expect(
+      screen.getByText("No matches in 1 Inbox email, but we couldn't check the rest of your Inbox."),
+    ).toBeInTheDocument()
   })
 
   it('uses the singular for one Spam email checked', () => {
@@ -156,6 +183,28 @@ describe('PhraseImpact', () => {
   })
 })
 
+describe('impactSummaryIds', () => {
+  it('names the count lines, which hold no email list', () => {
+    const { container } = render(
+      <PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />,
+    )
+    const ids = impactSummaryIds('impact', checked).split(' ')
+
+    expect(ids).toEqual(['impact-inbox', 'impact-spam'])
+    expect(container.querySelector('#impact-inbox')).toHaveTextContent(/^Matches 2 of 100 Inbox emails:$/)
+    expect(container.querySelector('#impact-spam')).toHaveTextContent(/^Also matches 3 of 25 Spam emails:$/)
+  })
+
+  it('leaves out the Spam line when no Spam email was checked', () => {
+    const noSpam = counts(checked.inbox, { checked: 0, total: 0 })
+    const { container } = render(<PhraseImpact checked={noSpam} id="impact" impact={clean} inboxIncomplete={false} />)
+
+    expect(impactSummaryIds('impact', noSpam)).toEqual('impact-inbox')
+    expect(container.querySelector('#impact-inbox')).toHaveTextContent('No matches in 100 Inbox emails')
+    expect(container.querySelector('#impact-spam')).not.toBeInTheDocument()
+  })
+})
+
 describe('PhraseImpactPending', () => {
   it('shows that the check is running', () => {
     const { container } = render(<PhraseImpactPending id="pending" />)
@@ -178,7 +227,7 @@ describe('PhraseImpactFailed', () => {
 
 describe('ImpactFootnote', () => {
   it('shows the full sentence', () => {
-    render(<ImpactFootnote checked={checked} />)
+    render(<ImpactFootnote checked={checked} phraseCount={2} />)
 
     expect(
       screen.getByText(
@@ -187,14 +236,23 @@ describe('ImpactFootnote', () => {
     ).toBeInTheDocument()
   })
 
+  it('says "this phrase" when one phrase was checked', () => {
+    render(<ImpactFootnote checked={checked} phraseCount={1} />)
+
+    expect(
+      screen.getByText(/Future mail with this phrase will go to Spam, unless it comes from a trusted sender\.$/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/these phrases/)).not.toBeInTheDocument()
+  })
+
   it('uses the singular for one email in a folder', () => {
-    render(<ImpactFootnote checked={counts({ checked: 1, total: 1 }, { checked: 1, total: 1 })} />)
+    render(<ImpactFootnote checked={counts({ checked: 1, total: 1 }, { checked: 1, total: 1 })} phraseCount={2} />)
 
     expect(screen.getByText(/in 1 of 1 Inbox email and 1 of 1 Spam email, newest first\./)).toBeInTheDocument()
   })
 
   it('drops the Spam clause when there are no Spam emails', () => {
-    render(<ImpactFootnote checked={counts(checked.inbox, { checked: 0, total: 0 })} />)
+    render(<ImpactFootnote checked={counts(checked.inbox, { checked: 0, total: 0 })} phraseCount={2} />)
 
     expect(
       screen.getByText(/^We checked subjects and message text in 100 of 150 Inbox emails, newest first\./),
@@ -203,7 +261,7 @@ describe('ImpactFootnote', () => {
   })
 
   it('drops the Inbox clause when there are no Inbox emails', () => {
-    render(<ImpactFootnote checked={counts({ checked: 0, total: 0 }, checked.spam)} />)
+    render(<ImpactFootnote checked={counts({ checked: 0, total: 0 }, checked.spam)} phraseCount={2} />)
 
     expect(
       screen.getByText(/^We checked subjects and message text in 25 of 40 Spam emails, newest first\./),
@@ -213,7 +271,7 @@ describe('ImpactFootnote', () => {
 
   it('renders nothing when both folders are empty', () => {
     const { container } = render(
-      <ImpactFootnote checked={counts({ checked: 0, total: 0 }, { checked: 0, total: 0 })} />,
+      <ImpactFootnote checked={counts({ checked: 0, total: 0 }, { checked: 0, total: 0 })} phraseCount={2} />,
     )
 
     expect(container).toBeEmptyDOMElement()

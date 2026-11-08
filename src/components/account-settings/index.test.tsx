@@ -646,6 +646,22 @@ describe('AccountSettings component', () => {
       ).toBeVisible()
     })
 
+    it('expect the footnote to say "this phrase" for one new phrase', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+
+      expect(within(await findImpactDialog()).getByText(/Future mail with this phrase will go to Spam/)).toBeVisible()
+    })
+
+    it('expect the footnote to say "these phrases" for two new phrases', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(/Future mail with these phrases will go to Spam/)).toBeVisible()
+    })
+
     it('expect nothing saved until the owner answers', async () => {
       jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
 

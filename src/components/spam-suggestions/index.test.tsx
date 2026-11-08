@@ -204,6 +204,19 @@ describe('SpamSuggestions component', () => {
       ).toBeVisible()
     })
 
+    it('says "this phrase" in the footnote when one phrase is suggested', async () => {
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [lottery, removeSender] })
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...impactResponse,
+        phrases: [phraseImpact('lottery', {})],
+      })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['lottery'], emailId)
+      expect(screen.getByText(/Future mail with this phrase will go to Spam/)).toBeVisible()
+    })
+
     it('leaves the footnote out and makes no check when no phrase is suggested', async () => {
       jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [removeSender, raiseHigh] })
       render(<SpamSuggestions {...props} />)
@@ -234,6 +247,26 @@ describe('SpamSuggestions component', () => {
 
       expect(screen.queryByText('Checking your mail…')).not.toBeInTheDocument()
       expect(screen.getAllByText(/Matches 2 of 100 Inbox emails:/)).toHaveLength(2)
+    })
+
+    it('announces while the check runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+
+      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. Checking your mail…')
+    })
+
+    it('announces when the check could not read all of the Inbox', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactIncomplete,
+        phrases: [phraseImpact('app development', {}), phraseImpact('lottery', {}), phraseImpact('crypto', {})],
+      })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We couldn't check all of your Inbox/)
+
+      expect(screen.getByRole('status')).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
+      expect(screen.getByRole('status')).not.toHaveTextContent('We finished checking your mail.')
     })
 
     it('announces when the check finishes', async () => {
@@ -271,17 +304,19 @@ describe('SpamSuggestions component', () => {
       ).toHaveAccessibleDescription(/No matches in 100 Inbox emails/)
     })
 
-    it('lists the matching emails the API sent', async () => {
+    it('lists the matching emails the API sent in the row, but describes the checkbox with the counts only', async () => {
       await renderResults()
 
-      const description = screen.getByRole('checkbox', {
+      const checkbox = screen.getByRole('checkbox', {
         name: 'Add “app development” to block phrases',
       })
-      expect(description).toHaveAccessibleDescription(/Lunch on Friday.*friend@domain\.com/)
-      expect(description).toHaveAccessibleDescription(/Your receipt.*billing@shop\.com/)
-      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).not.toHaveAccessibleDescription(
-        /Lunch on Friday/,
+      const row = within(checkbox.closest('label') as HTMLElement)
+      expect(row.getByText('Lunch on Friday')).toBeVisible()
+      expect(row.getByText('Your receipt')).toBeVisible()
+      expect(checkbox).toHaveAccessibleDescription(
+        'A pitch for outsourced app work. Matches 2 of 100 Inbox emails: Also matches 3 of 25 Spam emails:',
       )
+      expect(checkbox).not.toHaveAccessibleDescription(/Lunch on Friday|friend@domain\.com/)
     })
 
     it('drops the old check result when the email changes while open', async () => {
@@ -487,7 +522,7 @@ describe('SpamSuggestions component', () => {
         phrases: [phraseImpact('app development', {}), phraseImpact('lottery', {}), phraseImpact('crypto', {})],
       })
       render(<SpamSuggestions {...props} />)
-      await screen.findByText(/We finished checking your mail/)
+      await screen.findByText(/We couldn't check all of your Inbox/)
       await pick('Add “lottery” to block phrases')
 
       expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()

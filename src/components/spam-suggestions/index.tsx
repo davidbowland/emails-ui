@@ -4,6 +4,7 @@ import React, { useEffect, useId, useState } from 'react'
 import ConfirmDialog from '@components/confirm-dialog'
 import {
   ImpactFootnote,
+  impactSummaryIds,
   isSpamImpactResponse,
   PhraseImpact,
   PhraseImpactFailed,
@@ -338,7 +339,11 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
         {showRows && (
           <span className="sr-only">
             {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
-            {impactState.status === 'done' && ' We finished checking your mail.'}
+            {impactState.status === 'checking' && ' Checking your mail…'}
+            {impactState.status === 'done' &&
+              (impactState.response.inboxIncomplete
+                ? " We couldn't check all of your Inbox."
+                : ' We finished checking your mail.')}
             {impactState.status === 'failed' && " We couldn't check your mail."}
           </span>
         )}
@@ -401,6 +406,11 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
               const reasonId = `${baseId}-${index}-reason`
               const impactId = `${baseId}-${index}-impact`
               const checked = picked.has(suggestion.id)
+              // Only the count lines describe the checkbox; the email lists stay readable in the label.
+              const describedBy =
+                suggestion.kind === 'addBlockPhrase' && impactState.status === 'done'
+                  ? `${reasonId} ${impactSummaryIds(impactId, impactState.response.checked)}`
+                  : `${reasonId} ${impactId}`
               return (
                 <li key={suggestion.id}>
                   <label
@@ -413,7 +423,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
                     }}
                   >
                     <input
-                      aria-describedby={`${reasonId} ${impactId}`}
+                      aria-describedby={describedBy}
                       aria-disabled={applying || undefined}
                       aria-labelledby={labelId}
                       checked={checked}
@@ -447,7 +457,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
           {impactState.status === 'done' &&
             (impactState.response.checked.inbox.total > 0 || impactState.response.checked.spam.total > 0) && (
               <div className="mt-3">
-                <ImpactFootnote checked={impactState.response.checked} />
+                <ImpactFootnote checked={impactState.response.checked} phraseCount={phraseSuggestions.length} />
               </div>
             )}
         </>

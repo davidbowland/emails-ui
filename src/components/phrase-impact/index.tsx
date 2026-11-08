@@ -8,7 +8,7 @@ type Checked = SpamImpactResponse['checked']
 export interface PhraseImpactProps {
   checked: Checked
   id: string
-  // Required, from the response: leaving it out would hide the incomplete-check warning. Needed for "but we couldn't check them all", which `checked` alone can't tell.
+  // Required, from the response: leaving it out would hide the incomplete-check warning. Needed for "but we couldn't check the rest of your Inbox", which `checked` alone can't tell.
   inboxIncomplete: boolean
   impact: SpamPhraseImpact
 }
@@ -77,21 +77,27 @@ const EmailList = ({ folder }: { folder: SpamFolderImpact }): React.ReactNode =>
   </span>
 )
 
+// Each line's text has its own id (`textId`), apart from the email list, so a control can be described by the counts
+// alone. See impactSummaryIds.
 const InboxLine = ({
   checked,
   impact,
   inboxIncomplete,
+  textId,
 }: {
   checked: SpamCheckedCount
   impact: SpamFolderImpact
   inboxIncomplete: boolean
+  textId: string
 }): React.ReactNode => {
   if (impact.count > 0) {
     return (
       <>
         <AlertIcon />
         <span className="min-w-0">
-          Matches {impact.count} of {checked.checked} Inbox {emailNoun(checked.checked)}:
+          <span id={textId}>
+            Matches {impact.count} of {checked.checked} Inbox {emailNoun(checked.checked)}:
+          </span>
           <EmailList folder={impact} />
         </span>
       </>
@@ -101,7 +107,7 @@ const InboxLine = ({
     return (
       <>
         <CheckIcon />
-        <span>Your Inbox is empty, so we had nothing to check.</span>
+        <span id={textId}>Your Inbox is empty, so we had nothing to check.</span>
       </>
     )
   }
@@ -109,7 +115,7 @@ const InboxLine = ({
     return (
       <>
         <AlertIcon />
-        <span>We couldn&apos;t check your Inbox.</span>
+        <span id={textId}>We couldn&apos;t check your Inbox.</span>
       </>
     )
   }
@@ -117,8 +123,9 @@ const InboxLine = ({
     return (
       <>
         <AlertIcon />
-        <span>
-          No matches in {checked.checked} Inbox {emailNoun(checked.checked)}, but we couldn&apos;t check them all.
+        <span id={textId}>
+          No matches in {checked.checked} Inbox {emailNoun(checked.checked)}, but we couldn&apos;t check the rest of
+          your Inbox.
         </span>
       </>
     )
@@ -126,21 +133,35 @@ const InboxLine = ({
   return (
     <>
       <CheckIcon />
-      <span>
+      <span id={textId}>
         No matches in {checked.checked} Inbox {emailNoun(checked.checked)}
       </span>
     </>
   )
 }
 
-const SpamLine = ({ checked, impact }: { checked: SpamCheckedCount; impact: SpamFolderImpact }): React.ReactNode => {
+const SpamLine = ({
+  checked,
+  impact,
+  inboxCount,
+  textId,
+}: {
+  checked: SpamCheckedCount
+  impact: SpamFolderImpact
+  inboxCount: number
+  textId: string
+}): React.ReactNode => {
   if (checked.checked === 0) return null
   if (impact.count > 0) {
     return (
       <span className={LINE_CLASS} style={LINE_STYLE}>
         <CheckIcon />
         <span className="min-w-0">
-          Also matches {impact.count} of {checked.checked} Spam {emailNoun(checked.checked)}:
+          <span id={textId}>
+            {/* "Also" only follows an Inbox match. */}
+            {inboxCount > 0 ? 'Also matches' : 'Matches'} {impact.count} of {checked.checked} Spam{' '}
+            {emailNoun(checked.checked)}:
+          </span>
           <EmailList folder={impact} />
         </span>
       </span>
@@ -150,20 +171,33 @@ const SpamLine = ({ checked, impact }: { checked: SpamCheckedCount; impact: Spam
     <span className={LINE_CLASS} style={LINE_STYLE}>
       {/* No icon here, but this keeps the text aligned with the lines that have one. */}
       <span aria-hidden="true" className="mt-px flex-shrink-0" style={{ display: 'inline-block', width: 12 }} />
-      <span>
+      <span id={textId}>
         No matches in {checked.checked} Spam {emailNoun(checked.checked)}
       </span>
     </span>
   )
 }
 
+const inboxTextId = (id: string): string => `${id}-inbox`
+const spamTextId = (id: string): string => `${id}-spam`
+
+// The ids of PhraseImpact's count lines, without its email lists, for an aria-describedby that stays short. The
+// Spam line is left out when PhraseImpact shows none.
+export const impactSummaryIds = (id: string, checked: Checked): string =>
+  checked.spam.checked === 0 ? inboxTextId(id) : `${inboxTextId(id)} ${spamTextId(id)}`
+
 // Shows one phrase's Inbox and Spam lines from the API's answer. It does no matching.
 export const PhraseImpact = ({ checked, id, impact, inboxIncomplete }: PhraseImpactProps): React.ReactNode => (
   <span className="block" id={id}>
     <span className={LINE_CLASS} style={LINE_STYLE}>
-      <InboxLine checked={checked.inbox} impact={impact.inbox} inboxIncomplete={inboxIncomplete} />
+      <InboxLine
+        checked={checked.inbox}
+        impact={impact.inbox}
+        inboxIncomplete={inboxIncomplete}
+        textId={inboxTextId(id)}
+      />
     </span>
-    <SpamLine checked={checked.spam} impact={impact.spam} />
+    <SpamLine checked={checked.spam} impact={impact.spam} inboxCount={impact.inbox.count} textId={spamTextId(id)} />
   </span>
 )
 
@@ -188,7 +222,14 @@ export const PhraseImpactFailed = ({ id }: { id: string }): React.ReactNode => (
   </span>
 )
 
-export const ImpactFootnote = ({ checked }: { checked: Checked }): React.ReactNode => {
+// `phraseCount` is the number of phrases checked, for "this phrase" or "these phrases".
+export const ImpactFootnote = ({
+  checked,
+  phraseCount,
+}: {
+  checked: Checked
+  phraseCount: number
+}): React.ReactNode => {
   const { inbox, spam } = checked
   if (inbox.total === 0 && spam.total === 0) return null
   const clauses = [
@@ -197,7 +238,7 @@ export const ImpactFootnote = ({ checked }: { checked: Checked }): React.ReactNo
   ].join(' and ')
   return (
     <p className="text-xs" style={{ color: 'var(--text-paper-muted)' }}>
-      {`We checked subjects and message text in ${clauses}, newest first. We didn't check attachments or older mail. Future mail with these phrases will go to Spam, unless it comes from a trusted sender.`}
+      {`We checked subjects and message text in ${clauses}, newest first. We didn't check attachments or older mail. Future mail with ${phraseCount === 1 ? 'this phrase' : 'these phrases'} will go to Spam, unless it comes from a trusted sender.`}
     </p>
   )
 }

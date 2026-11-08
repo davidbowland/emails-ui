@@ -124,7 +124,7 @@ const ImpactDialogBody = ({ check }: { check: ImpactCheck }): React.ReactNode =>
       </ul>
       {result !== 'failed' && (
         <div className="mt-3">
-          <ImpactFootnote checked={result.checked} />
+          <ImpactFootnote checked={result.checked} phraseCount={check.phrases.length} />
         </div>
       )}
     </>

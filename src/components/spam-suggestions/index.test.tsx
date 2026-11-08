@@ -2,31 +2,40 @@ import React from 'react'
 
 import SpamSuggestions, { SpamSuggestionsProps } from './index'
 import * as emails from '@services/emails'
-import { account, accountId, emailId } from '@test/__mocks__'
+import { account, accountId, emailId, spamImpactIncomplete, spamImpactResponse } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Account, EmailBatch, HttpError, SpamSuggestion, SpamSuggestionsResponse } from '@types'
+import {
+  Account,
+  HttpError,
+  SpamImpactResponse,
+  SpamPhraseImpact,
+  SpamSuggestion,
+  SpamSuggestionsResponse,
+} from '@types'
 
 jest.mock('@services/emails')
 
 describe('SpamSuggestions component', () => {
-  const inboxEmail = (id: string, subject: string): EmailBatch => ({
-    accountId,
-    data: { from: 'someone@domain.com', subject, timestamp: 1_700_000_000_000, to: [], viewed: true },
-    id,
+  const noImpact = spamImpactResponse.phrases[1]
+  const phraseImpact = (phrase: string, impact: Partial<SpamPhraseImpact>): SpamPhraseImpact => ({
+    ...noImpact,
+    ...impact,
+    phrase,
   })
+  const inboxHit = spamImpactResponse.phrases[0].inbox
+  const spamHit = spamImpactResponse.phrases[0].spam
 
-  // "app development" matches five subjects; "crypto" matches one; "lottery" none.
-  const inboxEmails: EmailBatch[] = [
-    inboxEmail('i1', 'App development kickoff'),
-    inboxEmail('i2', 'Re: app development budget'),
-    inboxEmail('i3', 'APP-DEVELOPMENT timeline'),
-    inboxEmail('i4', 'Notes on app development'),
-    inboxEmail('i5', 'App development: next steps'),
-    inboxEmail('i6', 'Crypto tax forms'),
-    inboxEmail('i7', 'Lunch?'),
-  ]
+  // "app development" matches the Inbox (2 emails) and Spam; "lottery" nothing; "crypto" the Inbox (2 emails).
+  const impactResponse: SpamImpactResponse = {
+    ...spamImpactResponse,
+    phrases: [
+      phraseImpact('app development', { inbox: inboxHit, spam: spamHit }),
+      phraseImpact('lottery', {}),
+      phraseImpact('crypto', { inbox: inboxHit }),
+    ],
+  }
 
   const appDevelopment: SpamSuggestion = {
     id: 's1',
@@ -58,13 +67,14 @@ describe('SpamSuggestions component', () => {
   const onApplied = jest.fn()
   const onClose = jest.fn()
 
-  const props: SpamSuggestionsProps = { accountId, emailId, inboxEmails, onApplied, onClose, open: true }
+  const props: SpamSuggestionsProps = { accountId, emailId, onApplied, onClose, open: true }
 
   const httpError = (status?: number, code?: string): HttpError => Object.assign(new Error('failed'), { code, status })
 
   const renderResults = async (overrides: Partial<SpamSuggestionsProps> = {}): Promise<void> => {
     render(<SpamSuggestions {...props} {...overrides} />)
     await screen.findByRole('checkbox', { name: 'Add “app development” to block phrases' })
+    await screen.findByText(/Finished checking your mail/)
   }
 
   const pick = async (name: string): Promise<void> => {
@@ -81,6 +91,7 @@ describe('SpamSuggestions component', () => {
 
   beforeAll(() => {
     jest.mocked(emails).postSpamSuggestions.mockResolvedValue({ suggestions })
+    jest.mocked(emails).postSpamImpact.mockResolvedValue(impactResponse)
     jest.mocked(emails).getAccount.mockResolvedValue(spamAccount)
     jest.mocked(emails).putAccount.mockResolvedValue(spamAccount)
     console.error = jest.fn()
@@ -174,60 +185,150 @@ describe('SpamSuggestions component', () => {
 
     it('announces a single suggestion', async () => {
       jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [lottery] })
+      jest
+        .mocked(emails)
+        .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [impactResponse.phrases[1]] })
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText('1 suggested change.')).toBeInTheDocument()
+      expect(await screen.findByText(/1 suggested change\./)).toBeInTheDocument()
     })
 
-    it('shows the intro and the subjects-only note', async () => {
+    it('shows the intro and the footnote about what was checked', async () => {
       await renderResults()
 
       expect(screen.getByText('Pick the changes you want. Nothing is saved until you apply them.')).toBeVisible()
       expect(
         screen.getByText(
-          'We checked your Inbox subjects only. New mail with these phrases in the body will go to Spam too.',
+          "We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first. We didn't check attachments or older mail. Future mail with these phrases will go to Spam, unless it comes from a trusted sender.",
         ),
       ).toBeVisible()
     })
 
-    it('leaves the subjects-only note out when no phrase is suggested', async () => {
+    it('leaves the footnote out and makes no check when no phrase is suggested', async () => {
       jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [removeSender, raiseHigh] })
       render(<SpamSuggestions {...props} />)
 
       await screen.findByRole('checkbox', { name: 'Raise sensitivity to High' })
 
-      expect(screen.queryByText(/We checked your Inbox subjects only/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
+      expect(emails.postSpamImpact).not.toHaveBeenCalled()
+    })
+
+    it('checks the phrases in suggestion order, excluding the moved email', async () => {
+      await renderResults()
+
+      expect(emails.postSpamImpact).toHaveBeenCalledTimes(1)
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['app development', 'lottery', 'crypto'], emailId)
+    })
+
+    it('shows the checking line on each phrase row until the check resolves', async () => {
+      const response = deferred<SpamImpactResponse>()
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(response.promise)
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+
+      expect(screen.getAllByText('Checking your mail…')).toHaveLength(3)
+      expect(screen.queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
+
+      await act(async () => response.resolve(impactResponse))
+
+      expect(screen.queryByText('Checking your mail…')).not.toBeInTheDocument()
+      expect(screen.getAllByText(/Matches 2 of 100 Inbox emails:/)).toHaveLength(2)
+    })
+
+    it('announces when the check finishes', async () => {
+      await renderResults()
+
+      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. Finished checking your mail.')
     })
 
     it('describes a row with its reason and impact', async () => {
       await renderResults()
 
       expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toHaveAccessibleDescription(
-        'A prize scam. No Inbox subjects match',
+        'A prize scam. No matches in 100 Inbox emails No matches in 25 Spam emails',
       )
     })
 
-    it('lists up to three matching subjects and counts the rest', async () => {
-      await renderResults()
+    it('shows each phrase the result in its own position', async () => {
+      const response: SpamImpactResponse = {
+        ...impactResponse,
+        phrases: [phraseImpact('lottery', { inbox: inboxHit }), phraseImpact('app development', {})],
+      }
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [removeSender, lottery, raiseHigh, appDevelopment],
+      })
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(response)
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/Finished checking your mail/)
 
-      const checkbox = screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' })
-      expect(checkbox).toHaveAccessibleDescription(
-        'A pitch for outsourced app work. Matches 5 Inbox subjects: App development kickoff Re: app development budget APP-DEVELOPMENT timeline and 2 more',
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['lottery', 'app development'], emailId)
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toHaveAccessibleDescription(
+        /Matches 2 of 100 Inbox emails/,
       )
+      expect(
+        screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' }),
+      ).toHaveAccessibleDescription(/No matches in 100 Inbox emails/)
     })
 
-    it('keeps the matching subjects out of any nested list', async () => {
+    it('lists the matching emails the API sent', async () => {
       await renderResults()
 
-      expect(screen.getAllByRole('list')).toHaveLength(1)
-      expect(screen.getAllByRole('listitem')).toHaveLength(5)
+      expect(screen.getAllByText(/Lunch on Friday/).length).toBeGreaterThan(0)
     })
 
-    it('uses the singular for one matching subject', async () => {
-      await renderResults()
+    it.each([
+      ['a rejected check', () => jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(httpError(503))],
+      [
+        'a malformed response',
+        () =>
+          jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({ phrases: [] } as unknown as SpamImpactResponse),
+      ],
+      [
+        'a response with the wrong number of phrases',
+        () => jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactIncomplete),
+      ],
+    ])('shows the failure line on each phrase row for %s', async (_name, arrange) => {
+      arrange()
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We couldn't check your mail/)
 
-      expect(screen.getByText(/Matches 1 Inbox subject:/)).toBeVisible()
-      expect(screen.getByText('Crypto tax forms')).toBeVisible()
+      expect(screen.getAllByText("We couldn't check this phrase against your mail.")).toHaveLength(3)
+      expect(screen.queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent("We couldn't check your mail.")
+    })
+
+    it('ignores a check result that arrives after closing', async () => {
+      const response = deferred<SpamImpactResponse>()
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(response.promise)
+      const { rerender } = render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      rerender(<SpamSuggestions {...props} open={false} />)
+
+      await act(async () => response.resolve(impactResponse))
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions })
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      rerender(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+
+      expect(screen.queryByText(/Matches 2 of 100 Inbox emails/)).not.toBeInTheDocument()
+      expect(screen.getAllByText('Checking your mail…')).toHaveLength(3)
+    })
+
+    it('ignores a check failure that arrives after closing', async () => {
+      let reject: (reason: unknown) => void = () => undefined
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(
+        new Promise((_, fail) => {
+          reject = fail
+        }),
+      )
+      const { rerender } = render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      rerender(<SpamSuggestions {...props} open={false} />)
+
+      await act(async () => reject(httpError(503)))
+
+      expect(console.error).not.toHaveBeenCalledWith('Error checking suggested phrases against mail', expect.anything())
     })
 
     it('says a sender change applies to new mail only', async () => {
@@ -260,14 +361,6 @@ describe('SpamSuggestions component', () => {
       expect(await screen.findByRole('checkbox', { name: 'Raise sensitivity to Medium' })).toHaveAccessibleDescription(
         'Some spam gets through. Applies to new mail only',
       )
-    })
-
-    it('treats a missing subject as no match', async () => {
-      const noSubject: EmailBatch = { ...inboxEmail('i9', ''), data: { ...inboxEmail('i9', '').data, subject: '' } }
-      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [lottery] })
-      render(<SpamSuggestions {...props} inboxEmails={[noSubject]} />)
-
-      expect(await screen.findByText('No Inbox subjects match')).toBeVisible()
     })
   })
 
@@ -312,7 +405,7 @@ describe('SpamSuggestions component', () => {
       await pick('Add “app development” to block phrases')
 
       expect(screen.getByRole('note')).toHaveTextContent(
-        'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam.',
+        'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.',
       )
       expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()
     })
@@ -324,9 +417,67 @@ describe('SpamSuggestions component', () => {
       await pick('Add “lottery” to block phrases')
 
       expect(screen.getByRole('note')).toHaveTextContent(
-        'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam.',
+        'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.',
       )
       expect(screen.getByRole('button', { name: 'Apply 3 changes anyway' })).toBeInTheDocument()
+    })
+
+    it('says "anyway" while the check is still running, and applies', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      await pick('Add “lottery” to block phrases')
+      await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change anyway' }))
+
+      expect(screen.queryByRole('note')).not.toBeInTheDocument()
+      expect(onApplied).toHaveBeenCalledWith(1)
+    })
+
+    it('says "anyway" when the check failed', async () => {
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(httpError(503))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We couldn't check your mail/)
+      await pick('Add “lottery” to block phrases')
+
+      expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()
+      expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    })
+
+    it('says "anyway" when the Inbox was only partly checked', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactIncomplete,
+        phrases: [phraseImpact('app development', {}), phraseImpact('lottery', {}), phraseImpact('crypto', {})],
+      })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/Finished checking your mail/)
+      await pick('Add “lottery” to block phrases')
+
+      expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()
+    })
+
+    it('does not say "anyway" for a Spam-only match', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...impactResponse,
+        phrases: [
+          phraseImpact('app development', { spam: spamHit }),
+          phraseImpact('lottery', {}),
+          impactResponse.phrases[2],
+        ],
+      })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/Finished checking your mail/)
+      await pick('Add “app development” to block phrases')
+
+      expect(screen.getByRole('button', { name: 'Apply 1 change' })).toBeInTheDocument()
+    })
+
+    it('does not say "anyway" for a sender change while the check runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      await pick('Remove @pitch.example from trusted senders')
+
+      expect(screen.getByRole('button', { name: 'Apply 1 change' })).toBeInTheDocument()
     })
   })
 

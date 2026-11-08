@@ -1,15 +1,28 @@
 import { Check, TriangleAlert } from 'lucide-react'
-import React, { useEffect, useId, useMemo, useState } from 'react'
+import React, { useEffect, useId, useState } from 'react'
 
 import ConfirmDialog from '@components/confirm-dialog'
-import { getAccount, postSpamSuggestions, putAccount } from '@services/emails'
-import { applySuggestions, matchInboxSubjects, SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
-import { DEFAULT_SPAM_FILTER, EmailBatch, HttpError, SpamFilter, SpamSuggestion, SpamSuggestionKind } from '@types'
+import {
+  ImpactFootnote,
+  isSpamImpactResponse,
+  PhraseImpact,
+  PhraseImpactFailed,
+  PhraseImpactPending,
+} from '@components/phrase-impact'
+import { getAccount, postSpamImpact, postSpamSuggestions, putAccount } from '@services/emails'
+import { applySuggestions, SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
+import {
+  DEFAULT_SPAM_FILTER,
+  HttpError,
+  SpamFilter,
+  SpamImpactResponse,
+  SpamSuggestion,
+  SpamSuggestionKind,
+} from '@types'
 
 export interface SpamSuggestionsProps {
   accountId: string
   emailId: string
-  inboxEmails: EmailBatch[]
   onApplied: (count: number) => void
   onClose: () => void
   open: boolean
@@ -17,7 +30,8 @@ export interface SpamSuggestionsProps {
 
 type DialogState = 'loading' | 'results' | 'zero' | 'quota' | 'unavailable' | 'forbidden' | 'applying'
 
-const SHOWN_SUBJECTS = 3
+type ImpactState =
+  { status: 'idle' } | { status: 'checking' } | { response: SpamImpactResponse; status: 'done' } | { status: 'failed' }
 
 const KINDS: ReadonlySet<SpamSuggestionKind> = new Set(['addBlockPhrase', 'removeTrustedSender', 'raiseSensitivity'])
 
@@ -110,76 +124,32 @@ const applyCounted = (base: SpamFilter, picks: SpamSuggestion[]): { changed: num
     { changed: 0, spamFilter: base },
   )
 
-const ImpactLine = ({
-  id,
-  subjects,
-  suggestion,
-}: {
-  id: string
-  subjects: string[]
-  suggestion: SpamSuggestion
-}): React.ReactNode => {
-  if (subjects.length > 0) {
-    return (
-      <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id} style={{ color: 'var(--text-paper)' }}>
-        <TriangleAlert
-          aria-hidden="true"
-          className="mt-px flex-shrink-0"
-          size={12}
-          strokeWidth={2}
-          style={{ color: 'var(--accent)' }}
-        />
-        <span className="min-w-0">
-          Matches {subjects.length} Inbox {plural(subjects.length, 'subject', 'subjects')}:
-          {/* A list inside a label is invalid HTML, so these are spans drawn as list items. */}
-          <span className="mt-0.5 list-disc pl-4" style={{ color: 'var(--text-paper-muted)', display: 'block' }}>
-            {subjects.slice(0, SHOWN_SUBJECTS).map((subject, index) => (
-              <span key={index} style={{ display: 'list-item', overflowWrap: 'anywhere' }}>
-                {subject}
-              </span>
-            ))}
-            {subjects.length > SHOWN_SUBJECTS && (
-              <span style={{ display: 'list-item' }}>and {subjects.length - SHOWN_SUBJECTS} more</span>
-            )}
-          </span>
-        </span>
-      </span>
-    )
-  }
-  if (suggestion.kind === 'raiseSensitivity' && suggestion.value === 'high') {
-    return (
-      <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id} style={{ color: 'var(--text-paper)' }}>
-        <TriangleAlert
-          aria-hidden="true"
-          className="mt-px flex-shrink-0"
-          size={12}
-          strokeWidth={2}
-          style={{ color: 'var(--accent)' }}
-        />
-        <span>Applies to new mail only. High may catch real mail.</span>
-      </span>
-    )
-  }
-  return (
+// The line for a row that is not a block phrase. Block phrases show the API's answer instead.
+const ImpactLine = ({ id, suggestion }: { id: string; suggestion: SpamSuggestion }): React.ReactNode =>
+  suggestion.kind === 'raiseSensitivity' && suggestion.value === 'high' ? (
+    <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id} style={{ color: 'var(--text-paper)' }}>
+      <TriangleAlert
+        aria-hidden="true"
+        className="mt-px flex-shrink-0"
+        size={12}
+        strokeWidth={2}
+        style={{ color: 'var(--accent)' }}
+      />
+      <span>Applies to new mail only. High may catch real mail.</span>
+    </span>
+  ) : (
     <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id}>
       <Check aria-hidden="true" className="mt-px flex-shrink-0" size={12} strokeWidth={2} />
-      <span>{suggestion.kind === 'addBlockPhrase' ? 'No Inbox subjects match' : 'Applies to new mail only'}</span>
+      <span>Applies to new mail only</span>
     </span>
   )
-}
 
-const SpamSuggestions = ({
-  accountId,
-  emailId,
-  inboxEmails,
-  onApplied,
-  onClose,
-  open,
-}: SpamSuggestionsProps): React.ReactNode => {
+const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamSuggestionsProps): React.ReactNode => {
   const [state, setState] = useState<DialogState>('loading')
   const [suggestions, setSuggestions] = useState<SpamSuggestion[]>([])
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
+  const [impactState, setImpactState] = useState<ImpactState>({ status: 'idle' })
   const baseId = useId()
   const introId = `${baseId}-intro`
 
@@ -191,6 +161,7 @@ const SpamSuggestions = ({
       setSuggestions([])
       setPicked(new Set())
       setErrorMessage(undefined)
+      setImpactState({ status: 'idle' })
       return
     }
     let current = true
@@ -201,6 +172,24 @@ const SpamSuggestions = ({
         const valid = validSuggestions(received)
         setSuggestions(valid)
         setState(valid.length > 0 ? 'results' : 'zero')
+        const phrases = valid.filter(({ kind }) => kind === 'addBlockPhrase').map(({ value }) => value)
+        if (phrases.length === 0) return
+        setImpactState({ status: 'checking' })
+        postSpamImpact(accountId, phrases, emailId)
+          .then((response: unknown) => {
+            if (!current) return
+            if (isSpamImpactResponse(response, phrases.length)) {
+              setImpactState({ response, status: 'done' })
+            } else {
+              console.error('Malformed spam impact response', response)
+              setImpactState({ status: 'failed' })
+            }
+          })
+          .catch((error: unknown) => {
+            if (!current) return
+            console.error('Error checking suggested phrases against mail', error)
+            setImpactState({ status: 'failed' })
+          })
       })
       .catch((error: unknown) => {
         if (!current) return
@@ -212,23 +201,36 @@ const SpamSuggestions = ({
     }
   }, [open, accountId, emailId])
 
-  const impacts = useMemo(
-    () =>
-      new Map(
-        suggestions.map((suggestion) => [
-          suggestion.id,
-          suggestion.kind === 'addBlockPhrase' ? matchInboxSubjects(suggestion.value, inboxEmails) : [],
-        ]),
-      ),
-    [suggestions, inboxEmails],
-  )
+  // Results arrive in the order the phrases were sent, so row i of the block phrases owns result i.
+  const phraseSuggestions = suggestions.filter(({ kind }) => kind === 'addBlockPhrase')
+  const inboxMatches = (suggestion: SpamSuggestion): boolean =>
+    impactState.status === 'done' &&
+    (impactState.response.phrases[phraseSuggestions.indexOf(suggestion)]?.inbox.count ?? 0) > 0
 
   const pickedSuggestions = suggestions.filter((suggestion) => picked.has(suggestion.id))
   const pickedCount = pickedSuggestions.length
-  const matchingPicks = pickedSuggestions.filter((suggestion) => (impacts.get(suggestion.id) ?? []).length > 0).length
+  const matchingPicks = pickedSuggestions.filter(inboxMatches).length
+  // A pick with no complete answer (still checking, failed, or Inbox only partly read) asks for "anyway" too.
+  const unsureOfPicks =
+    pickedSuggestions.some(({ kind }) => kind === 'addBlockPhrase') &&
+    (impactState.status !== 'done' || impactState.response.inboxIncomplete)
+  const phraseImpactLine = (suggestion: SpamSuggestion, id: string): React.ReactNode => {
+    if (impactState.status === 'done') {
+      const impact = impactState.response.phrases[phraseSuggestions.indexOf(suggestion)]
+      return (
+        <PhraseImpact
+          checked={impactState.response.checked}
+          id={id}
+          impact={impact}
+          inboxIncomplete={impactState.response.inboxIncomplete}
+        />
+      )
+    }
+    return impactState.status === 'failed' ? <PhraseImpactFailed id={id} /> : <PhraseImpactPending id={id} />
+  }
+
   const applying = state === 'applying'
   const showRows = state === 'results' || applying
-  const hasPhrases = suggestions.some((suggestion) => suggestion.kind === 'addBlockPhrase')
 
   const togglePick = (id: string): void => {
     if (applying) return
@@ -278,7 +280,7 @@ const SpamSuggestions = ({
       ? 'Apply changes'
       : applying
         ? 'Applying…'
-        : `Apply ${pickedCount} ${plural(pickedCount, 'change', 'changes')}${matchingPicks > 0 ? ' anyway' : ''}`
+        : `Apply ${pickedCount} ${plural(pickedCount, 'change', 'changes')}${matchingPicks > 0 || unsureOfPicks ? ' anyway' : ''}`
 
   // One first button for every state, so the element that holds focus while loading is the same
   // one after the results (Cancel) or a message (Close) arrive.
@@ -334,6 +336,8 @@ const SpamSuggestions = ({
         {showRows && (
           <span className="sr-only">
             {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
+            {impactState.status === 'done' && ' Finished checking your mail.'}
+            {impactState.status === 'failed' && " We couldn't check your mail."}
           </span>
         )}
       </div>
@@ -384,8 +388,8 @@ const SpamSuggestions = ({
               />
               <span>
                 {matchingPicks === 1
-                  ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam.'
-                  : 'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam.'}
+                  ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
+                  : 'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'}
               </span>
             </div>
           )}
@@ -427,17 +431,21 @@ const SpamSuggestions = ({
                       <span className="mt-0.5 block text-xs" id={reasonId}>
                         {suggestion.reason}
                       </span>
-                      <ImpactLine id={impactId} subjects={impacts.get(suggestion.id) ?? []} suggestion={suggestion} />
+                      {suggestion.kind === 'addBlockPhrase' ? (
+                        phraseImpactLine(suggestion, impactId)
+                      ) : (
+                        <ImpactLine id={impactId} suggestion={suggestion} />
+                      )}
                     </span>
                   </label>
                 </li>
               )
             })}
           </ul>
-          {hasPhrases && (
-            <p className="mt-3 text-xs">
-              We checked your Inbox subjects only. New mail with these phrases in the body will go to Spam too.
-            </p>
+          {impactState.status === 'done' && (
+            <div className="mt-3">
+              <ImpactFootnote checked={impactState.response.checked} />
+            </div>
           )}
         </>
       )}

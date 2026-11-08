@@ -10,10 +10,10 @@ Mail the inbound service classifies as spam lands in the Spam folder at `/spam` 
 
 - **Moving mail.** In the Inbox, _Move to spam_ moves the open email to Spam. In Spam, _Not spam_ moves it back to the Inbox. Spam emails can't be bounced, since a bounce would go to a possibly forged sender.
 - **Spam notice.** After a move, a notice appears above the viewer (or above the list on narrow screens). After _Not spam_ it offers to trust the sender's address or, for non-free-mail domains, the whole `@domain`. After _Move to spam_ it offers _Suggest rule changes_.
-- **Suggested rule changes.** A dialog asks the API to read the moved email and suggest stricter rules (add a block phrase, remove a trusted sender, raise sensitivity). The owner picks which to apply, and each block phrase shows which Inbox subjects it would match.
-- **Settings.** The _Spam filter_ section in Settings sets sensitivity (Low, Medium, High), block phrases, and trusted senders. Each list holds at most 100 entries of at most 100 characters. Saving a new block phrase that matches Inbox subjects asks for confirmation first.
+- **Suggested rule changes.** A dialog asks the API to read the moved email and suggest stricter rules (add a block phrase, remove a trusted sender, raise sensitivity). The owner picks which to apply, and each block phrase shows how many recent Inbox and Spam emails it would match, with examples. The API does the matching, reading subjects and message text.
+- **Settings.** The _Spam filter_ section in Settings sets sensitivity (Low, Medium, High), block phrases, and trusted senders. Each list holds at most 100 entries of at most 100 characters. Saving a new block phrase checks it against recent mail first, and asks for confirmation if it matches Inbox mail or if the check could not finish.
 
-Block phrases are matched as whole words after normalization (`src/services/spam-impact.ts`). `src/assets/phrase-matching-vectors.json` is shared with `emails-inbound-service`, which keeps an identical copy pinned to the same SHA-256 hash; change both copies together.
+The browser does no phrase matching against mail. `emails-email-api` checks the newest 100 Inbox and 25 Spam emails through `POST /accounts/{accountId}/spam-impact`, and `src/components/phrase-impact` shows the answer. Block phrases are normalized into whole words in `src/services/spam-impact.ts`, which the settings form uses to spot duplicates and phrases with no letters or digits. `src/assets/phrase-matching-vectors.json` is shared with `emails-inbound-service`, which keeps an identical copy pinned to the same SHA-256 hash; change both copies together.
 
 ### Deploy Order
 

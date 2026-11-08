@@ -15,14 +15,14 @@ const withInbox = (inbox: SpamFolderImpact): SpamPhraseImpact => ({ ...clean, in
 
 describe('PhraseImpact', () => {
   it('shows the Inbox and Spam match lines', () => {
-    render(<PhraseImpact checked={checked} id="impact" impact={matching} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />)
 
     expect(screen.getByText(/Matches 2 of 100 Inbox emails:/)).toBeInTheDocument()
     expect(screen.getByText(/Also matches 3 of 25 Spam emails:/)).toBeInTheDocument()
   })
 
   it('lists the subject and sender of each matching email', () => {
-    render(<PhraseImpact checked={checked} id="impact" impact={matching} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />)
 
     const items = screen.getAllByRole('listitem')
     expect(items).toHaveLength(5)
@@ -33,7 +33,7 @@ describe('PhraseImpact', () => {
 
   it('shows "no subject" for an empty subject and leaves out an empty sender', () => {
     const impact = withInbox(folder(1, [{ from: '', id: 'a', subject: '' }]))
-    render(<PhraseImpact checked={checked} id="impact" impact={impact} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={impact} inboxIncomplete={false} />)
 
     const item = screen.getByRole('listitem')
     expect(item).toHaveTextContent(/^no subject$/)
@@ -41,20 +41,20 @@ describe('PhraseImpact', () => {
 
   it('shows how many matches are not listed', () => {
     const emails = [1, 2, 3, 4, 5].map((n) => ({ from: 'a@b.com', id: `e${n}`, subject: `Subject ${n}` }))
-    render(<PhraseImpact checked={checked} id="impact" impact={withInbox(folder(9, emails))} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={withInbox(folder(9, emails))} inboxIncomplete={false} />)
 
     expect(screen.getAllByRole('listitem')).toHaveLength(6)
     expect(screen.getByText('and 4 more')).toBeInTheDocument()
   })
 
   it('does not show "and N more" when every match is listed', () => {
-    render(<PhraseImpact checked={checked} id="impact" impact={matching} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />)
 
     expect(screen.queryByText(/and \d+ more/)).not.toBeInTheDocument()
   })
 
   it('shows no matches for a clean phrase', () => {
-    render(<PhraseImpact checked={checked} id="impact" impact={clean} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={clean} inboxIncomplete={false} />)
 
     expect(screen.getByText('No matches in 100 Inbox emails')).toBeInTheDocument()
     expect(screen.getByText('No matches in 25 Spam emails')).toBeInTheDocument()
@@ -63,14 +63,14 @@ describe('PhraseImpact', () => {
 
   it('says so when the Inbox is empty', () => {
     const empty = counts({ checked: 0, total: 0 }, checked.spam)
-    render(<PhraseImpact checked={empty} id="impact" impact={clean} />)
+    render(<PhraseImpact checked={empty} id="impact" impact={clean} inboxIncomplete={false} />)
 
     expect(screen.getByText('Your Inbox is empty, so we had nothing to check.')).toBeInTheDocument()
   })
 
   it('says so when no Inbox email could be checked', () => {
     const unread = counts({ checked: 0, total: 40 }, checked.spam)
-    render(<PhraseImpact checked={unread} id="impact" impact={clean} />)
+    render(<PhraseImpact checked={unread} id="impact" impact={clean} inboxIncomplete={false} />)
 
     expect(screen.getByText("We couldn't check your Inbox.")).toBeInTheDocument()
   })
@@ -91,15 +91,29 @@ describe('PhraseImpact', () => {
 
   it('shows no Spam line when no Spam email was checked', () => {
     const noSpam = counts(checked.inbox, { checked: 0, total: 0 })
-    render(<PhraseImpact checked={noSpam} id="impact" impact={clean} />)
+    render(<PhraseImpact checked={noSpam} id="impact" impact={clean} inboxIncomplete={false} />)
 
     expect(screen.getByText('No matches in 100 Inbox emails')).toBeInTheDocument()
     expect(screen.queryByText(/Spam/)).not.toBeInTheDocument()
   })
 
+  it('uses the singular for one Spam email checked', () => {
+    const one = counts(checked.inbox, { checked: 1, total: 1 })
+    render(<PhraseImpact checked={one} id="impact" impact={clean} inboxIncomplete={false} />)
+
+    expect(screen.getByText('No matches in 1 Spam email')).toBeInTheDocument()
+  })
+
+  it('uses the singular for one matching Spam email', () => {
+    const one = counts(checked.inbox, { checked: 1, total: 1 })
+    render(<PhraseImpact checked={one} id="impact" impact={matching} inboxIncomplete={false} />)
+
+    expect(screen.getByText(/Also matches 3 of 1 Spam email:/)).toBeInTheDocument()
+  })
+
   it('uses the singular for one email checked', () => {
     const one = counts({ checked: 1, total: 1 }, checked.spam)
-    render(<PhraseImpact checked={one} id="impact" impact={clean} />)
+    render(<PhraseImpact checked={one} id="impact" impact={clean} inboxIncomplete={false} />)
 
     expect(screen.getByText('No matches in 1 Inbox email')).toBeInTheDocument()
   })
@@ -107,7 +121,7 @@ describe('PhraseImpact', () => {
   it('renders lists as spans with list roles, safe inside a label', () => {
     const { container } = render(
       <label>
-        <PhraseImpact checked={checked} id="impact" impact={matching} />
+        <PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />
       </label>,
     )
 
@@ -116,7 +130,9 @@ describe('PhraseImpact', () => {
   })
 
   it('hides decorative icons from assistive technology', () => {
-    const { container } = render(<PhraseImpact checked={checked} id="impact" impact={matching} />)
+    const { container } = render(
+      <PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />,
+    )
 
     const icons = container.querySelectorAll('svg')
     expect(icons.length).toBeGreaterThan(0)
@@ -124,7 +140,9 @@ describe('PhraseImpact', () => {
   })
 
   it('sets the id on the region for aria-describedby', () => {
-    const { container } = render(<PhraseImpact checked={checked} id="impact" impact={matching} />)
+    const { container } = render(
+      <PhraseImpact checked={checked} id="impact" impact={matching} inboxIncomplete={false} />,
+    )
 
     expect(container.querySelector('#impact')).toBeInTheDocument()
     expect(within(container.querySelector('#impact') as HTMLElement).getAllByRole('listitem')).toHaveLength(5)
@@ -132,7 +150,7 @@ describe('PhraseImpact', () => {
 
   it('renders a hostile subject as text', () => {
     const impact = withInbox(folder(1, [{ from: 'a@b.com', id: 'x', subject: '<img src=x onerror=alert(1)>' }]))
-    render(<PhraseImpact checked={checked} id="impact" impact={impact} />)
+    render(<PhraseImpact checked={checked} id="impact" impact={impact} inboxIncomplete={false} />)
 
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument()
   })
@@ -144,7 +162,7 @@ describe('PhraseImpactPending', () => {
 
     expect(screen.getByText('Checking your mail…')).toBeInTheDocument()
     expect(container.querySelector('#pending')).toBeInTheDocument()
-    container.querySelectorAll('svg, [aria-hidden]').forEach((node) => expect(node).toHaveAttribute('aria-hidden'))
+    expect(container.querySelector('#pending > span')).toHaveAttribute('aria-hidden', 'true')
   })
 })
 
@@ -167,6 +185,12 @@ describe('ImpactFootnote', () => {
         "We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first. We didn't check attachments or older mail. Future mail with these phrases will go to Spam, unless it comes from a trusted sender.",
       ),
     ).toBeInTheDocument()
+  })
+
+  it('uses the singular for one email in a folder', () => {
+    render(<ImpactFootnote checked={counts({ checked: 1, total: 1 }, { checked: 1, total: 1 })} />)
+
+    expect(screen.getByText(/in 1 of 1 Inbox email and 1 of 1 Spam email, newest first\./)).toBeInTheDocument()
   })
 
   it('drops the Spam clause when there are no Spam emails', () => {
@@ -219,8 +243,7 @@ describe('isSpamImpactResponse', () => {
   })
 
   it('rejects a missing checked', () => {
-    const { checked: _omitted, ...rest } = clone()
-    expect(isSpamImpactResponse(rest, 2)).toBe(false)
+    expect(isSpamImpactResponse({ ...clone(), checked: undefined }, 2)).toBe(false)
   })
 
   it('rejects a checked count that is not a number', () => {

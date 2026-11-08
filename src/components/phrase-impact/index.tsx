@@ -8,8 +8,8 @@ type Checked = SpamImpactResponse['checked']
 export interface PhraseImpactProps {
   checked: Checked
   id: string
-  // From the response. Needed for "but we couldn't check them all", which `checked` alone can't tell.
-  inboxIncomplete?: boolean
+  // Required, from the response: leaving it out would hide the incomplete-check warning. Needed for "but we couldn't check them all", which `checked` alone can't tell.
+  inboxIncomplete: boolean
   impact: SpamPhraseImpact
 }
 
@@ -148,6 +148,8 @@ const SpamLine = ({ checked, impact }: { checked: SpamCheckedCount; impact: Spam
   }
   return (
     <span className={LINE_CLASS} style={LINE_STYLE}>
+      {/* No icon here, but this keeps the text aligned with the lines that have one. */}
+      <span aria-hidden="true" className="mt-px flex-shrink-0" style={{ display: 'inline-block', width: 12 }} />
       <span>
         No matches in {checked.checked} Spam {emailNoun(checked.checked)}
       </span>
@@ -156,7 +158,7 @@ const SpamLine = ({ checked, impact }: { checked: SpamCheckedCount; impact: Spam
 }
 
 // Shows one phrase's Inbox and Spam lines from the API's answer. It does no matching.
-export const PhraseImpact = ({ checked, id, impact, inboxIncomplete = false }: PhraseImpactProps): React.ReactNode => (
+export const PhraseImpact = ({ checked, id, impact, inboxIncomplete }: PhraseImpactProps): React.ReactNode => (
   <span className="block" id={id}>
     <span className={LINE_CLASS} style={LINE_STYLE}>
       <InboxLine checked={checked.inbox} impact={impact.inbox} inboxIncomplete={inboxIncomplete} />
@@ -187,8 +189,8 @@ export const ImpactFootnote = ({ checked }: { checked: Checked }): React.ReactNo
   const { inbox, spam } = checked
   if (inbox.total === 0 && spam.total === 0) return null
   const clauses = [
-    ...(inbox.total > 0 ? [`${inbox.checked} of ${inbox.total} Inbox emails`] : []),
-    ...(spam.total > 0 ? [`${spam.checked} of ${spam.total} Spam emails`] : []),
+    ...(inbox.total > 0 ? [`${inbox.checked} of ${inbox.total} Inbox ${emailNoun(inbox.total)}`] : []),
+    ...(spam.total > 0 ? [`${spam.checked} of ${spam.total} Spam ${emailNoun(spam.total)}`] : []),
   ].join(' and ')
   return (
     <p className="text-xs" style={{ color: 'var(--text-paper-muted)' }}>

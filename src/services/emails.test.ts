@@ -20,6 +20,7 @@ import {
   postPushSubscription,
   postSentAttachment,
   postSentEmail,
+  postSpamImpact,
   postSpamSuggestions,
   putAccount,
 } from './emails'
@@ -37,6 +38,7 @@ import {
   postAttachmentResult,
   pushEndpoint,
   pushSubscription,
+  spamImpactResponse,
 } from '@test/__mocks__'
 import { HttpError, SpamSuggestionsResponse } from '@types'
 
@@ -350,6 +352,41 @@ describe('Emails service', () => {
         mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Failed' }, false, status))
 
         const error: HttpError = await postSpamSuggestions(accountId, emailId).catch((thrown) => thrown)
+
+        expect(error.status).toEqual(status)
+      })
+    })
+
+    describe('postSpamImpact', () => {
+      it('should post the phrases and the excluded email, and return the impact', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(spamImpactResponse))
+
+        const result = await postSpamImpact(accountId, ['free lunch', 'lottery winner'], emailId)
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/spam-impact`, {
+          body: JSON.stringify({ excludeEmailId: emailId, phrases: ['free lunch', 'lottery winner'] }),
+          headers: { ...authorizedHeaders, 'Content-Type': 'application/json' },
+          method: 'POST',
+        })
+        expect(result).toEqual(spamImpactResponse)
+      })
+
+      it('should omit excludeEmailId when it is undefined', async () => {
+        mockFetch.mockResolvedValueOnce(mockResponse(spamImpactResponse))
+
+        await postSpamImpact(accountId, ['free lunch'])
+
+        expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/accounts/${accountId}/spam-impact`, {
+          body: JSON.stringify({ phrases: ['free lunch'] }),
+          headers: { ...authorizedHeaders, 'Content-Type': 'application/json' },
+          method: 'POST',
+        })
+      })
+
+      it.each([400, 403, 429, 503])('should reject with status %s', async (status) => {
+        mockFetch.mockResolvedValueOnce(mockResponse({ message: 'Failed' }, false, status))
+
+        const error: HttpError = await postSpamImpact(accountId, ['free lunch']).catch((thrown) => thrown)
 
         expect(error.status).toEqual(status)
       })

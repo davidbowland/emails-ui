@@ -11,6 +11,7 @@ import {
   PatchOperation,
   PostSignedUrl,
   SignedUrl,
+  SpamImpactResponse,
 } from '@types'
 
 export const accountId = 'dave'
@@ -209,4 +210,46 @@ export const user: AuthUser = {
     authFlowType: 'USER_SRP_AUTH',
     loginId: accountId,
   },
+}
+
+export const spamImpactResponse: SpamImpactResponse = {
+  checked: { inbox: { checked: 100, total: 150 }, spam: { checked: 25, total: 40 } },
+  inboxIncomplete: false,
+  phrases: [
+    {
+      inbox: {
+        count: 2,
+        emails: [
+          { from: 'friend@domain.com', id: 'inbox-1', subject: 'Lunch on Friday' },
+          { from: 'billing@shop.com', id: 'inbox-2', subject: 'Your receipt' },
+        ],
+      },
+      phrase: 'free lunch',
+      spam: {
+        count: 3,
+        emails: [
+          { from: 'promo@deals.example', id: 'spam-1', subject: 'Free lunch for you' },
+          { from: 'promo@deals.example', id: 'spam-2', subject: 'Claim your free lunch' },
+          { from: 'win@prizes.example', id: 'spam-3', subject: 'Winner' },
+        ],
+      },
+    },
+    {
+      inbox: { count: 0, emails: [] },
+      phrase: 'lottery winner',
+      spam: { count: 0, emails: [] },
+    },
+  ],
+}
+
+export const spamImpactIncomplete: SpamImpactResponse = {
+  checked: { inbox: { checked: 62, total: 100 }, spam: { checked: 25, total: 25 } },
+  inboxIncomplete: true,
+  phrases: [
+    {
+      inbox: { count: 0, emails: [] },
+      phrase: 'lottery winner',
+      spam: { count: 0, emails: [] },
+    },
+  ],
 }

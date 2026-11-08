@@ -189,3 +189,33 @@ export interface SpamSuggestion {
 export interface SpamSuggestionsResponse {
   suggestions: SpamSuggestion[]
 }
+
+// Response of POST /accounts/{accountId}/spam-impact. The API does all matching and selection;
+// the UI only displays it.
+export interface SpamImpactEmail {
+  from: string
+  id: string
+  subject: string
+}
+
+export interface SpamFolderImpact {
+  count: number
+  emails: SpamImpactEmail[]
+}
+
+export interface SpamPhraseImpact {
+  inbox: SpamFolderImpact
+  phrase: string
+  spam: SpamFolderImpact
+}
+
+export interface SpamCheckedCount {
+  checked: number
+  total: number
+}
+
+export interface SpamImpactResponse {
+  checked: { inbox: SpamCheckedCount; spam: SpamCheckedCount }
+  inboxIncomplete: boolean
+  phrases: SpamPhraseImpact[]
+}

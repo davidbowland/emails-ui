@@ -65,9 +65,12 @@ export const SettingsDivider = (): React.ReactNode => (
 // 'saved' is the resting state: everything on screen is what the server holds. A disabled control
 // has to say why it is disabled, so the state is the label rather than a hint beside it -- a screen
 // reader skips the hint on a disabled button.
-export type SaveState = 'saved' | 'saving' | 'unsaved'
+export type SaveState = 'checking' | 'saved' | 'saving' | 'unsaved'
 
-export const saveState = (hasUnsavedChanges: boolean, isSaving: boolean): SaveState => {
+export const saveState = (hasUnsavedChanges: boolean, isSaving: boolean, isChecking: boolean): SaveState => {
+  if (isChecking) {
+    return 'checking'
+  }
   if (isSaving) {
     return 'saving'
   }
@@ -75,6 +78,7 @@ export const saveState = (hasUnsavedChanges: boolean, isSaving: boolean): SaveSt
 }
 
 const SAVE_LABELS: Record<SaveState, string> = {
+  checking: 'Checking your mail…',
   saved: 'Saved',
   saving: 'Saving…',
   unsaved: 'Save',
@@ -90,6 +94,7 @@ const ACCENT: React.CSSProperties = {
 }
 
 const SAVE_STYLES: Record<SaveState, React.CSSProperties> = {
+  checking: ACCENT,
   saved: {
     background: 'var(--paper-surface)',
     border: '1px solid var(--paper-border)',
@@ -101,15 +106,17 @@ const SAVE_STYLES: Record<SaveState, React.CSSProperties> = {
 }
 
 const BADGE_BACKGROUNDS: Record<SaveState, string> = {
+  checking: 'rgba(255,255,255,0.15)',
   saved: 'rgba(28,26,23,0.06)',
   saving: 'rgba(255,255,255,0.15)',
   unsaved: 'rgba(255,255,255,0.15)',
 }
 
 const SaveIcon = ({ state }: { state: SaveState }): React.ReactNode => {
-  if (state === 'saving') {
+  if (state === 'saving' || state === 'checking') {
     return (
       <span
+        aria-hidden="true"
         style={{
           animation: 'spin 0.8s linear infinite',
           border: '1.5px solid rgba(255,255,255,0.3)',
@@ -122,19 +129,25 @@ const SaveIcon = ({ state }: { state: SaveState }): React.ReactNode => {
       />
     )
   }
-  return state === 'saved' ? <Check size={12} strokeWidth={2.5} /> : <Save size={12} strokeWidth={2} />
+  return state === 'saved' ? (
+    <Check aria-hidden="true" size={12} strokeWidth={2.5} />
+  ) : (
+    <Save aria-hidden="true" size={12} strokeWidth={2} />
+  )
 }
 
 export const SaveButton = ({
   hasUnsavedChanges,
+  isChecking,
   isSaving,
   onClick,
 }: {
   hasUnsavedChanges: boolean
+  isChecking: boolean
   isSaving: boolean
   onClick: () => void
 }): React.ReactNode => {
-  const state = saveState(hasUnsavedChanges, isSaving)
+  const state = saveState(hasUnsavedChanges, isSaving, isChecking)
   const pressable = state === 'unsaved'
 
   // aria-disabled, not disabled: a disabled button leaves the tab order the moment the save lands,

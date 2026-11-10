@@ -7,14 +7,12 @@ import {
   containsPhrase,
   isFreeMailDomain,
   isValidTrustedSender,
-  matchInboxSubjects,
-  newPhraseMatches,
   SPAM_FILTER_LIST_LIMIT,
   toWords,
   wouldExceedLimits,
 } from './spam-impact'
 import vectors from '@assets/phrase-matching-vectors.json'
-import { DEFAULT_SPAM_FILTER, EmailBatch, SpamFilter, SpamSuggestion } from '@types'
+import { DEFAULT_SPAM_FILTER, SpamFilter, SpamSuggestion } from '@types'
 
 interface PhraseVector {
   expected: boolean
@@ -22,20 +20,6 @@ interface PhraseVector {
   phrase: string
   text: string
 }
-
-const toEmail = (subject: string, index: number): EmailBatch => ({
-  accountId: 'account',
-  data: { from: 'sender@domain.com', subject, timestamp: index, to: ['dave@domain.com'], viewed: false },
-  id: `email-${index}`,
-})
-
-const inbox: EmailBatch[] = [
-  'Quick question about your app',
-  'Happy birthday!',
-  'App: install today',
-  'Reply with “NO” to stop',
-  'Weekly report',
-].map(toEmail)
 
 const suggestion = (kind: SpamSuggestion['kind'], value: string): SpamSuggestion => ({
   id: `${kind}-${value}`,
@@ -106,39 +90,6 @@ describe('spam-impact', () => {
 
     it('should not match a phrase longer than the text', () => {
       expect(containsPhrase(['a'], ['a', 'b'])).toBe(false)
-    })
-  })
-
-  describe('matchInboxSubjects', () => {
-    it('should return the subjects containing the phrase as whole words', () => {
-      expect(matchInboxSubjects('app', inbox)).toEqual(['Quick question about your app', 'App: install today'])
-    })
-
-    it('should match across quote styles', () => {
-      expect(matchInboxSubjects('reply with "no"', inbox)).toEqual(['Reply with “NO” to stop'])
-    })
-
-    it('should return nothing for a phrase with no words', () => {
-      expect(matchInboxSubjects('!!!', inbox)).toEqual([])
-    })
-
-    it('should treat a missing subject as empty', () => {
-      const noSubject = { ...toEmail('', 9), data: { ...toEmail('', 9).data, subject: undefined } }
-
-      expect(matchInboxSubjects('app', [noSubject as unknown as EmailBatch])).toEqual([])
-    })
-  })
-
-  describe('newPhraseMatches', () => {
-    it('should report only new phrases that match a subject', () => {
-      expect(newPhraseMatches(['weekly'], ['weekly', 'app', 'invoice', 'birthday'], inbox)).toEqual([
-        { phrase: 'app', subjects: ['Quick question about your app', 'App: install today'] },
-        { phrase: 'birthday', subjects: ['Happy birthday!'] },
-      ])
-    })
-
-    it('should report nothing when no phrase is new', () => {
-      expect(newPhraseMatches(['app'], ['app'], inbox)).toEqual([])
     })
   })
 

@@ -12,6 +12,7 @@ import {
   PatchOperation,
   PostSignedUrl,
   SignedUrl,
+  SpamImpactResponse,
   SpamSuggestionsResponse,
 } from '@types'
 
@@ -144,6 +145,16 @@ export const postSpamSuggestions = (accountId: string, emailId: string): Promise
     'POST',
     `/accounts/${encodeURIComponent(accountId)}/emails/received/${encodeURIComponent(emailId)}/spam-suggestions`,
   )
+
+export const postSpamImpact = (
+  accountId: string,
+  phrases: string[],
+  excludeEmailId?: string,
+): Promise<SpamImpactResponse> =>
+  request<SpamImpactResponse>('POST', `/accounts/${encodeURIComponent(accountId)}/spam-impact`, {
+    ...(excludeEmailId === undefined ? {} : { excludeEmailId }),
+    phrases,
+  })
 
 export const postBounceEmail = (accountId: string, emailId: string): Promise<Email> =>
   request<Email>(

@@ -20,6 +20,33 @@ describe('ConfirmDialog component', () => {
     expect(screen.getByText(/Are you sure\?/i)).toBeVisible()
   })
 
+  it('should be described by the element describedBy names', () => {
+    render(
+      <ConfirmDialog
+        describedBy="dialog-lead"
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+        open={true}
+        title="Delete item?"
+      >
+        <p id="dialog-lead">This cannot be undone.</p>
+        <p>Other detail.</p>
+      </ConfirmDialog>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Delete item?' })).toHaveAccessibleDescription('This cannot be undone.')
+  })
+
+  it('should have no description without describedBy', () => {
+    render(
+      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+        Are you sure?
+      </ConfirmDialog>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Delete item?' })).toHaveAccessibleDescription('')
+  })
+
   it('should call onCancel when cancel button is clicked', () => {
     render(
       <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">

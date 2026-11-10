@@ -957,7 +957,7 @@ describe('Mailbox component', () => {
         expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
       })
 
-      it('should open suggestions for the moved email with the Inbox list', async () => {
+      it('should open suggestions for the moved email', async () => {
         await setup('inbox', [inboxFirst, inboxSecond])
         await move('Move to spam', [inboxSecond])
 
@@ -965,7 +965,7 @@ describe('Mailbox component', () => {
 
         expect(screen.getByRole('dialog')).toHaveTextContent('Suggestions for i1')
         expect(SpamSuggestions).toHaveBeenLastCalledWith(
-          expect.objectContaining({ accountId, emailId: 'i1', inboxEmails: [inboxSecond], open: true }),
+          expect.objectContaining({ accountId, emailId: 'i1', open: true }),
           undefined,
         )
       })

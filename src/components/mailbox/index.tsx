@@ -668,7 +668,6 @@ const Mailbox = ({
         <SpamSuggestions
           accountId={loggedInUser.username}
           emailId={notice?.emailId ?? ''}
-          inboxEmails={receivedEmails ?? []}
           onApplied={suggestionsApplied}
           onClose={() => setSuggestionsOpen(false)}
           open={suggestionsOpen}

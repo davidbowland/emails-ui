@@ -1,5 +1,4 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import { TriangleAlert } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 
 import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
@@ -10,19 +9,18 @@ import ErrorSnackbar from '@components/error-snackbar'
 import InstallOffer from '@components/install-offer'
 import LoadingSpinner from '@components/loading-spinner'
 import NotificationSettings from '@components/notification-settings'
+import { ImpactFootnote, isSpamImpactResponse, PhraseImpact, PhraseImpactFailed } from '@components/phrase-impact'
 import SpamFilterSettings, { SpamFilterSettingsHandle } from '@components/spam-filter-settings'
-import { getAccount, getAllReceivedEmails, putAccount } from '@services/emails'
-import { newPhraseMatches } from '@services/spam-impact'
+import { getAccount, postSpamImpact, putAccount } from '@services/emails'
 import {
   Account,
   AuthUser,
   DEFAULT_NOTIFICATION_PREVIEW,
   DEFAULT_SPAM_FILTER,
   EmailAddress,
-  EmailBatch,
   NotificationPreview,
-  PhraseMatch,
   SpamFilter,
+  SpamImpactResponse,
 } from '@types'
 
 const sameAddresses = (a: string[], b: string[]): boolean =>
@@ -47,66 +45,107 @@ const hasChanges = (account: Account, updated: SaveableFields): boolean =>
   !sameAddresses(account.bounceSenders, updated.bounceSenders) ||
   !sameSpamFilter(savedSpamFilter(account), updated.spamFilter)
 
-// The impact check's dialog lists this many subjects per phrase; the count says how many in all.
-const SUBJECTS_SHOWN = 3
+// New block phrases waiting on the owner's answer, with the filter to save. 'failed' is a check
+// that errored or came back malformed; the owner may still save.
+interface ImpactCheck {
+  phrases: string[]
+  result: SpamImpactResponse | 'failed'
+  spamFilter: SpamFilter
+}
 
-const plural = (count: number, one: string, many: string): string => (count === 1 ? one : many)
+const hasMatch = (check: ImpactCheck, folder: 'inbox' | 'spam'): boolean =>
+  check.result !== 'failed' && check.result.phrases.some((impact) => impact[folder].count > 0)
 
-const ImpactCheck = ({ matches }: { matches: PhraseMatch[] }): React.ReactNode => (
-  <>
-    <p>
-      {matches.length === 1
-        ? 'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam.'
-        : 'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam.'}
-    </p>
-    <ul className="mt-3 flex flex-col gap-2.5" style={{ listStyle: 'none', padding: 0 }}>
-      {matches.map((match) => (
-        <li
-          key={match.phrase}
-          style={{
-            background: 'var(--paper-surface)',
-            border: '1px solid var(--paper-border)',
-            borderRadius: '10px',
-            padding: '10px 12px',
-          }}
-        >
-          <div className="flex items-start gap-1.5" style={{ color: 'var(--text-paper)' }}>
-            <TriangleAlert
-              aria-hidden="true"
-              size={14}
-              strokeWidth={2}
-              style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }}
-            />
-            <span style={{ overflowWrap: 'anywhere' }}>
-              {`“${match.phrase}” matches ${match.subjects.length} Inbox ${plural(match.subjects.length, 'subject', 'subjects')}`}
+// How many of the new phrases match at least one email in the folder.
+const countMatching = (check: ImpactCheck, folder: 'inbox' | 'spam'): number =>
+  check.result === 'failed' ? 0 : check.result.phrases.filter((impact) => impact[folder].count > 0).length
+
+// Whether the owner needs to see the result before the phrases save.
+const needsReview = (check: ImpactCheck): boolean =>
+  check.result === 'failed' || check.result.inboxIncomplete || hasMatch(check, 'inbox') || hasMatch(check, 'spam')
+
+// The dialog's description, so a screen reader reads the lead when focus lands on Go back.
+const IMPACT_LEAD_ID = 'settings-impact-lead'
+
+// Tried in order; the first row that applies sets the lead.
+const impactLead = (check: ImpactCheck): string => {
+  const several = check.phrases.length > 1
+  if (hasMatch(check, 'inbox')) {
+    // Plural only when more than one of the phrases is the one matching the Inbox.
+    return countMatching(check, 'inbox') > 1
+      ? 'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'
+      : 'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
+  }
+  if (check.result === 'failed') {
+    return several
+      ? "We couldn't check your new phrases against your mail. You can save them anyway."
+      : "We couldn't check your new phrase against your mail. You can save it anyway."
+  }
+  if (check.result.inboxIncomplete) {
+    return several
+      ? "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
+      : "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
+  }
+  // Plural only when more than one of the phrases is the one matching Spam.
+  return countMatching(check, 'spam') > 1
+    ? "Here's the mail in Spam that your new phrases match."
+    : "Here's the mail in Spam that your new phrase matches."
+}
+
+// Matches in Spam alone are information, not a warning, so the button does not say "anyway".
+const impactConfirmLabel = (check: ImpactCheck): string =>
+  check.result !== 'failed' && !check.result.inboxIncomplete && !hasMatch(check, 'inbox') ? 'Save' : 'Save anyway'
+
+const ImpactDialogBody = ({ check, leadId }: { check: ImpactCheck; leadId: string }): React.ReactNode => {
+  const { result } = check
+  return (
+    <>
+      <p id={leadId}>{impactLead(check)}</p>
+      <ul className="mt-3 flex flex-col gap-2.5" style={{ listStyle: 'none', padding: 0 }}>
+        {check.phrases.map((phrase, index) => (
+          <li
+            key={`${index}-${phrase}`}
+            style={{
+              background: 'var(--paper-surface)',
+              border: '1px solid var(--paper-border)',
+              borderRadius: '10px',
+              padding: '10px 12px',
+            }}
+          >
+            <span className="block" style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}>
+              {`“${phrase}”`}
             </span>
-          </div>
-          <ul className="mt-0.5" style={{ listStyle: 'disc', marginLeft: '20px', paddingLeft: '16px' }}>
-            {match.subjects.slice(0, SUBJECTS_SHOWN).map((subject, index) => (
-              <li key={index} style={{ overflowWrap: 'anywhere' }}>
-                {subject}
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ul>
-    <p className="mt-3 text-xs">
-      We checked your Inbox subjects only. New mail with these phrases in the body will go to Spam too.
-    </p>
-  </>
-)
+            {result === 'failed' ? (
+              <PhraseImpactFailed id={`settings-impact-${index}`} />
+            ) : (
+              <PhraseImpact
+                checked={result.checked}
+                id={`settings-impact-${index}`}
+                impact={result.phrases[index]}
+                inboxIncomplete={result.inboxIncomplete}
+              />
+            )}
+          </li>
+        ))}
+      </ul>
+      {result !== 'failed' && (
+        <div className="mt-3">
+          <ImpactFootnote checked={result.checked} mode="save" phraseCount={check.phrases.length} />
+        </div>
+      )}
+    </>
+  )
+}
 
 const AccountSettings = (): React.ReactNode => {
   const [account, setAccount] = useState<Account | undefined>()
   const [bounceSenders, setBounceSenders] = useState<string[]>([])
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
-  // New block phrases waiting on the owner's answer to the impact check, with the filter to save.
-  const [impactCheck, setImpactCheck] = useState<{ matches: PhraseMatch[]; spamFilter: SpamFilter } | undefined>()
-  // Checked against new block phrases on Save. Empty when it has not loaded or could not be: Save
-  // then goes ahead without the check rather than be held hostage to a list it only advises from.
-  const [inboxEmails, setInboxEmails] = useState<EmailBatch[]>([])
+  // The check's answer for new block phrases, held while the owner decides whether to save them.
+  const [impactCheck, setImpactCheck] = useState<ImpactCheck | undefined>()
+  // True while the new phrases are checked against mail on Save.
+  const [isChecking, setIsChecking] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   // Both saves send the whole item, and neither re-reads first. The preference save carries the
@@ -185,17 +224,35 @@ const AccountSettings = (): React.ReactNode => {
     setIsSaving(false)
   }
 
-  const handleSaveClick = (accountId: string, account: Account): void => {
+  const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
     // A phrase still sitting in its box is one the owner can see, so Save adds it first. One that
     // cannot be added stops the save, with its reason shown and its box focused.
     const nextSpamFilter = spamFilterRef.current ? spamFilterRef.current.commitDrafts() : spamFilter
     if (nextSpamFilter === undefined) {
       return
     }
-    // Warn, then allow: new phrases that would have caught Inbox mail are shown before they save.
-    const matches = newPhraseMatches(savedSpamFilter(account).blockPhrases, nextSpamFilter.blockPhrases, inboxEmails)
-    if (matches.length > 0) {
-      setImpactCheck({ matches, spamFilter: nextSpamFilter })
+    const saved = savedSpamFilter(account).blockPhrases
+    const newPhrases = nextSpamFilter.blockPhrases.filter((phrase) => !saved.includes(phrase))
+    if (newPhrases.length === 0) {
+      void saveSettings(accountId, account, nextSpamFilter)
+      return
+    }
+    // Warn, then allow: what the new phrases catch is shown before they save. A check that cannot
+    // be made is reported in the same dialog, because the owner may still save.
+    setIsChecking(true)
+    const check: ImpactCheck = await postSpamImpact(accountId, newPhrases)
+      .then((response: unknown) => ({
+        phrases: newPhrases,
+        result: isSpamImpactResponse(response, newPhrases.length) ? response : ('failed' as const),
+        spamFilter: nextSpamFilter,
+      }))
+      .catch((error: any) => {
+        console.error('postSpamImpact', { accountId, error })
+        return { phrases: newPhrases, result: 'failed' as const, spamFilter: nextSpamFilter }
+      })
+    setIsChecking(false)
+    if (needsReview(check)) {
+      setImpactCheck(check)
       return
     }
     void saveSettings(accountId, account, nextSpamFilter)
@@ -226,7 +283,7 @@ const AccountSettings = (): React.ReactNode => {
           <input
             aria-label="From name"
             className="w-full rounded-md px-3 py-2.5 outline-none"
-            disabled={account === undefined || isSaving}
+            disabled={account === undefined || isSaving || isChecking}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
             placeholder="Your display name"
             style={{
@@ -255,7 +312,12 @@ const AccountSettings = (): React.ReactNode => {
               We&apos;ll forward incoming emails to these addresses.
             </p>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
-              <AddressLine addresses={forwardAddresses} label="To:" setAddresses={setForwardAddresses} />
+              <AddressLine
+                addresses={forwardAddresses}
+                disabled={isSaving || isChecking}
+                label="To:"
+                setAddresses={setForwardAddresses}
+              />
             </div>
           </section>
         )}
@@ -272,7 +334,12 @@ const AccountSettings = (): React.ReactNode => {
               Bounce rules
             </div>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
-              <BounceSenderInput label="Reject emails from:" rules={bounceSenders} setRules={setBounceSenders} />
+              <BounceSenderInput
+                disabled={isSaving || isChecking}
+                label="Reject emails from:"
+                rules={bounceSenders}
+                setRules={setBounceSenders}
+              />
             </div>
             <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
               Block senders by address (user@domain.com), domain (@domain.com), or enter * to block everyone. Blocked
@@ -284,7 +351,12 @@ const AccountSettings = (): React.ReactNode => {
         {account !== undefined && <SettingsDivider />}
 
         {account !== undefined && (
-          <SpamFilterSettings disabled={isSaving} onChange={setSpamFilter} ref={spamFilterRef} value={spamFilter} />
+          <SpamFilterSettings
+            disabled={isSaving || isChecking}
+            onChange={setSpamFilter}
+            ref={spamFilterRef}
+            value={spamFilter}
+          />
         )}
 
         {account !== undefined && <SettingsDivider />}
@@ -292,7 +364,7 @@ const AccountSettings = (): React.ReactNode => {
         {account !== undefined && loggedInUser?.username && (
           <NotificationSettings
             accountId={loggedInUser.username}
-            disabled={isSaving}
+            disabled={isSaving || isChecking}
             onPreviewChange={(preview: NotificationPreview) =>
               handlePreviewChange(loggedInUser.username, account, preview)
             }
@@ -329,8 +401,11 @@ const AccountSettings = (): React.ReactNode => {
                 // The notification tier's save sends the whole item, carrying the account as this
                 // page loaded it, so a Save racing it can land first and be overwritten by the
                 // older name. Save waits for it, and says so.
+                isChecking={isChecking}
                 isSaving={isSaving || isSavingPreview}
-                onClick={() => loggedInUser?.username && account && handleSaveClick(loggedInUser.username, account)}
+                onClick={() =>
+                  loggedInUser?.username && account && void handleSaveClick(loggedInUser.username, account)
+                }
               />
             </div>
             {/* Mounted whether or not there is anything to say: a live region created in the same
@@ -346,19 +421,20 @@ const AccountSettings = (): React.ReactNode => {
                 minHeight: '1.25rem',
               }}
             >
-              {hasUnsavedChanges ? '' : saveStatus}
+              {isChecking ? 'Checking your mail…' : hasUnsavedChanges ? '' : saveStatus}
             </p>
             {/* Go back returns focus to Save (ConfirmDialog's trigger) and saves nothing. */}
             <ConfirmDialog
               cancelLabel="Go back"
-              confirmLabel="Save anyway"
+              confirmLabel={impactCheck ? impactConfirmLabel(impactCheck) : 'Save anyway'}
+              describedBy={IMPACT_LEAD_ID}
               onCancel={() => setImpactCheck(undefined)}
               onConfirm={() => handleSaveAnyway(loggedInUser.username, account)}
               open={impactCheck !== undefined}
               scrollable
               title="Check your new block phrases"
             >
-              {impactCheck && <ImpactCheck matches={impactCheck.matches} />}
+              {impactCheck && <ImpactDialogBody check={impactCheck} leadId={IMPACT_LEAD_ID} />}
             </ConfirmDialog>
           </div>
         )}
@@ -389,10 +465,6 @@ const AccountSettings = (): React.ReactNode => {
       getAccount(username)
         .then((loaded: Account) => {
           setAccount(loaded)
-          // Only the Save-time impact check needs it, so a failure here is logged and nothing more.
-          getAllReceivedEmails(username, 'inbox')
-            .then(setInboxEmails)
-            .catch((error: any) => console.error('getAllReceivedEmails', { error, username }))
         })
         .catch((error: any) => {
           console.error('getAccount', { error, username: loggedInUser?.username })

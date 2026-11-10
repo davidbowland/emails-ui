@@ -5,11 +5,11 @@ import AccountSettings from './index'
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
 import * as emails from '@services/emails'
-import { account, user } from '@test/__mocks__'
+import { account, spamImpactIncomplete, spamImpactResponse, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { DEFAULT_SPAM_FILTER, EmailBatch, SpamFilter } from '@types'
+import { DEFAULT_SPAM_FILTER, SpamFilter, SpamImpactResponse } from '@types'
 
 // Stands in for the section's draft commit, so each test can say what a typed-but-unentered
 // entry would add, or that one was refused.
@@ -80,42 +80,41 @@ describe('AccountSettings component', () => {
   const findSaveButton = async (): Promise<HTMLButtonElement> =>
     (await screen.findByRole('button', { name: /^Sav/ })) as HTMLButtonElement
 
-  const invoiceEmail = (id: string, subject: string): EmailBatch => ({
-    accountId: user.username,
-    data: {
-      from: 'billing@vendor.com',
-      subject,
-      timestamp: 1_760_000_000_000,
-      to: ['account@domain.com'],
-      viewed: true,
-    },
-    id,
-  })
-
-  const inbox: EmailBatch[] = [
-    invoiceEmail('1', 'Invoice #4471'),
-    invoiceEmail('2', 'Your invoice is ready'),
-    invoiceEmail('3', 'Lunch Thursday?'),
-    invoiceEmail('4', 'Invoice reminder'),
-    invoiceEmail('5', 'Overdue invoice'),
-  ]
-
   const withInvoice: SpamFilter = { ...DEFAULT_SPAM_FILTER, blockPhrases: ['invoice'] }
 
-  // Adds a phrase that matches four Inbox subjects and presses Save, which opens the impact check.
-  const openImpactCheck = async (): Promise<void> => {
+  // One new phrase, 'invoice', that matches nothing in either folder and was checked completely.
+  const noMatches: SpamImpactResponse = { ...spamImpactIncomplete, inboxIncomplete: false }
+  const inboxMatch: SpamImpactResponse = { ...spamImpactResponse, phrases: [spamImpactResponse.phrases[0]] }
+  const spamOnly: SpamImpactResponse = {
+    ...inboxMatch,
+    phrases: [{ ...inboxMatch.phrases[0], inbox: { count: 0, emails: [] } }],
+  }
+
+  // Adds the phrase 'invoice' and presses Save.
+  const saveNewPhrase = async (): Promise<void> => {
     render(<AccountSettings />)
     await userEvent.click(await screen.findByText('Add invoice phrase'))
     await userEvent.click(await findSaveButton())
-    await screen.findByRole('dialog', { name: 'Check your new block phrases' })
   }
+
+  // Adds two phrases at once and presses Save. The page's draft changes, and the mocked section
+  // commits the two phrases on Save.
+  const saveTwoNewPhrases = async (): Promise<void> => {
+    mockCommitDrafts.mockReturnValueOnce({ ...DEFAULT_SPAM_FILTER, blockPhrases: ['free lunch', 'lottery winner'] })
+    render(<AccountSettings />)
+    await userEvent.click(await screen.findByText('Choose high'))
+    await userEvent.click(await findSaveButton())
+  }
+
+  const findImpactDialog = (): Promise<HTMLElement> =>
+    screen.findByRole('dialog', { name: 'Check your new block phrases' })
 
   beforeAll(() => {
     jest.mocked(getCurrentUser).mockResolvedValue(user)
     jest.mocked(AddressLine).mockReturnValue(<>AddressLine</>)
     jest.mocked(BounceSenderInput).mockReturnValue(<>BounceSenderInput</>)
     jest.mocked(emails).getAccount.mockResolvedValue(account)
-    jest.mocked(emails).getAllReceivedEmails.mockResolvedValue(inbox)
+    jest.mocked(emails).postSpamImpact.mockResolvedValue(noMatches)
     mockCommitDrafts.mockImplementation((value: SpamFilter) => value)
     jest.mocked(emails).putAccount.mockResolvedValue(account)
 
@@ -413,12 +412,12 @@ describe('AccountSettings component', () => {
       expect(await screen.findByText('SpamFilterSettingsMounted:medium:')).toBeInTheDocument()
     })
 
-    it('expect the Inbox loaded for the impact check', async () => {
+    it('expect the Inbox never loaded, since the endpoint does the checking', async () => {
       render(<AccountSettings />)
 
       await screen.findByText('SpamFilterSettingsMounted:medium:')
 
-      expect(emails.getAllReceivedEmails).toHaveBeenCalledWith(user.username, 'inbox')
+      expect(emails.getAllReceivedEmails).not.toHaveBeenCalled()
     })
 
     it('expect Save to add an entry still in its box before saving', async () => {
@@ -446,87 +445,38 @@ describe('AccountSettings component', () => {
   })
 
   describe('impact check', () => {
-    it('expect each new phrase listed with its count and up to 3 Inbox subjects', async () => {
-      await openImpactCheck()
+    const inboxLead =
+      'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
+    const incompleteLead = "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
+    const failedLead = "We couldn't check your new phrase against your mail. You can save it anyway."
+    const spamLead = "Here's the mail in Spam that your new phrase matches."
+    const pluralIncompleteLead =
+      "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
+    const pluralFailedLead = "We couldn't check your new phrases against your mail. You can save them anyway."
+    const pluralSpamLead = "Here's the mail in Spam that your new phrases match."
 
-      expect(screen.getByText('“invoice” matches 4 Inbox subjects')).toBeVisible()
-      expect(screen.getByText('Invoice #4471')).toBeVisible()
-      expect(screen.getByText('Your invoice is ready')).toBeVisible()
-      expect(screen.getByText('Invoice reminder')).toBeVisible()
-      expect(screen.queryByText('Overdue invoice')).not.toBeInTheDocument()
-      expect(screen.queryByText('Lunch Thursday?')).not.toBeInTheDocument()
-    })
-
-    it('expect the dialog to say what happens and what was checked', async () => {
-      await openImpactCheck()
-
-      expect(
-        screen.getByText(
-          'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam.',
-        ),
-      ).toBeVisible()
-      expect(
-        screen.getByText(
-          'We checked your Inbox subjects only. New mail with these phrases in the body will go to Spam too.',
-        ),
-      ).toBeVisible()
-    })
-
-    it('expect nothing saved until the owner answers', async () => {
-      await openImpactCheck()
-
-      expect(emails.putAccount).not.toHaveBeenCalled()
-    })
-
-    it('expect Go back to save nothing and return focus to Save', async () => {
-      await openImpactCheck()
-
-      await userEvent.click(screen.getByRole('button', { name: 'Go back' }))
-
-      expect(emails.putAccount).not.toHaveBeenCalled()
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus()
-    })
-
-    it('expect Save anyway to save the new phrase', async () => {
-      await openImpactCheck()
-
-      await userEvent.click(screen.getByRole('button', { name: 'Save anyway' }))
-
-      expect(emails.putAccount).toHaveBeenCalledWith(
-        user.username,
-        expect.objectContaining({ spamFilter: withInvoice }),
-      )
-      expect(await screen.findByText('Settings saved.')).toBeVisible()
-    })
-
-    it('expect the plural wording when more than one new phrase matches', async () => {
-      mockCommitDrafts.mockReturnValueOnce({ ...DEFAULT_SPAM_FILTER, blockPhrases: ['invoice', 'lunch'] })
-      render(<AccountSettings />)
-
-      await userEvent.click(await screen.findByText('Choose high'))
-      await userEvent.click(await findSaveButton())
-
-      expect(
-        await screen.findByText(
-          'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam.',
-        ),
-      ).toBeVisible()
-      expect(screen.getByText('“lunch” matches 1 Inbox subject')).toBeVisible()
-    })
-
-    it('expect a save straight away when no new phrase matches the Inbox', async () => {
-      jest.mocked(emails).getAllReceivedEmails.mockResolvedValueOnce([invoiceEmail('3', 'Lunch Thursday?')])
+    it('expect only the new phrases checked, with no email excluded', async () => {
+      jest.mocked(emails).getAccount.mockResolvedValueOnce({
+        ...account,
+        spamFilter: { ...DEFAULT_SPAM_FILTER, blockPhrases: ['crypto'] },
+      })
       render(<AccountSettings />)
 
       await userEvent.click(await screen.findByText('Add invoice phrase'))
       await userEvent.click(await findSaveButton())
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      expect(emails.putAccount).toHaveBeenCalledWith(
-        user.username,
-        expect.objectContaining({ spamFilter: withInvoice }),
-      )
+      expect(emails.postSpamImpact).toHaveBeenCalledTimes(1)
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(user.username, ['invoice'])
+    })
+
+    it('expect no check when no phrase is new', async () => {
+      render(<AccountSettings />)
+
+      await userEvent.click(await screen.findByText('Choose high'))
+      await userEvent.click(await findSaveButton())
+
+      expect(emails.postSpamImpact).not.toHaveBeenCalled()
+      expect(emails.putAccount).toHaveBeenCalledTimes(1)
     })
 
     it('expect a phrase already saved not checked again', async () => {
@@ -536,22 +486,317 @@ describe('AccountSettings component', () => {
       await userEvent.click(await screen.findByText('Choose high'))
       await userEvent.click(await findSaveButton())
 
+      expect(emails.postSpamImpact).not.toHaveBeenCalled()
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-      expect(emails.putAccount).toHaveBeenCalledTimes(1)
     })
 
-    it('expect Save to work without the check, logging only, when the Inbox cannot be loaded', async () => {
-      jest.mocked(emails).getAllReceivedEmails.mockRejectedValueOnce(new Error('unavailable'))
-      render(<AccountSettings />)
+    it('expect the button to say the check is running while it runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
 
-      await userEvent.click(await screen.findByText('Add invoice phrase'))
-      await userEvent.click(await findSaveButton())
+      await saveNewPhrase()
 
-      await waitFor(() => expect(console.error).toHaveBeenCalledWith('getAllReceivedEmails', expect.anything()))
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Checking your mail…' })).toBeVisible()
+    })
+
+    it('expect nothing saved while the check runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+
+      await saveNewPhrase()
+      await userEvent.click(await screen.findByRole('button', { name: 'Checking your mail…' }))
+
+      expect(emails.postSpamImpact).toHaveBeenCalledTimes(1)
+      expect(emails.putAccount).not.toHaveBeenCalled()
+    })
+
+    it('expect a save with no dialog when nothing matches and the check was complete', async () => {
+      await saveNewPhrase()
+
+      expect(await screen.findByText('Settings saved.')).toBeVisible()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(emails.putAccount).toHaveBeenCalledWith(
         user.username,
         expect.objectContaining({ spamFilter: withInvoice }),
+      )
+    })
+
+    it('expect Inbox matches to give the Inbox lead and Save anyway', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(inboxLead)).toBeVisible()
+      expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
+    })
+
+    it('expect the plural Inbox lead when more than one new phrase matches the Inbox', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        phrases: [spamImpactResponse.phrases[0], spamImpactResponse.phrases[0]],
+      })
+
+      await saveTwoNewPhrases()
+
+      expect(
+        await screen.findByText(
+          'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.',
+        ),
+      ).toBeVisible()
+    })
+
+    it('expect an incomplete check to give its lead and Save anyway', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactIncomplete)
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(incompleteLead)).toBeVisible()
+      expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
+    })
+
+    it('expect a failed check to give its lead, the failure line and Save anyway', async () => {
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(new Error('throttled'))
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(failedLead)).toBeVisible()
+      expect(within(dialog).getByText("We couldn't check this phrase against your mail.")).toBeVisible()
+      expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
+      expect(within(dialog).queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
+    })
+
+    it('expect a failed check logged without the phrases', async () => {
+      const error = new Error('throttled')
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(error)
+
+      await saveNewPhrase()
+      await findImpactDialog()
+
+      expect(console.error).toHaveBeenCalledWith('postSpamImpact', { accountId: user.username, error })
+    })
+
+    it('expect a malformed response to count as a failed check', async () => {
+      // Two phrase entries for one phrase sent.
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveNewPhrase()
+
+      expect(within(await findImpactDialog()).getByText(failedLead)).toBeVisible()
+    })
+
+    it('expect a response that is not an object to count as a failed check', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(undefined as unknown as SpamImpactResponse)
+
+      await saveNewPhrase()
+
+      expect(within(await findImpactDialog()).getByText(failedLead)).toBeVisible()
+    })
+
+    it('expect Spam-only matches to give the Spam lead and Save', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamOnly)
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(spamLead)).toBeVisible()
+      expect(within(dialog).getByRole('button', { name: 'Save' })).toBeVisible()
+      expect(within(dialog).queryByRole('button', { name: 'Save anyway' })).not.toBeInTheDocument()
+    })
+
+    it('expect the Inbox lead before the incomplete lead', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({ ...inboxMatch, inboxIncomplete: true })
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(inboxLead)).toBeVisible()
+      expect(within(dialog).queryByText(incompleteLead)).not.toBeInTheDocument()
+    })
+
+    it('expect the incomplete lead before the Spam lead', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({ ...spamOnly, inboxIncomplete: true })
+
+      await saveNewPhrase()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText(incompleteLead)).toBeVisible()
+      expect(within(dialog).getByRole('button', { name: 'Save anyway' })).toBeVisible()
+    })
+
+    it('expect the dialog to open for a Spam match in only one of two phrases, list both, and use the singular lead', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        phrases: [spamImpactResponse.phrases[1], { ...spamImpactResponse.phrases[0], inbox: { count: 0, emails: [] } }],
+      })
+
+      await saveTwoNewPhrases()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText('“free lunch”')).toBeVisible()
+      expect(within(dialog).getByText('“lottery winner”')).toBeVisible()
+      expect(within(dialog).getByText(spamLead)).toBeVisible()
+      expect(within(dialog).queryByText(pluralSpamLead)).not.toBeInTheDocument()
+    })
+
+    it('expect the plural Spam lead when more than one new phrase matches Spam', async () => {
+      const spamOnlyImpact = { ...spamImpactResponse.phrases[0], inbox: { count: 0, emails: [] } }
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        phrases: [spamOnlyImpact, spamOnlyImpact],
+      })
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralSpamLead)).toBeVisible()
+    })
+
+    it('expect the dialog described by its lead, so a screen reader reads it with the title', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamOnly)
+
+      await saveNewPhrase()
+
+      expect(await findImpactDialog()).toHaveAccessibleDescription(spamLead)
+    })
+
+    it('expect each new phrase listed with its lines and the footnote', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveTwoNewPhrases()
+
+      const dialog = await findImpactDialog()
+      expect(within(dialog).getByText('“free lunch”')).toBeVisible()
+      expect(within(dialog).getByText('“lottery winner”')).toBeVisible()
+      expect(within(dialog).getByText(/Matches 2 of 100 Inbox emails:/)).toBeVisible()
+      expect(within(dialog).getByText('Lunch on Friday')).toBeVisible()
+      expect(within(dialog).getByText(/Also matches 3 of 25 Spam emails:/)).toBeVisible()
+      expect(
+        within(dialog).getByText(
+          /We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first\./,
+        ),
+      ).toBeVisible()
+    })
+
+    it('expect the footnote to say "this phrase" for one new phrase', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+
+      expect(within(await findImpactDialog()).getByText(/Future mail with this phrase will go to Spam/)).toBeVisible()
+    })
+
+    it('expect the footnote to say "these phrases" for two new phrases', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(/Future mail with these phrases will go to Spam/)).toBeVisible()
+    })
+
+    it('expect nothing saved until the owner answers', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+      await findImpactDialog()
+
+      expect(emails.putAccount).not.toHaveBeenCalled()
+    })
+
+    it('expect Go back to save nothing and return focus to Save', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+      await userEvent.click(within(await findImpactDialog()).getByRole('button', { name: 'Go back' }))
+
+      expect(emails.putAccount).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus()
+    })
+
+    it('expect Save anyway to save the new phrase', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(inboxMatch)
+
+      await saveNewPhrase()
+      await userEvent.click(within(await findImpactDialog()).getByRole('button', { name: 'Save anyway' }))
+
+      expect(emails.putAccount).toHaveBeenCalledWith(
+        user.username,
+        expect.objectContaining({ spamFilter: withInvoice }),
+      )
+      expect(await screen.findByText('Settings saved.')).toBeVisible()
+    })
+
+    it('expect Save to save the phrase when only Spam matched', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamOnly)
+
+      await saveNewPhrase()
+      await userEvent.click(within(await findImpactDialog()).getByRole('button', { name: 'Save' }))
+
+      expect(emails.putAccount).toHaveBeenCalledWith(
+        user.username,
+        expect.objectContaining({ spamFilter: withInvoice }),
+      )
+    })
+
+    it('expect the plural failed lead when more than one new phrase is checked', async () => {
+      jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(new Error('throttled'))
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralFailedLead)).toBeVisible()
+    })
+
+    it('expect the plural incomplete lead when more than one new phrase is checked', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({
+        ...spamImpactResponse,
+        inboxIncomplete: true,
+        phrases: [spamImpactResponse.phrases[1], spamImpactResponse.phrases[1]],
+      })
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(pluralIncompleteLead)).toBeVisible()
+    })
+
+    it('expect the singular Inbox lead when two phrases are checked and only one matches the Inbox', async () => {
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(spamImpactResponse)
+
+      await saveTwoNewPhrases()
+
+      expect(within(await findImpactDialog()).getByText(inboxLead)).toBeVisible()
+    })
+
+    it('expect the check announced in the status region', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+
+      await saveNewPhrase()
+
+      expect(await within(screen.getByRole('status')).findByText('Checking your mail…')).toBeVisible()
+    })
+
+    it('expect the forward and bounce lists locked while the check runs', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+
+      await saveNewPhrase()
+      await screen.findByRole('button', { name: 'Checking your mail…' })
+
+      expect(AddressLine).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
+      expect(BounceSenderInput).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
+    })
+
+    it('expect an edit attempted during the check not to change what is saved', async () => {
+      let finishCheck: (response: SpamImpactResponse) => void = () => undefined
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise((resolve) => (finishCheck = resolve)))
+
+      await saveNewPhrase()
+      await screen.findByRole('button', { name: 'Checking your mail…' })
+      await userEvent.type(screen.getByLabelText(/From name/i), ' Jr')
+      finishCheck(noMatches)
+
+      expect(await screen.findByText('Settings saved.')).toBeVisible()
+      expect(emails.putAccount).toHaveBeenCalledWith(
+        user.username,
+        expect.objectContaining({ name: account.name, spamFilter: withInvoice }),
       )
     })
   })

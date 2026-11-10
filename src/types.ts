@@ -153,12 +153,6 @@ export type InstallState = 'chromium' | 'hidden' | 'ios' | 'menu' | 'promptable'
 // warm-linen paper (Settings). Drives which token set the component reaches for.
 export type InstallSurface = 'paper' | 'shell'
 
-// A new block phrase and the Inbox subjects it would match.
-export interface PhraseMatch {
-  phrase: string
-  subjects: string[]
-}
-
 // What a failed API call throws: the status lets callers tell 403, 429 and 503 apart, and the
 // code (when the body names one) tells two errors with the same status apart.
 export interface HttpError extends Error {
@@ -188,4 +182,34 @@ export interface SpamSuggestion {
 
 export interface SpamSuggestionsResponse {
   suggestions: SpamSuggestion[]
+}
+
+// Response of POST /accounts/{accountId}/spam-impact. The API does all matching and selection;
+// the UI only displays it.
+export interface SpamImpactEmail {
+  from: string
+  id: string
+  subject: string
+}
+
+export interface SpamFolderImpact {
+  count: number
+  emails: SpamImpactEmail[]
+}
+
+export interface SpamPhraseImpact {
+  inbox: SpamFolderImpact
+  phrase: string
+  spam: SpamFolderImpact
+}
+
+export interface SpamCheckedCount {
+  checked: number
+  total: number
+}
+
+export interface SpamImpactResponse {
+  checked: { inbox: SpamCheckedCount; spam: SpamCheckedCount }
+  inboxIncomplete: boolean
+  phrases: SpamPhraseImpact[]
 }

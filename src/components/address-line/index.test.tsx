@@ -86,8 +86,8 @@ describe('Address line component', () => {
     expect(setAddresses).not.toHaveBeenCalled()
   })
 
-  it('should add nothing while disabled', async () => {
-    render(<AddressLine addresses={addresses} disabled label="To:" setAddresses={setAddresses} />)
+  it('should add nothing while read-only', async () => {
+    render(<AddressLine addresses={addresses} label="To:" readOnly setAddresses={setAddresses} />)
 
     await userEvent.type(await screen.findByRole('textbox'), 'late@domain.com{Enter}')
 
@@ -110,11 +110,42 @@ describe('Address line component', () => {
     expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@domain.com', name: '' }])
   })
 
-  it('should remove nothing while disabled', async () => {
-    render(<AddressLine addresses={addresses} disabled label="To:" setAddresses={setAddresses} />)
+  it('should remove nothing while read-only, and say why', async () => {
+    render(
+      <AddressLine
+        addresses={addresses}
+        label="To:"
+        readOnly
+        readOnlyReason="Wait until Save finishes."
+        setAddresses={setAddresses}
+      />,
+    )
 
     await userEvent.click((await screen.findAllByTestId('CancelIcon'))[0])
 
     expect(setAddresses).not.toHaveBeenCalled()
+    expect(screen.getAllByRole('status').map((region) => region.textContent)).toContain('Wait until Save finishes.')
+  })
+
+  it('should commit nothing when it turns writable again', async () => {
+    const { rerender } = render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Email address' }), 'late@domain.com')
+    rerender(<AddressLine addresses={addresses} label="To:" readOnly setAddresses={setAddresses} />)
+    rerender(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    expect(setAddresses).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('late@domain.com')
+  })
+
+  it('should keep typed text in the box, uncommitted, while read-only', async () => {
+    const { rerender } = render(<AddressLine addresses={addresses} label="To:" setAddresses={setAddresses} />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Email address' }), 'late@domain.com')
+    rerender(<AddressLine addresses={addresses} label="To:" readOnly setAddresses={setAddresses} />)
+    await userEvent.tab()
+
+    expect(setAddresses).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('late@domain.com')
   })
 })

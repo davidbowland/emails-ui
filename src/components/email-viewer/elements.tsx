@@ -1,6 +1,22 @@
-import { Spinner } from '@heroui/react'
-import { AlertCircle, Ban, Eye, EyeOff, Forward, Inbox, Reply, ReplyAll, ShieldAlert, Trash2 } from 'lucide-react'
 import React from 'react'
+
+import Badge from '@components/ui/badge'
+import Button from '@components/ui/button'
+import Divider from '@components/ui/divider'
+import {
+  AlertCircleIcon,
+  BanIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ForwardIcon,
+  IconProps,
+  InboxIcon,
+  ReplyAllIcon,
+  ReplyIcon,
+  ShieldAlertIcon,
+  TrashIcon,
+} from '@components/ui/icons'
+import Spinner from '@components/ui/spinner'
 
 export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: string }): React.ReactNode => (
   <div
@@ -28,39 +44,24 @@ export const SubjectLine = ({ bounced, subject }: { bounced?: boolean; subject: 
       {subject}
     </h1>
     {bounced && (
-      <span
-        style={{
-          marginTop: '4px',
-          display: 'inline-flex',
-          flexShrink: 0,
-          alignItems: 'center',
-          gap: '4px',
-          borderRadius: '8px',
-          padding: '3px 8px',
-          background: 'var(--accent-subtle)',
-          border: '1px solid var(--accent-border)',
-          color: 'var(--accent)',
-          fontFamily: 'IBM Plex Mono, monospace',
-          fontSize: '10px',
-          fontWeight: 500,
-        }}
-      >
-        <AlertCircle size={10} strokeWidth={1.5} />
-        Bounced
+      // The top margin lines the badge up with the heading's first line.
+      <span style={{ display: 'inline-flex', flexShrink: 0, marginTop: '4px' }}>
+        <Badge icon={AlertCircleIcon} size="md" surface="paper" tone="accent">
+          Bounced
+        </Badge>
       </span>
     )}
   </div>
 )
 
 export const EmailDivider = (): React.ReactNode => (
-  <div
-    style={{
-      margin: '8px 32px',
-      height: '1px',
-      background: 'var(--paper-border)',
-    }}
-  />
+  <div style={{ margin: '8px 32px' }}>
+    <Divider />
+  </div>
 )
+
+const ACTION_CLASSES = 'h-8 px-2 text-xs font-medium transition-all sm:px-3'
+const ACTION_STYLE: React.CSSProperties = { borderRadius: '8px', fontFamily: 'Outfit, sans-serif', gap: '6px' }
 
 export const ActionButton = ({
   icon,
@@ -68,21 +69,23 @@ export const ActionButton = ({
   onClick,
   variant = 'default',
 }: {
-  icon: React.ReactNode
+  icon: React.ComponentType<IconProps>
   label: string
   onClick: () => void
   variant?: 'default' | 'danger'
 }): React.ReactNode => (
-  <button
+  <Button
     aria-label={label}
-    className={`group flex h-8 items-center gap-1.5 px-2 text-xs font-medium transition-all sm:px-3 ${variant === 'danger' ? 'btn-ghost-danger' : 'btn-ghost-paper'}`}
+    className={`group ${ACTION_CLASSES}`}
+    icon={icon}
+    iconSize={12}
     onClick={onClick}
-    style={{ fontFamily: 'Outfit, sans-serif', borderRadius: '8px' }}
+    style={ACTION_STYLE}
     title={label}
+    variant={variant === 'danger' ? 'danger' : 'secondary'}
   >
-    {icon}
     <span className="hidden sm:inline">{label}</span>
-  </button>
+  </Button>
 )
 
 export const ShowImagesButton = ({
@@ -92,50 +95,46 @@ export const ShowImagesButton = ({
   onClick: () => void
   showImages: boolean
 }): React.ReactNode => (
-  <button
+  <Button
     aria-label={showImages ? 'Hide images' : 'Show images'}
-    className="btn-ghost-paper flex h-8 items-center gap-1.5 px-2 text-xs font-medium transition-all sm:px-3"
+    className={ACTION_CLASSES}
+    icon={showImages ? EyeOffIcon : EyeIcon}
+    iconSize={12}
     onClick={onClick}
-    style={{ fontFamily: 'Outfit, sans-serif', borderRadius: '8px' }}
+    style={ACTION_STYLE}
   >
-    {showImages ? <EyeOff size={12} strokeWidth={1.5} /> : <Eye size={12} strokeWidth={1.5} />}
     <span aria-hidden="true" className="hidden sm:inline">
       {showImages ? 'Hide images' : 'Show images'}
     </span>
-  </button>
+  </Button>
 )
 
 export const ReplyButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Reply size={12} strokeWidth={1.5} />} label="Reply" onClick={onClick} />
+  <ActionButton icon={ReplyIcon} label="Reply" onClick={onClick} />
 )
 
 export const ReplyAllButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<ReplyAll size={12} strokeWidth={1.5} />} label="Reply all" onClick={onClick} />
+  <ActionButton icon={ReplyAllIcon} label="Reply all" onClick={onClick} />
 )
 
 export const ForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Forward size={12} strokeWidth={1.5} />} label="Forward" onClick={onClick} />
+  <ActionButton icon={ForwardIcon} label="Forward" onClick={onClick} />
 )
 
 export const NotSpamButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Inbox size={12} strokeWidth={1.5} />} label="Not spam" onClick={onClick} />
+  <ActionButton icon={InboxIcon} label="Not spam" onClick={onClick} />
 )
 
 export const MoveToSpamButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton
-    icon={<ShieldAlert size={12} strokeWidth={1.5} />}
-    label="Move to spam"
-    onClick={onClick}
-    variant="danger"
-  />
+  <ActionButton icon={ShieldAlertIcon} label="Move to spam" onClick={onClick} variant="danger" />
 )
 
 export const BounceButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Ban size={12} strokeWidth={1.5} />} label="Bounce email" onClick={onClick} variant="danger" />
+  <ActionButton icon={BanIcon} label="Bounce email" onClick={onClick} variant="danger" />
 )
 
 export const DeleteButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <ActionButton icon={<Trash2 size={12} strokeWidth={1.5} />} label="Delete email" onClick={onClick} variant="danger" />
+  <ActionButton icon={TrashIcon} label="Delete email" onClick={onClick} variant="danger" />
 )
 
 export const LoadingOverlay = ({ open }: { open: boolean }): React.ReactNode => {
@@ -157,7 +156,7 @@ export const LoadingOverlay = ({ open }: { open: boolean }): React.ReactNode => 
         animation: 'fadeIn 0.15s ease forwards',
       }}
     >
-      <Spinner />
+      <Spinner size={40} />
     </div>
   )
 }

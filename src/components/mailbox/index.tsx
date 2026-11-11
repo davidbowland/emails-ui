@@ -1,9 +1,7 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import { Mail } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 
 import {
-  BouncedChip,
   EmailListDivider,
   listSenderStyle,
   listSubjectStyle,
@@ -12,10 +10,14 @@ import {
   NavForwardButton,
 } from './elements'
 import EmailViewer from '@components/email-viewer'
-import ErrorSnackbar from '@components/error-snackbar'
-import LoadingSpinner from '@components/loading-spinner'
 import SpamNotice, { SpamNoticeKind, SpamNoticeTrustState } from '@components/spam-notice'
 import SpamSuggestions from '@components/spam-suggestions'
+import Badge from '@components/ui/badge'
+import Button from '@components/ui/button'
+import { AlertCircleIcon, MailIcon } from '@components/ui/icons'
+import SectionHeading from '@components/ui/section-heading'
+import Snackbar from '@components/ui/snackbar'
+import Spinner from '@components/ui/spinner'
 import { getAccount, putAccount } from '@services/emails'
 import { SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
 import {
@@ -71,6 +73,13 @@ const addressOf = (from: string): string | undefined => {
   const at = address.lastIndexOf('@')
   return at > 0 && at < address.length - 1 && !/\s/.test(address) ? address : undefined
 }
+
+// Only one mounted indicator carries a label, so a screen reader hears "Loading…" once.
+const LoadingIndicator = ({ label, surface }: { label?: string; surface?: 'paper' | 'shell' }): React.ReactNode => (
+  <div className="flex h-full min-h-[120px] items-center justify-center">
+    <Spinner label={label} size={40} surface={surface} />
+  </div>
+)
 
 const sortByNewest = (emails: EmailBatch[]): EmailBatch[] =>
   [...emails].sort((a, b) => Math.sign(b.data.timestamp - a.data.timestamp))
@@ -297,7 +306,7 @@ const Mailbox = ({
               color: 'var(--text-muted)',
             }}
           >
-            <Mail aria-hidden="true" size={20} strokeWidth={1.5} />
+            <MailIcon size={20} />
           </div>
           <p
             style={{
@@ -326,8 +335,9 @@ const Mailbox = ({
           const rowState = { isSelected, isUnread }
           return (
             <React.Fragment key={email.id}>
-              <button
-                aria-label={`${isUnread ? 'Unread: ' : ''}${email.data.subject || '(No subject)'}`}
+              {/* The shell variant's colors are all overridden inline: a row paints its own state. */}
+              <Button
+                aria-label={`${isUnread ? 'Unread: ' : ''}${email.data.bounced ? 'Bounced: ' : ''}${email.data.subject || '(No subject)'}`}
                 className="email-row"
                 onClick={() => loggedInUser?.username && emailSelectClick(loggedInUser.username, email.id)}
                 onMouseEnter={(e) => {
@@ -356,6 +366,7 @@ const Mailbox = ({
                   transition: 'all 0.2s cubic-bezier(0.32,0.72,0,1)',
                   display: 'block',
                 }}
+                variant="shell"
               >
                 {/* Top row: subject + time */}
                 <div
@@ -397,9 +408,13 @@ const Mailbox = ({
                   }}
                 >
                   <span style={listSenderStyle(rowState)}>{email.data.from}</span>
-                  {email.data.bounced && <BouncedChip />}
+                  {email.data.bounced && (
+                    <Badge icon={AlertCircleIcon} tone="accent">
+                      Bounced
+                    </Badge>
+                  )}
                 </div>
-              </button>
+              </Button>
 
               {index < receivedEmails.length - 1 && <EmailListDivider />}
             </React.Fragment>
@@ -442,7 +457,7 @@ const Mailbox = ({
               color: 'var(--paper-border)',
             }}
           >
-            <Mail aria-hidden="true" size={28} strokeWidth={1.5} />
+            <MailIcon size={28} />
           </div>
           <p
             style={{
@@ -597,18 +612,9 @@ const Mailbox = ({
               >
                 {receivedEmails === undefined ? '…' : `${receivedEmails.length}`}
               </span>
-              <span
-                style={{
-                  fontFamily: 'Outfit, sans-serif',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.1em',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <SectionHeading as="div" size={11} surface="shell">
                 {receivedEmails === undefined ? 'Loading' : 'messages'}
-              </span>
+              </SectionHeading>
             </div>
             <NavForwardButton onClick={() => setIsViewingEmail(true)} />
           </div>
@@ -622,7 +628,11 @@ const Mailbox = ({
             style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' as const, outline: 'none' }}
             tabIndex={-1}
           >
-            {receivedEmails === undefined ? <LoadingSpinner /> : renderReceivedEmails(receivedEmails)}
+            {receivedEmails === undefined ? (
+              <LoadingIndicator label="Loading…" surface="shell" />
+            ) : (
+              renderReceivedEmails(receivedEmails)
+            )}
           </div>
         </div>
 
@@ -651,7 +661,8 @@ const Mailbox = ({
           {/* Viewer content */}
           <div ref={viewerRef} style={{ flex: 1, overflowY: 'auto' }}>
             {isEmailLoading || loggedInUser?.username === undefined ? (
-              <LoadingSpinner />
+              // The list's indicator speaks for both while the list is still loading.
+              <LoadingIndicator label={receivedEmails === undefined ? undefined : 'Loading…'} />
             ) : (
               renderViewer(
                 loggedInUser?.username,
@@ -673,7 +684,7 @@ const Mailbox = ({
           open={suggestionsOpen}
         />
       )}
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

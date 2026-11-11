@@ -90,4 +90,61 @@ describe('Attachment viewer component', () => {
 
     expect(screen.queryByText(/Error downloading the attachment. Please try again./i)).not.toBeInTheDocument()
   })
+
+  it('should explain, and download nothing more, when another attachment is pressed mid-download', async () => {
+    const download: { resolve: (value: typeof attachmentUrl) => void } = { resolve: () => undefined }
+    getAttachment.mockReturnValueOnce(
+      new Promise((resolve) => {
+        download.resolve = resolve
+      }),
+    )
+    render(
+      <AttachmentViewer
+        accountId={accountId}
+        attachments={attachments}
+        emailId={emailId}
+        getAttachment={getAttachment}
+      />,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /20221018_135343.jpg/i }))
+    await userEvent.click(screen.getByRole('button', { name: /20221101_212453.jpg/i }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Wait until the other attachment finishes downloading.')
+    expect(getAttachment).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      download.resolve(attachmentUrl)
+    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('should ignore a second press on the attachment that is downloading', async () => {
+    const download: { resolve: (value: typeof attachmentUrl) => void } = { resolve: () => undefined }
+    getAttachment.mockReturnValueOnce(
+      new Promise((resolve) => {
+        download.resolve = resolve
+      }),
+    )
+    render(
+      <AttachmentViewer
+        accountId={accountId}
+        attachments={attachments}
+        emailId={emailId}
+        getAttachment={getAttachment}
+      />,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: '20221018_135343.jpg' }))
+    // The busy button keeps its filename, so it stays the same width.
+    expect(screen.getByRole('button', { name: '20221018_135343.jpg' })).toHaveAttribute('aria-busy', 'true')
+    await userEvent.click(screen.getByRole('button', { name: '20221018_135343.jpg' }))
+
+    expect(getAttachment).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      download.resolve(attachmentUrl)
+    })
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '20221018_135343.jpg' })).not.toHaveAttribute('aria-busy'),
+    )
+  })
 })

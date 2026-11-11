@@ -1,5 +1,8 @@
-import { X } from 'lucide-react'
 import React from 'react'
+
+import Button from '@components/ui/button'
+import IconButton from '@components/ui/icon-button'
+import { CloseIcon } from '@components/ui/icons'
 
 export interface NoticeCardProps {
   actions?: React.ReactNode
@@ -42,45 +45,51 @@ export const NoticeCard = ({
         {children}
         {actions && <div className="mt-2.5 flex flex-wrap gap-2">{actions}</div>}
       </div>
-      <button
-        aria-label="Dismiss"
-        className="btn-close -mr-1 -mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md"
+      <IconButton
+        className="-mr-1 -mt-0.5 h-6 w-6 flex-shrink-0 rounded-md"
+        icon={CloseIcon}
+        label="Dismiss"
         onClick={onDismiss}
-        type="button"
-      >
-        <X aria-hidden="true" size={14} strokeWidth={1.5} />
-      </button>
+        size={14}
+        variant="close"
+      />
     </div>
   </section>
 )
 
 export interface NoticeButtonProps {
+  // Spinner in place, presses ignored, and kept in the Tab order so focus is not dropped.
+  busy?: boolean
   children: string
   describedBy?: string
-  // Kept in the Tab order while busy (aria-disabled, not disabled) so focus is not dropped.
-  disabled?: boolean
   onClick: () => void
+  // A press shows this instead of calling onClick.
+  unavailableReason?: string
   variant: 'accent' | 'ghost'
 }
 
 // 32px tall. Long labels (a long domain) truncate, with the full text in the title.
 export const NoticeButton = ({
+  busy = false,
   children,
   describedBy,
-  disabled = false,
   onClick,
+  unavailableReason,
   variant,
 }: NoticeButtonProps): React.ReactNode => (
-  <button
+  <Button
     aria-describedby={describedBy}
-    aria-disabled={disabled || undefined}
-    className={`${variant === 'accent' ? 'btn-accent' : 'btn-ghost-paper'} inline-flex h-8 max-w-full items-center px-3 text-xs font-medium`}
-    onClick={disabled ? undefined : onClick}
+    busy={busy}
+    // The ready label stays laid out under "Saving…", so a busy button keeps its width.
+    busyLabel="Saving…"
+    className="h-8 max-w-full px-3 text-xs font-medium"
+    onClick={onClick}
     title={children}
-    type="button"
+    unavailableReason={unavailableReason}
+    variant={variant === 'accent' ? 'primary' : 'secondary'}
   >
     <span className="overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
-  </button>
+  </Button>
 )
 
 export const Lead = ({ children }: { children: React.ReactNode }): React.ReactNode => (

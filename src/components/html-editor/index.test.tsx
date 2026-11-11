@@ -3,8 +3,9 @@ import React from 'react'
 import HtmlEditor from './index'
 import '@testing-library/jest-dom'
 import { createEvent, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
-jest.mock('@components/confirm-dialog', () => {
+jest.mock('@components/ui/dialog', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
@@ -39,8 +40,7 @@ describe('HtmlEditor component', () => {
     ])('expect format text button %s invokes command %s', async (label, command) => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(formatButton)
+      await userEvent.click(await screen.findByRole('button', { name: label }))
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -58,8 +58,7 @@ describe('HtmlEditor component', () => {
     ])('expect format paragraph button %s invokes command %s', async (label, command) => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(formatButton)
+      await userEvent.click(await screen.findByRole('button', { name: label }))
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -72,8 +71,8 @@ describe('HtmlEditor component', () => {
     ])('expect format %s invokes command %s', async (label, command, testId) => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(formatButton)
+      await userEvent.click(await screen.findByRole('button', { name: label }))
+      // userEvent can't drive a native color picker, so the change is fired directly.
       const colorInput = (await screen.findByTestId(testId)) as HTMLInputElement
       fireEvent.change(colorInput, { target: { value: '#123456' } })
 
@@ -93,13 +92,18 @@ describe('HtmlEditor component', () => {
     ])('expect font size %s invokes command with value %s', async (label, value) => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const formatButton = (await screen.findByLabelText(/Font size/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(formatButton)
-      const sizeItem = (await screen.findByText(label)) as HTMLButtonElement
-      fireEvent.click(sizeItem)
+      await userEvent.click(await screen.findByRole('button', { name: /Font size/i }))
+      await userEvent.click(await screen.findByRole('option', { name: label }))
 
       expect(execCommand).toHaveBeenCalledWith('fontSize', false, value)
     })
+  })
+
+  it('should keep the tooltip on each toolbar button', async () => {
+    render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
+
+    expect(await screen.findByRole('button', { name: 'Bold' })).toHaveAttribute('title', 'Bold')
+    expect(screen.getByRole('button', { name: 'Font size' })).toHaveAttribute('title', 'Font size')
   })
 
   describe('format other', () => {
@@ -109,8 +113,7 @@ describe('HtmlEditor component', () => {
     ])('expect format other button %s invokes command %s', async (label, command) => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const formatButton = (await screen.findByLabelText(label, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(formatButton)
+      await userEvent.click(await screen.findByRole('button', { name: label }))
 
       expect(execCommand).toHaveBeenCalledWith(command)
     })
@@ -141,10 +144,7 @@ describe('HtmlEditor component', () => {
     it('expect link dialog opened when create link clicked', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const createLinkButton = (await screen.findByLabelText(/Create link/i, {
-        selector: 'button',
-      })) as HTMLButtonElement
-      fireEvent.click(createLinkButton)
+      await userEvent.click(await screen.findByRole('button', { name: /Create link/i }))
 
       expect(await screen.findByText(/Add link to email/i)).toBeVisible()
     })
@@ -152,13 +152,9 @@ describe('HtmlEditor component', () => {
     it('expect link dialog closed when cancel clicked', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const createLinkButton = (await screen.findByLabelText(/Create link/i, {
-        selector: 'button',
-      })) as HTMLButtonElement
-      fireEvent.click(createLinkButton)
+      await userEvent.click(await screen.findByRole('button', { name: /Create link/i }))
       await screen.findByText(/Add link to email/i)
-      const cancelButton = (await screen.findByText(/Cancel/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(cancelButton)
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
     })
@@ -166,16 +162,12 @@ describe('HtmlEditor component', () => {
     it('expect link added when link clicked, with range', async () => {
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const createLinkButton = (await screen.findByLabelText(/Create link/i, {
-        selector: 'button',
-      })) as HTMLButtonElement
-      fireEvent.click(createLinkButton)
-      const linkTextInput = (await screen.findByLabelText(/Link text/i)) as HTMLInputElement
-      fireEvent.change(linkTextInput, { target: { value: 'Google' } })
-      const linkValueInput = (await screen.findByLabelText(/Link to add/i)) as HTMLInputElement
-      fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
-      const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(linkButton)
+      await userEvent.click(await screen.findByRole('button', { name: /Create link/i }))
+      const linkTextInput = await screen.findByRole('textbox', { name: 'Link text' })
+      await userEvent.clear(linkTextInput)
+      await userEvent.type(linkTextInput, 'Google')
+      await userEvent.type(screen.getByRole('textbox', { name: 'Link to add' }), 'https://google.com')
+      await userEvent.click(screen.getByRole('button', { name: 'Add link' }))
 
       expect(range.insertNode).toHaveBeenCalledTimes(1)
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()
@@ -185,16 +177,12 @@ describe('HtmlEditor component', () => {
       getSelection.mockReturnValueOnce(undefined)
       render(<HtmlEditor inputRef={React.createRef<HTMLDivElement>()} />)
 
-      const createLinkButton = (await screen.findByLabelText(/Create link/i, {
-        selector: 'button',
-      })) as HTMLButtonElement
-      fireEvent.click(createLinkButton)
-      const linkTextInput = (await screen.findByLabelText(/Link text/i)) as HTMLInputElement
-      fireEvent.change(linkTextInput, { target: { value: 'Google' } })
-      const linkValueInput = (await screen.findByLabelText(/Link to add/i)) as HTMLInputElement
-      fireEvent.change(linkValueInput, { target: { value: 'https://google.com' } })
-      const linkButton = (await screen.findByText(/Link/i, { selector: 'button' })) as HTMLButtonElement
-      fireEvent.click(linkButton)
+      await userEvent.click(await screen.findByRole('button', { name: /Create link/i }))
+      const linkTextInput = await screen.findByRole('textbox', { name: 'Link text' })
+      await userEvent.clear(linkTextInput)
+      await userEvent.type(linkTextInput, 'Google')
+      await userEvent.type(screen.getByRole('textbox', { name: 'Link to add' }), 'https://google.com')
+      await userEvent.click(screen.getByRole('button', { name: 'Add link' }))
 
       expect(range.insertNode).not.toHaveBeenCalled()
       expect(screen.queryByText(/Add link to email/i)).not.toBeVisible()

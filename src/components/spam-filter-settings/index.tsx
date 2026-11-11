@@ -1,7 +1,9 @@
-import { AlertCircle } from 'lucide-react'
 import React, { useId, useImperativeHandle, useRef, useState } from 'react'
 
 import BounceSenderInput from '@components/bounce-sender-input'
+import { AlertCircleIcon } from '@components/ui/icons'
+import RadioGroup from '@components/ui/radio-group'
+import SectionHeading from '@components/ui/section-heading'
 import { isValidTrustedSender, SPAM_FILTER_LIST_LIMIT, toWords } from '@services/spam-impact'
 import { SpamFilter, SpamSensitivity } from '@types'
 
@@ -14,8 +16,11 @@ export interface SpamFilterSettingsHandle {
 }
 
 export interface SpamFilterSettingsProps {
-  disabled: boolean
   onChange: (next: SpamFilter) => void
+  // Never disabled (spec G7): while the page saves, every control here is read-only, and a press
+  // on a chip's remove control shows readOnlyReason.
+  readOnly: boolean
+  readOnlyReason?: string
   ref?: React.Ref<SpamFilterSettingsHandle>
   value: SpamFilter
 }
@@ -27,10 +32,10 @@ const LIST_KEYS: ListKey[] = ['blockPhrases', 'trustedSenders']
 // The API rejects a longer entry (AC-015); the UI says so before it gets that far.
 const MAX_ENTRY_LENGTH = 100
 
-const SENSITIVITIES: { helper: string; label: string; value: SpamSensitivity }[] = [
-  { helper: 'Catches only obvious spam', label: 'Low', value: 'low' },
-  { helper: 'Catches most spam (recommended)', label: 'Medium', value: 'medium' },
-  { helper: 'Catches more spam, but may catch real mail', label: 'High', value: 'high' },
+const SENSITIVITIES: { description: string; label: string; value: SpamSensitivity }[] = [
+  { description: 'Catches only obvious spam', label: 'Low', value: 'low' },
+  { description: 'Catches most spam (recommended)', label: 'Medium', value: 'medium' },
+  { description: 'Catches more spam, but may catch real mail', label: 'High', value: 'high' },
 ]
 
 const alreadyListed = (entry: string): string => `“${entry}” is already on your list.`
@@ -103,14 +108,17 @@ const LISTS: Record<
 
 const textStyle: React.CSSProperties = { color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }
 
-const eyebrowStyle: React.CSSProperties = { ...textStyle, letterSpacing: '0.1em' }
-
-const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettingsProps): React.ReactNode => {
+const SpamFilterSettings = ({
+  onChange,
+  readOnly,
+  readOnlyReason,
+  ref,
+  value,
+}: SpamFilterSettingsProps): React.ReactNode => {
   const [errors, setErrors] = useState<Partial<Record<ListKey, string>>>({})
   const inputRefs = useRef<Partial<Record<ListKey, HTMLInputElement | null>>>({})
   const idPrefix = useId()
   const headingId = `${idPrefix}-heading`
-  const sensitivityHelpId = `${idPrefix}-sensitivity-help`
 
   const setError = (key: ListKey, error: string | undefined): void =>
     setErrors((current) => ({ ...current, [key]: error }))
@@ -194,7 +202,6 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
         <div className="rounded-md" style={{ border: `1px solid ${error ? 'var(--accent)' : 'var(--paper-border)'}` }}>
           <BounceSenderInput
             describedBy={error ? `${errorId} ${helperId}` : helperId}
-            disabled={disabled}
             enterKeyHint="done"
             inputId={inputId}
             inputRef={(element: HTMLInputElement | null) => {
@@ -204,6 +211,8 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
             label={list.label}
             onInvalid={(entry: string) => setError(key, list.errorFor(value[key], entry))}
             placeholder={list.placeholder}
+            readOnly={readOnly}
+            readOnlyReason={readOnlyReason}
             rules={value[key]}
             setRules={(entries: string[]) => setEntries(key, entries)}
             validate={(entry: string) => list.errorFor(value[key], entry) === undefined}
@@ -219,12 +228,7 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
         >
           {error && (
             <>
-              <AlertCircle
-                aria-hidden="true"
-                size={14}
-                strokeWidth={2}
-                style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }}
-              />
+              <AlertCircleIcon size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }} />
               <span>{error}</span>
             </>
           )}
@@ -246,63 +250,34 @@ const SpamFilterSettings = ({ disabled, onChange, ref, value }: SpamFilterSettin
   }
 
   return (
-    <section aria-labelledby={headingId}>
-      <h2 className="mb-1 text-xs font-semibold uppercase" id={headingId} style={eyebrowStyle}>
-        Spam filter
-      </h2>
+    <section aria-busy={readOnly || undefined} aria-labelledby={headingId}>
+      <div className="mb-1">
+        <SectionHeading id={headingId}>Spam filter</SectionHeading>
+      </div>
       <p className="mb-3 text-sm" style={textStyle}>
         Spam goes to your Spam folder. We don&apos;t forward it or send a notification for it.
       </p>
 
-      <fieldset aria-describedby={sensitivityHelpId} style={{ border: 'none', margin: 0, padding: 0 }}>
-        <legend className="text-xs font-semibold uppercase" style={eyebrowStyle}>
-          Sensitivity
-        </legend>
-        <p className="mt-1 mb-1 text-xs" id={sensitivityHelpId} style={textStyle}>
-          Every new email gets a spam score from warning signs like hidden characters in your domain, placeholder text
-          such as {'{{First Name}}'}, and &quot;reply NO to stop&quot; lines. Sensitivity sets how high that score must
-          be before mail goes to Spam. Mail that fails our spam or virus scan on arrival always goes to Spam.
-        </p>
-        {SENSITIVITIES.map((choice) => {
-          const choiceHelpId = `${idPrefix}-sensitivity-${choice.value}-help`
-          const choiceLabelId = `${idPrefix}-sensitivity-${choice.value}-label`
-          return (
-            // The label wraps the input so the whole 44px row is the target.
-            <label
-              key={choice.value}
-              style={{
-                alignItems: 'center',
-                color: 'var(--text-paper)',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                fontFamily: 'Outfit, sans-serif',
-                fontSize: '14px',
-                gap: '10px',
-                minHeight: '44px',
-              }}
-            >
-              <input
-                aria-describedby={choiceHelpId}
-                // Named by the level alone; its helper is the description, not part of the name.
-                aria-labelledby={choiceLabelId}
-                checked={value.sensitivity === choice.value}
-                disabled={disabled}
-                name={`${idPrefix}-sensitivity`}
-                onChange={() => onChange({ ...value, sensitivity: choice.value })}
-                style={{ flexShrink: 0, margin: 0 }}
-                type="radio"
-                value={choice.value}
-              />
-              <span>
-                <span id={choiceLabelId}>{choice.label}</span>
-                <span className="block text-xs" id={choiceHelpId} style={textStyle}>
-                  {choice.helper}
-                </span>
-              </span>
-            </label>
-          )
-        })}
-      </fieldset>
+      <RadioGroup
+        help={
+          <p className="mt-1 mb-1 text-xs" style={textStyle}>
+            Every new email gets a spam score from warning signs like hidden characters in your domain, placeholder text
+            such as {'{{First Name}}'}, and &quot;reply NO to stop&quot; lines. Sensitivity sets how high that score
+            must be before mail goes to Spam. Mail that fails our spam or virus scan on arrival always goes to Spam.
+          </p>
+        }
+        legend="Sensitivity"
+        name={`${idPrefix}-sensitivity`}
+        onChange={(next: string) => {
+          const choice = SENSITIVITIES.find((sensitivity) => sensitivity.value === next)
+          if (choice) {
+            onChange({ ...value, sensitivity: choice.value })
+          }
+        }}
+        options={SENSITIVITIES}
+        readOnly={readOnly}
+        value={value.sensitivity}
+      />
 
       {LIST_KEYS.map((key) => (
         <React.Fragment key={key}>{renderList(key)}</React.Fragment>

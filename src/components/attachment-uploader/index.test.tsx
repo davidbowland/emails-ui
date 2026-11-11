@@ -45,7 +45,7 @@ describe('Attachment uploader component', () => {
     jest.mocked(emails.postSentAttachment).mockRejectedValueOnce(new Error('Upload failed'))
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
-    const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
+    const fileUpload = (await screen.findByLabelText(/Attach a file/i)) as HTMLInputElement
     await act(async () => {
       await userEvent.upload(fileUpload, file)
     })
@@ -59,7 +59,7 @@ describe('Attachment uploader component', () => {
     jest.mocked(emails.postSentAttachment).mockRejectedValueOnce(new Error('Upload failed'))
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
-    const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
+    const fileUpload = (await screen.findByLabelText(/Attach a file/i)) as HTMLInputElement
     await act(async () => {
       await userEvent.upload(fileUpload, file)
     })
@@ -79,7 +79,7 @@ describe('Attachment uploader component', () => {
   it('should call postSentAttachment and upload file successfully', async () => {
     render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
 
-    const fileUpload = (await screen.findByLabelText(/Attachment upload/i)) as HTMLInputElement
+    const fileUpload = (await screen.findByLabelText(/Attach a file/i)) as HTMLInputElement
     await act(async () => {
       await userEvent.upload(fileUpload, file)
     })
@@ -99,5 +99,25 @@ describe('Attachment uploader component', () => {
         type: 'image/png',
       },
     ])
+  })
+
+  it('should show which file is uploading until the upload finishes', async () => {
+    const upload: { resolve: (value: typeof postAttachmentResult) => void } = { resolve: () => undefined }
+    jest.mocked(emails.postSentAttachment).mockReturnValueOnce(
+      new Promise((resolve) => {
+        upload.resolve = resolve
+      }),
+    )
+    render(<AttachmentUploader accountId={accountId} attachments={attachments} setAttachments={setAttachments} />)
+
+    await act(async () => {
+      await userEvent.upload(await screen.findByLabelText(/Attach a file/i), file)
+    })
+    expect(screen.getByRole('button', { name: /Uploading test.file/i })).toBeInTheDocument()
+
+    await act(async () => {
+      upload.resolve(postAttachmentResult)
+    })
+    expect(await screen.findByRole('button', { name: /Attach a file/i })).toBeInTheDocument()
   })
 })

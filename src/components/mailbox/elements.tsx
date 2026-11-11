@@ -1,5 +1,9 @@
-import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import React from 'react'
+
+import Button from '@components/ui/button'
+import Divider from '@components/ui/divider'
+import IconButton from '@components/ui/icon-button'
+import { ArrowLeftIcon, ArrowRightIcon } from '@components/ui/icons'
 
 /* List row text (AC-035) */
 
@@ -47,99 +51,58 @@ export const listSenderStyle = ({ isSelected }: ListRowState): React.CSSProperti
 })
 
 export const EmailListDivider = (): React.ReactNode => (
-  <div
-    style={{
-      height: '1px',
-      background: 'var(--shell-border)',
-      margin: '0 12px',
-      opacity: 0.6,
-    }}
+  <div style={{ margin: '0 12px' }}>
+    <Divider opacity={0.6} surface="shell" />
+  </div>
+)
+
+// Shows at every width: the inline display: flex overrides the md:hidden class, so md:hidden does
+// nothing. It was like this before the component library too.
+export const NavForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
+  <IconButton
+    className="md:hidden"
+    icon={ArrowRightIcon}
+    label="Show selected email"
+    onClick={onClick}
+    size={15}
+    style={{ borderRadius: '8px', display: 'flex', height: '30px', width: '30px' }}
+    variant="shell"
   />
 )
 
-export const BouncedChip = (): React.ReactNode => (
-  <span
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '3px',
-      borderRadius: '6px',
-      padding: '2px 6px',
-      background: 'var(--accent-subtle)',
-      border: '1px solid var(--accent-border)',
-      color: 'var(--accent)',
-      fontFamily: 'IBM Plex Mono, monospace',
-      fontSize: '10px',
-      fontWeight: 500,
-      flexShrink: 0,
-      whiteSpace: 'nowrap',
-    }}
-  >
-    <AlertCircle size={9} strokeWidth={1.5} />
-    Bounced
-  </span>
-)
-
-export const NavForwardButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <button
-    aria-label="Show selected email"
-    className="md:hidden"
-    onClick={onClick}
-    onMouseEnter={(e) => {
-      ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
-      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-    }}
-    onMouseLeave={(e) => {
-      ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-    }}
-    style={{
-      width: '30px',
-      height: '30px',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'var(--text-muted)',
-      background: 'transparent',
-      border: 'none',
-      cursor: 'pointer',
-      transition: 'background 0.15s ease, color 0.15s ease',
-    }}
-  >
-    <ArrowRight size={15} strokeWidth={1.5} />
-  </button>
-)
-
+// Sits on the paper viewer, so it keeps its own colors rather than the shell variant's. Its inline
+// display: flex overrides its own md:hidden class, as it did before the component library; it is
+// hidden at md and up only because the bar around it in Mailbox is md:hidden.
 export const NavBackButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <button
+  <Button
     aria-label="Back to email list"
     className="md:hidden"
+    icon={ArrowLeftIcon}
+    iconSize={13}
     onClick={onClick}
     onMouseEnter={(e) => {
-      ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
-      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
+      e.currentTarget.style.background = 'var(--shell-surface-hover)'
+      e.currentTarget.style.color = 'var(--text-primary)'
     }}
     onMouseLeave={(e) => {
-      ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-      ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+      e.currentTarget.style.background = 'transparent'
+      e.currentTarget.style.color = 'var(--text-muted)'
     }}
     style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '6px 10px',
-      borderRadius: '8px',
-      color: 'var(--text-muted)',
       background: 'transparent',
       border: 'none',
+      borderRadius: '8px',
+      color: 'var(--text-muted)',
       cursor: 'pointer',
+      display: 'flex',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '13px',
+      gap: '6px',
+      padding: '6px 10px',
       transition: 'background 0.15s ease, color 0.15s ease',
     }}
+    variant="toolbar"
   >
-    <ArrowLeft size={13} strokeWidth={1.5} />
     Back
-  </button>
+  </Button>
 )

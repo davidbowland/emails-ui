@@ -26,7 +26,7 @@
   --accent-hover: #9376f7;
   /* Darker violet for filled buttons carrying white text: white on --accent is 4.44:1,
      which fails WCAG AA for normal text; white on --accent-deep is 5.34:1, and it reads
-     4.70:1 on the paper surface. --accent stays for borders, glows, focus rings, marks. */
+     4.70:1 on --paper-bg and 5.13:1 on --paper-surface. --accent stays for borders, glows, focus rings, marks. */
   --accent-deep: #6f4ee8;
   /* The lighter end of a filled button's gradient. --accent-hover is too light to sit under
      white text (3.40:1); this reads 4.79:1, so both ends of the gradient clear AA. */
@@ -387,18 +387,12 @@ body {
     color 0.15s ease,
     transform 0.1s ease;
 }
-.btn-ghost-paper:hover:not(:disabled):not([aria-disabled='true']) {
+.btn-ghost-paper:hover:not([aria-busy='true']) {
   background: var(--paper-border);
   color: var(--text-paper);
 }
-.btn-ghost-paper:active:not(:disabled):not([aria-disabled='true']) {
+.btn-ghost-paper:active:not([aria-busy='true']) {
   transform: scale(0.97);
-}
-/* aria-disabled keeps the button in the tab order while busy, so it looks and points as :disabled. */
-.btn-ghost-paper:disabled,
-.btn-ghost-paper[aria-disabled='true'] {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .btn-accent {
@@ -412,37 +406,36 @@ body {
     transform 0.15s cubic-bezier(0.32, 0.72, 0, 1),
     box-shadow 0.15s ease;
 }
-/* aria-disabled is excluded alongside :disabled: a button kept in the tab order that way still
-   refuses the press, and lifting under the pointer would promise otherwise. */
-.btn-accent:hover:not(:disabled):not([aria-disabled='true']) {
+/* Buttons are never disabled (spec G4); they keep their ready colors when busy or unavailable.
+   Only a busy button skips the hover and press motion: it ignores presses, so it shouldn't
+   invite one. An unavailable button looks ready, so it moves like one. */
+.btn-accent:hover:not([aria-busy='true']) {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(124, 93, 244, 0.45);
 }
-.btn-accent:active:not(:disabled):not([aria-disabled='true']) {
+.btn-accent:active:not([aria-busy='true']) {
   transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(124, 93, 244, 0.3);
-}
-.btn-accent:disabled,
-.btn-accent[aria-disabled='true'] {
-  background: var(--shell-border);
-  color: var(--text-muted);
-  box-shadow: none;
-  cursor: not-allowed;
 }
 
 .btn-ghost-danger {
   background: transparent;
-  color: var(--accent);
+  /* --accent-deep, not --accent: --accent reads 3.91:1 on --paper-bg, under AA. This reads
+     4.70:1 there and 5.13:1 on --paper-surface (button/contrast.test.ts). */
+  color: var(--accent-deep);
   border: 1px solid var(--accent-border);
   border-radius: 8px;
   transition:
     background 0.15s cubic-bezier(0.32, 0.72, 0, 1),
     transform 0.1s ease;
 }
-.btn-ghost-danger:hover:not(:disabled) {
+.btn-ghost-danger:hover:not([aria-busy='true']) {
   background: var(--accent-subtle);
+  /* --accent-deep reads 4.28:1 on this tint over --paper-bg; --text-paper clears AA, as
+     .btn-ghost-paper's hover does. */
+  color: var(--text-paper);
 }
-.btn-ghost-danger:active:not(:disabled) {
+.btn-ghost-danger:active:not([aria-busy='true']) {
   transform: scale(0.97);
 }
 
@@ -458,15 +451,19 @@ body {
   color: var(--text-paper);
 }
 
+/* The shell's nav buttons, from what auth/icon-drawer.tsx painted inline. Resting text is
+   --text-primary (7.84:1 on --shell-bg); the old --text-muted read 2.29:1. */
 .btn-shell {
-  color: var(--text-muted);
+  background: transparent;
+  border: none;
   border-radius: 10px;
+  color: var(--text-primary);
+  cursor: pointer;
   transition:
-    color 0.2s cubic-bezier(0.32, 0.72, 0, 1),
-    background 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .btn-shell:hover {
-  color: var(--text-primary);
   background: var(--shell-surface-hover);
 }
 
@@ -496,33 +493,56 @@ body {
     color 0.15s ease,
     transform 0.1s ease;
 }
-.btn-attachment:hover:not(:disabled) {
+.btn-attachment:hover:not([aria-busy='true']) {
   background: var(--paper-border);
   color: var(--text-paper);
 }
-.btn-attachment:active:not(:disabled) {
+.btn-attachment:active:not([aria-busy='true']) {
   transform: scale(0.97);
 }
-.btn-attachment:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+
+/* Why an unavailable button can't act, shown on a press (ui/button/use-press-state.ts). Fixed, and
+   placed from the button's bounding rect, so no overflow-hidden ancestor clips it. Above Dialog's
+   z-50. Fades in through .animate-fade-in, which reduced motion already turns off. */
+.btn-reason {
+  align-items: flex-start;
+  background: var(--paper-surface);
+  border: 1px solid var(--paper-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-paper);
+  display: flex;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.4;
+  max-width: min(20rem, calc(100vw - 16px));
+  padding: 8px 10px;
+  position: fixed;
+  z-index: 60;
 }
 
-.btn-accept {
-  /* Deep stops, as .btn-accent — white needs them to clear AA. */
-  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(124, 93, 244, 0.3);
-  transition:
-    transform 0.15s cubic-bezier(0.32, 0.72, 0, 1),
-    box-shadow 0.15s ease;
-  white-space: nowrap;
+/* ─── Hit targets ────────────────────────────────────────────── */
+/* WCAG 2.5.8: Button and IconButton are at least 24px, and 44px on a coarse pointer. The 24px floor
+   sits in the components layer so a caller's min-h-* / min-w-* utility can raise it. The coarse
+   rule is unlayered so no utility can pull a touch target under 44px. */
+@layer components {
+  .btn-target {
+    min-height: 24px;
+  }
+  .btn-target-square {
+    min-height: 24px;
+    min-width: 24px;
+  }
 }
-.btn-accept:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(124, 93, 244, 0.4);
+@media (pointer: coarse) {
+  .btn-target {
+    min-height: 44px;
+  }
+  .btn-target-square {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* ─── Scrollbars ─────────────────────────────────────────────── */

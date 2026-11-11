@@ -77,6 +77,15 @@ describe('SpamSuggestions component', () => {
     await screen.findByText(/2 suggested phrases match emails in your Inbox/)
   }
 
+  // The dialog's own live region. An unavailable footer button mounts a status region of its own for
+  // its reason, beside the button; the dialog's region is the one with no button beside it.
+  const dialogStatus = (): HTMLElement =>
+    screen
+      .getAllByRole('status')
+      .find(
+        (status) => within(status.parentElement as HTMLElement).queryAllByRole('button').length === 0,
+      ) as HTMLElement
+
   const pick = async (name: string): Promise<void> => {
     await userEvent.click(screen.getByRole('checkbox', { name }))
   }
@@ -103,7 +112,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
 
       expect(screen.getByRole('dialog', { name: 'Suggested rule changes' })).toBeVisible()
-      expect(screen.getByRole('status')).toHaveTextContent('Reading this email…')
+      expect(dialogStatus()).toHaveTextContent('Reading this email…')
     })
 
     it('asks for suggestions for this email', () => {
@@ -180,7 +189,7 @@ describe('SpamSuggestions component', () => {
     it('announces how many changes are suggested', async () => {
       await renderResults()
 
-      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes.')
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes.')
     })
 
     it('announces a single suggestion', async () => {
@@ -196,7 +205,7 @@ describe('SpamSuggestions component', () => {
     it('shows the intro and the footnote about what was checked', async () => {
       await renderResults()
 
-      expect(screen.getByText('Pick the changes you want. Nothing is saved until you apply them.')).toBeVisible()
+      expect(screen.getByText('Pick the changes you want. We save nothing until you apply them.')).toBeVisible()
       expect(
         screen.getByText(
           "We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first. We didn't check attachments or older mail. If you add these phrases, future mail with them will go to Spam, unless it comes from a trusted sender.",
@@ -254,7 +263,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
 
-      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. Checking your mail…')
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes. Checking your mail…')
     })
 
     it('announces when the check could not read all of the Inbox', async () => {
@@ -265,17 +274,15 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check all of your Inbox/)
 
-      expect(screen.getByRole('status')).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
-      expect(screen.getByRole('status')).not.toHaveTextContent('We finished checking your mail.')
+      expect(dialogStatus()).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
+      expect(dialogStatus()).not.toHaveTextContent('We finished checking your mail.')
     })
 
     it('announces how many suggested phrases match the Inbox when the check finishes', async () => {
       await renderResults()
 
-      expect(screen.getByRole('status')).toHaveTextContent(
-        '5 suggested changes. 2 suggested phrases match emails in your Inbox.',
-      )
-      expect(screen.getByRole('status')).not.toHaveTextContent('We finished checking your mail.')
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes. 2 suggested phrases match emails in your Inbox.')
+      expect(dialogStatus()).not.toHaveTextContent('We finished checking your mail.')
     })
 
     it('announces one suggested phrase matching the Inbox in the singular', async () => {
@@ -290,9 +297,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
 
-      expect(screen.getByRole('status')).toHaveTextContent(
-        '5 suggested changes. 1 suggested phrase matches emails in your Inbox.',
-      )
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes. 1 suggested phrase matches emails in your Inbox.')
     })
 
     it('announces that the check finished when no suggested phrase matches the Inbox', async () => {
@@ -307,8 +312,8 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We finished checking your mail/)
 
-      expect(screen.getByRole('status')).toHaveTextContent('5 suggested changes. We finished checking your mail.')
-      expect(screen.getByRole('status')).not.toHaveTextContent(/match emails in your Inbox/)
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes. We finished checking your mail.')
+      expect(dialogStatus()).not.toHaveTextContent(/match emails in your Inbox/)
     })
 
     it('announces an incomplete Inbox check even when a suggested phrase matches the Inbox', async () => {
@@ -318,8 +323,8 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check all of your Inbox/)
 
-      expect(screen.getByRole('status')).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
-      expect(screen.getByRole('status')).not.toHaveTextContent(/match emails in your Inbox/)
+      expect(dialogStatus()).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
+      expect(dialogStatus()).not.toHaveTextContent(/match emails in your Inbox/)
     })
 
     it('describes a row with its reason and impact', async () => {
@@ -415,7 +420,7 @@ describe('SpamSuggestions component', () => {
 
       expect(screen.getAllByText("We couldn't check this phrase against your mail.")).toHaveLength(3)
       expect(screen.queryByText(/We checked subjects and message text/)).not.toBeInTheDocument()
-      expect(screen.getByRole('status')).toHaveTextContent("We couldn't check your mail.")
+      expect(dialogStatus()).toHaveTextContent("We couldn't check your mail.")
     })
 
     it('ignores a check result that arrives after closing', async () => {
@@ -485,15 +490,40 @@ describe('SpamSuggestions component', () => {
   })
 
   describe('apply button', () => {
-    it('reads "Apply changes" and does nothing with no picks', async () => {
+    it('reads "Apply changes" and explains instead of applying with no picks', async () => {
       await renderResults()
 
       const apply = screen.getByRole('button', { name: 'Apply changes' })
-      expect(apply).toHaveAccessibleDescription('Pick the changes you want. Nothing is saved until you apply them.')
+      expect(apply).toHaveAccessibleDescription('Pick at least one change to apply.')
       await userEvent.click(apply)
 
+      expect(within(apply.parentElement as HTMLElement).getByRole('status')).toHaveTextContent(
+        'Pick at least one change to apply.',
+      )
       expect(emails.getAccount).not.toHaveBeenCalled()
       expect(emails.putAccount).not.toHaveBeenCalled()
+    })
+
+    it('applies once a change is picked after a press with none', async () => {
+      await renderResults()
+      await userEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
+      await pick('Add “lottery” to block phrases')
+      await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
+
+      expect(onApplied).toHaveBeenCalledWith(1)
+    })
+
+    it('closes only the reason, not the dialog, on Escape', async () => {
+      await renderResults()
+      const apply = screen.getByRole('button', { name: 'Apply changes' })
+      await userEvent.click(apply)
+      const reason = within(apply.parentElement as HTMLElement).getByRole('status')
+      expect(reason).toHaveTextContent('Pick at least one change to apply.')
+      await userEvent.keyboard('{Escape}')
+
+      expect(reason).toBeEmptyDOMElement()
+      expect(screen.getByRole('dialog')).toBeVisible()
+      expect(onClose).not.toHaveBeenCalled()
     })
 
     it('counts one pick', async () => {
@@ -671,7 +701,12 @@ describe('SpamSuggestions component', () => {
 
       const applying = await screen.findByRole('button', { name: 'Applying…' })
       await userEvent.click(applying)
-      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      const cancel = screen.getByRole('button', { name: 'Cancel' })
+      await userEvent.click(cancel)
+      const reason = within(cancel.parentElement as HTMLElement).getByRole('status')
+      expect(reason).toHaveTextContent('Wait until we finish applying your changes.')
+      await userEvent.keyboard('{Escape}')
+      expect(reason).toBeEmptyDOMElement()
       await userEvent.keyboard('{Escape}')
       await pick('Raise sensitivity to High')
 
@@ -819,7 +854,7 @@ describe('SpamSuggestions component', () => {
 
       rerender(<SpamSuggestions {...props} />)
 
-      expect(screen.getByRole('status')).toHaveTextContent('Reading this email…')
+      expect(dialogStatus()).toHaveTextContent('Reading this email…')
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
     })
   })
@@ -879,7 +914,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
 
       expect(await screen.findByText(lead)).toBeVisible()
-      expect(screen.getByRole('status')).toHaveTextContent(`${lead}${detail}`)
+      expect(dialogStatus()).toHaveTextContent(`${lead}${detail}`)
       expect(screen.queryByRole('button', { name: /Apply/ })).not.toBeInTheDocument()
     })
 

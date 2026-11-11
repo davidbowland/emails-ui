@@ -1,4 +1,8 @@
-import React, { RefObject } from 'react'
+import React from 'react'
+
+import FileInput from '@components/ui/file-input'
+import IconButton from '@components/ui/icon-button'
+import { CloseIcon } from '@components/ui/icons'
 
 export const AttachmentTag = ({ filename, onRemove }: { filename: string; onRemove: () => void }): React.ReactNode => (
   <span
@@ -11,53 +15,30 @@ export const AttachmentTag = ({ filename, onRemove }: { filename: string; onRemo
     }}
   >
     <span>{filename}</span>
-    <button
-      aria-label={`Remove ${filename}`}
+    {/* The negative margin keeps the 24px hit target from growing the tag, as Chip's remove does. */}
+    <IconButton
       className="transition-colors"
+      icon={CloseIcon}
+      label={`Remove ${filename}`}
       onClick={onRemove}
-      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
-      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-paper-muted)')}
-      style={{ color: 'var(--text-paper-muted)' }}
-    >
-      ✕
-    </button>
+      size={12}
+      style={{ margin: '-6px' }}
+      variant="close"
+    />
   </span>
 )
 
 export const UploadArea = ({
-  inputRef,
   onFileSelect,
   uploadingFilename,
 }: {
-  inputRef: RefObject<HTMLInputElement | null>
   onFileSelect: (file: File) => void
   uploadingFilename: string | undefined
 }): React.ReactNode => (
-  <span
-    className="inline-flex items-center rounded-md px-2.5 py-1 text-xs"
-    style={{
-      border: '1px dashed var(--paper-border)',
-      color: 'var(--text-paper-muted)',
-      fontFamily: 'Outfit, sans-serif',
-    }}
-  >
-    {uploadingFilename === undefined ? (
-      <input
-        aria-label="Attachment upload"
-        className="text-xs"
-        onChange={(event) => event.target.files?.[0] && onFileSelect(event.target.files[0])}
-        ref={inputRef}
-        style={{ color: 'var(--text-paper-muted)' }}
-        type="file"
-      />
-    ) : (
-      <span className="flex items-center gap-2" style={{ color: 'var(--text-paper-muted)' }}>
-        <span
-          className="h-3 w-3 animate-spin rounded-full"
-          style={{ border: '1.5px solid var(--paper-border)', borderTopColor: 'var(--accent)' }}
-        />
-        Uploading {uploadingFilename}
-      </span>
-    )}
-  </span>
+  <FileInput
+    busy={uploadingFilename !== undefined}
+    busyLabel={uploadingFilename === undefined ? undefined : `Uploading ${uploadingFilename}…`}
+    label="Attach a file"
+    onFiles={(files) => onFileSelect(files[0])}
+  />
 )

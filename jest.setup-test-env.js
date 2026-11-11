@@ -6,5 +6,8 @@ process.env.NEXT_PUBLIC_DRAWER_WIDTH = '240'
 process.env.NEXT_PUBLIC_EMAILS_API_BASE_URL = 'http://localhost:9000/v1'
 process.env.NEXT_PUBLIC_MAX_UPLOAD_SIZE = '10000000'
 
-window.URL.createObjectURL = jest.fn()
-window.URL.revokeObjectURL = jest.fn()
+// Node-environment suites (e.g. test/lint) have no window.
+if (typeof window !== 'undefined') {
+  window.URL.createObjectURL = jest.fn()
+  window.URL.revokeObjectURL = jest.fn()
+}

@@ -32,14 +32,15 @@ describe('NotificationSettings', () => {
 
   const renderSettings = async (
     preview: NotificationPreview = 'sender-and-subject',
-    disabled = false,
+    readOnly = false,
   ): Promise<void> => {
     render(
       <NotificationSettings
         accountId={accountId}
-        disabled={disabled}
         onPreviewChange={onPreviewChange}
         preview={preview}
+        readOnly={readOnly}
+        readOnlyReason="Wait until Save finishes."
       />,
     )
     await waitFor(() => expect(push.isSubscribedToPush).toHaveBeenCalled())
@@ -80,6 +81,29 @@ describe('NotificationSettings', () => {
       expect(await screen.findByRole('button', { name: 'Try again' })).toHaveAccessibleDescription(
         "We couldn't turn on notifications. Please try again.",
       )
+    })
+  })
+
+  describe('while a check or request is in flight', () => {
+    it('says it is checking until it knows whether notifications are on, and ignores presses', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.isSubscribedToPush).mockReturnValueOnce(new Promise(() => undefined))
+      await renderSettings()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Checking notifications…' }))
+
+      expect(push.subscribeToPush).not.toHaveBeenCalled()
+    })
+
+    it('says it is turning them on, and sends one request however often it is pressed', async () => {
+      setNavigator(DESKTOP)
+      jest.mocked(push.subscribeToPush).mockReturnValueOnce(new Promise(() => undefined))
+      await renderSettings()
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Turning on…' }))
+
+      expect(push.subscribeToPush).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -207,9 +231,9 @@ describe('NotificationSettings', () => {
       render(
         <NotificationSettings
           accountId={accountId}
-          disabled={false}
           onPreviewChange={onPreviewChange}
           preview="sender-and-subject"
+          readOnly={false}
         />,
       )
 
@@ -228,9 +252,9 @@ describe('NotificationSettings', () => {
       render(
         <NotificationSettings
           accountId={accountId}
-          disabled={false}
           onPreviewChange={onPreviewChange}
           preview="sender-and-subject"
+          readOnly={false}
         />,
       )
 
@@ -249,31 +273,35 @@ describe('NotificationSettings', () => {
       render(
         <NotificationSettings
           accountId={accountId}
-          disabled={false}
           onPreviewChange={onPreviewChange}
           preview="sender-and-subject"
+          readOnly={false}
         />,
       )
 
-      expect(await screen.findByRole('group', { name: 'What notifications show' })).toBeVisible()
+      expect(await screen.findByRole('radiogroup', { name: 'What notifications show' })).toBeVisible()
     })
   })
 
   describe('while the settings form is saving', () => {
-    it('says why the button cannot be used', async () => {
+    it('says why the button cannot be used yet', async () => {
       setNavigator(DESKTOP)
       await renderSettings('sender-and-subject', true)
 
-      expect(await screen.findByRole('button', { name: 'Saving your settings…' })).toBeVisible()
+      expect(await screen.findByRole('button', { name: 'Turn on notifications' })).toHaveAccessibleDescription(
+        // Joined to the empty status line the button is also described by.
+        expect.stringContaining('Wait until Save finishes.'),
+      )
     })
 
-    it('starts no subscription', async () => {
+    it('starts no subscription, and says why when pressed', async () => {
       setNavigator(DESKTOP)
       await renderSettings('sender-and-subject', true)
 
-      await userEvent.click(await screen.findByRole('button', { name: 'Saving your settings…' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Turn on notifications' }))
 
       expect(push.subscribeToPush).not.toHaveBeenCalled()
+      expect(screen.getAllByRole('status').map((region) => region.textContent)).toContain('Wait until Save finishes.')
     })
 
     it('takes no new choice of what notifications show', async () => {
@@ -323,7 +351,7 @@ describe('NotificationSettings', () => {
       setNavigator(DESKTOP)
       await renderSettings()
 
-      expect(await screen.findByRole('group', { name: 'What notifications show' })).toBeVisible()
+      expect(await screen.findByRole('radiogroup', { name: 'What notifications show' })).toBeVisible()
     })
 
     it('warns that a locked screen shows this', async () => {

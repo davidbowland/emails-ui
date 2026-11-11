@@ -1,27 +1,39 @@
 import React from 'react'
 
-import { AddressChip, TagInput } from './elements'
+import Chip from '@components/ui/chip'
+import ChipInput from '@components/ui/chip-input'
 import { EmailAddress } from '@types'
 
 type AddressSetter = (value: EmailAddress[]) => void
 
 export interface AddressLineProps {
   addresses: EmailAddress[]
-  disabled?: boolean
   label: string
+  // Never disabled (spec G7): while read-only, typed text stays put and a press on a chip's remove
+  // control shows readOnlyReason instead of removing anything.
+  readOnly?: boolean
+  readOnlyReason?: string
   setAddresses?: AddressSetter
 }
 
-const AddressLine = ({ addresses, disabled = false, label, setAddresses }: AddressLineProps): React.ReactNode => {
-  const handleAdd = (value: string): void => {
-    if (!setAddresses || disabled) return
+const AddressLine = ({
+  addresses,
+  label,
+  readOnly = false,
+  readOnlyReason,
+  setAddresses,
+}: AddressLineProps): React.ReactNode => {
+  // Returns whether the address was added, so the box clears only then.
+  const handleAdd = (value: string): boolean => {
+    if (!setAddresses || readOnly) return false
     const trimmed = value.trim()
-    if (trimmed === '') return
+    if (trimmed === '') return false
     setAddresses([...addresses.map((a) => ({ address: a.address, name: '' })), { address: trimmed, name: '' }])
+    return true
   }
 
   const handleDelete = (index: number): void => {
-    if (!setAddresses || disabled) return
+    if (!setAddresses || readOnly) return
     const updated = addresses.filter((_, i) => i !== index).map((a) => ({ address: a.address, name: '' }))
     setAddresses(updated)
   }
@@ -41,14 +53,22 @@ const AddressLine = ({ addresses, disabled = false, label, setAddresses }: Addre
       </span>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
         {addresses.map((addr, index) => (
-          <AddressChip
-            disabled={disabled}
+          <Chip
             key={index}
             label={addr.name ? `${addr.name} <${addr.address}>` : addr.address}
-            onDelete={setAddresses ? () => handleDelete(index) : undefined}
+            onRemove={setAddresses ? () => handleDelete(index) : undefined}
+            removeUnavailableReason={readOnly ? readOnlyReason : undefined}
           />
         ))}
-        {setAddresses && <TagInput disabled={disabled} onAdd={handleAdd} />}
+        {setAddresses && (
+          <ChipInput
+            ariaLabel="Email address"
+            onAdd={handleAdd}
+            placeholder="Add address…"
+            readOnly={readOnly}
+            variant="underline"
+          />
+        )}
       </div>
     </div>
   )

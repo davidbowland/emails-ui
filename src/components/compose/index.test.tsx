@@ -14,7 +14,7 @@ import userEvent from '@testing-library/user-event'
 jest.mock('aws-amplify/auth')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-uploader')
-jest.mock('@components/confirm-dialog', () => {
+jest.mock('@components/ui/dialog', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
@@ -27,7 +27,7 @@ jest.mock('@components/confirm-dialog', () => {
       React.createElement('button', { onClick: onConfirm }, confirmLabel),
     )
 })
-jest.mock('@components/error-snackbar', () => {
+jest.mock('@components/ui/snackbar', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
@@ -36,7 +36,7 @@ jest.mock('@components/error-snackbar', () => {
           'div',
           { role: 'alert' },
           message,
-          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, 'Close'),
         )
       : null
 })
@@ -158,6 +158,30 @@ describe('Compose component', () => {
     })
 
     expect(await screen.findByText(/Couldn't send your email. Please try again./i)).toBeVisible()
+  })
+
+  it('should send once, and explain why Discard waits, while an email is sending', async () => {
+    const send: { resolve: (value: typeof email) => void } = { resolve: () => undefined }
+    jest.mocked(emails.postSentEmail).mockReturnValueOnce(
+      new Promise((resolve) => {
+        send.resolve = resolve
+      }),
+    )
+    render(<Compose discardCallback={discardCallback} initialToAddresses={addresses} />)
+
+    const sendButton = (await screen.findByText(/Send/i, { selector: 'button' })) as HTMLButtonElement
+    await userEvent.click(sendButton)
+    await userEvent.click(sendButton)
+    await userEvent.click(screen.getByRole('button', { name: 'Discard' }))
+
+    expect(emails.postSentEmail).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Sending…' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Wait until your email finishes sending.')
+    expect(screen.queryByText(/Discard message\?/i)).not.toBeVisible()
+    await act(async () => {
+      send.resolve(email)
+    })
+    expect(mockPush).toHaveBeenCalledWith('/outbox')
   })
 
   it('should show error message when attachments are too large', async () => {

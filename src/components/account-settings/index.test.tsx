@@ -7,7 +7,7 @@ import BounceSenderInput from '@components/bounce-sender-input'
 import * as emails from '@services/emails'
 import { account, spamImpactIncomplete, spamImpactResponse, user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DEFAULT_SPAM_FILTER, SpamFilter, SpamImpactResponse } from '@types'
 
@@ -18,7 +18,7 @@ const mockCommitDrafts = jest.fn()
 jest.mock('aws-amplify/auth')
 jest.mock('@components/address-line')
 jest.mock('@components/bounce-sender-input')
-jest.mock('@components/error-snackbar', () => {
+jest.mock('@components/ui/snackbar', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
@@ -30,11 +30,6 @@ jest.mock('@components/error-snackbar', () => {
           React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
         )
       : null
-})
-jest.mock('@components/loading-spinner', () => {
-  const React = require('react')
-  // eslint-disable-next-line react/display-name
-  return () => React.createElement('div', null, 'Loading...')
 })
 jest.mock('@components/notification-settings', () => {
   const React = require('react')
@@ -75,8 +70,7 @@ jest.mock('@config/amplify')
 jest.mock('@services/emails')
 
 describe('AccountSettings component', () => {
-  // The button's whole label is its state -- 'Save', 'Saving…' or 'Saved' -- so it is found by the
-  // one part of the name that does not move.
+  // The button reads 'Save', or 'Saving…' while busy, so it is found by the part that does not move.
   const findSaveButton = async (): Promise<HTMLButtonElement> =>
     (await screen.findByRole('button', { name: /^Sav/ })) as HTMLButtonElement
 
@@ -106,6 +100,16 @@ describe('AccountSettings component', () => {
     await userEvent.click(await findSaveButton())
   }
 
+  // Replaces the display name the way a reader would.
+  const renameTo = async (name: string): Promise<void> => {
+    const input = await screen.findByLabelText(/From name/i)
+    await userEvent.clear(input)
+    await userEvent.type(input, name)
+  }
+
+  // Every status region's text: the page's own status line and Save's reason are both live regions.
+  const statusTexts = (): (string | null)[] => screen.getAllByRole('status').map((region) => region.textContent)
+
   const findImpactDialog = (): Promise<HTMLElement> =>
     screen.findByRole('dialog', { name: 'Check your new block phrases' })
 
@@ -123,6 +127,18 @@ describe('AccountSettings component', () => {
       configurable: true,
       value: { reload: jest.fn() },
     })
+  })
+
+  it('expect a loading status until the account arrives', async () => {
+    jest.mocked(emails).getAccount.mockReturnValueOnce(new Promise(() => undefined))
+    render(<AccountSettings />)
+
+    // Waits for the request, so the spinner is checked while the account is on its way.
+    await waitFor(() => expect(emails.getAccount).toHaveBeenCalled())
+
+    // A status region takes no name from its content, so the spinner's text is checked instead.
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+    expect(screen.queryByLabelText(/From name/i)).not.toBeInTheDocument()
   })
 
   it('expect error message when user not logged in', async () => {
@@ -243,30 +259,58 @@ describe('AccountSettings component', () => {
     expect(emails.putAccount).toHaveBeenCalledTimes(2)
   })
 
-  it('expect the button to read Saved and save nothing when there is nothing to save', async () => {
+  it('expect pressing Save with nothing to save to say so and call no service', async () => {
     render(<AccountSettings />)
 
     await userEvent.click(await findSaveButton())
 
-    expect(await screen.findByRole('button', { name: 'Saved' })).toBeVisible()
+    expect(statusTexts()).toContain('You have no changes to save.')
     expect(emails.putAccount).not.toHaveBeenCalled()
+    expect(emails.postSpamImpact).not.toHaveBeenCalled()
   })
 
-  it('expect the button to offer Save once a field is edited', async () => {
+  it('expect Save to say there is nothing to save before it is pressed', async () => {
+    render(<AccountSettings />)
+
+    expect(await findSaveButton()).toHaveAccessibleDescription('You have no changes to save.')
+  })
+
+  it('expect Save to stop saying there is nothing to save once a field is edited', async () => {
     render(<AccountSettings />)
 
     fireEvent.change(await screen.findByLabelText(/From name/i), { target: { value: 'George' } })
 
-    expect(await screen.findByRole('button', { name: 'Save' })).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Save' })).not.toHaveAccessibleDescription()
   })
 
-  it('expect the button to read Saved again once a notification level is chosen and Save has nothing left', async () => {
+  it('expect Save to have nothing to save again once a notification level is chosen', async () => {
     // The tier saves itself, so Save must not go on offering to write a change that already landed.
     render(<AccountSettings />)
 
     await userEvent.click(await screen.findByText(/Choose neither/i))
+    await userEvent.click(await findSaveButton())
 
-    expect(await screen.findByRole('button', { name: 'Saved' })).toBeVisible()
+    expect(statusTexts()).toContain('You have no changes to save.')
+    expect(emails.putAccount).toHaveBeenCalledTimes(1)
+  })
+
+  it('expect Save to say Saving… while the save is in flight', async () => {
+    jest.mocked(emails).putAccount.mockReturnValueOnce(new Promise(() => undefined))
+    render(<AccountSettings />)
+
+    await renameTo('George')
+    await userEvent.click(await findSaveButton())
+
+    expect(await screen.findByRole('button', { name: 'Saving…', busy: true })).toBeVisible()
+  })
+
+  it('expect Save to say Saving… while the notification level is still saving', async () => {
+    jest.mocked(emails).putAccount.mockReturnValueOnce(new Promise(() => undefined))
+    render(<AccountSettings />)
+
+    await userEvent.click(await screen.findByText(/Choose neither/i))
+
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeVisible()
   })
 
   it('expect the page to say which settings need Save and which do not', async () => {
@@ -300,36 +344,40 @@ describe('AccountSettings component', () => {
     })
   })
 
-  it('expect a landed save to be confirmed and the button to settle back to Saved', async () => {
+  it('expect a landed save to be confirmed and Save to have nothing left to save', async () => {
     render(<AccountSettings />)
 
-    fireEvent.change(await screen.findByLabelText(/From name/i), { target: { value: 'George' } })
+    await renameTo('George')
     await userEvent.click(await findSaveButton())
 
     expect(await screen.findByText('Settings saved.')).toBeVisible()
-    expect(await screen.findByRole('button', { name: 'Saved' })).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Save' })).toHaveAccessibleDescription(
+      'You have no changes to save.',
+    )
   })
 
-  it('expect pressing Saved to send nothing, so a landed save cannot be replayed', async () => {
+  it('expect pressing Save again to send nothing, so a landed save cannot be replayed', async () => {
     render(<AccountSettings />)
 
-    fireEvent.change(await screen.findByLabelText(/From name/i), { target: { value: 'George' } })
+    await renameTo('George')
     await userEvent.click(await findSaveButton())
-    await screen.findByRole('button', { name: 'Saved' })
+    await screen.findByText('Settings saved.')
     await userEvent.click(await findSaveButton())
 
     expect(emails.putAccount).toHaveBeenCalledTimes(1)
+    expect(statusTexts()).toContain('You have no changes to save.')
   })
 
   it('expect focus kept on the button once the save lands', async () => {
-    // A disabled button leaves the tab order, dropping focus to the body: the next Tab would
-    // restart at the top of the page.
+    // A button that left the tab order would drop focus to the body: the next Tab would restart at
+    // the top of the page.
     render(<AccountSettings />)
 
-    fireEvent.change(await screen.findByLabelText(/From name/i), { target: { value: 'George' } })
+    await renameTo('George')
     await userEvent.click(await findSaveButton())
+    await screen.findByText('Settings saved.')
 
-    expect(await screen.findByRole('button', { name: 'Saved' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus()
   })
 
   it('expect the confirmation dropped once there is something to save again', async () => {
@@ -378,12 +426,12 @@ describe('AccountSettings component', () => {
       expect(await screen.findByText('SpamFilterSettingsMounted:high:crypto')).toBeInTheDocument()
     })
 
-    it('expect the button to offer Save once the spam filter changes', async () => {
+    it('expect Save to stop saying there is nothing to save once the spam filter changes', async () => {
       render(<AccountSettings />)
 
       await userEvent.click(await screen.findByText('Choose high'))
 
-      expect(await screen.findByRole('button', { name: 'Save' })).toBeVisible()
+      expect(await screen.findByRole('button', { name: 'Save' })).not.toHaveAccessibleDescription()
     })
 
     it('expect the spam filter sent with the rest of the account', async () => {
@@ -780,8 +828,8 @@ describe('AccountSettings component', () => {
       await saveNewPhrase()
       await screen.findByRole('button', { name: 'Checking your mail…' })
 
-      expect(AddressLine).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
-      expect(BounceSenderInput).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }), undefined)
+      expect(AddressLine).toHaveBeenLastCalledWith(expect.objectContaining({ readOnly: true }), undefined)
+      expect(BounceSenderInput).toHaveBeenLastCalledWith(expect.objectContaining({ readOnly: true }), undefined)
     })
 
     it('expect an edit attempted during the check not to change what is saved', async () => {

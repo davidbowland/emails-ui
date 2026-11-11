@@ -1,16 +1,20 @@
 import { getCurrentUser } from 'aws-amplify/auth'
 import React, { useEffect, useRef, useState } from 'react'
 
-import { SaveButton, SettingsCard, SettingsDivider, SettingsTitle } from './elements'
+import { SaveButton, SettingsCard, SettingsTitle, WAIT_FOR_SAVE_REASON } from './elements'
 import AddressLine from '@components/address-line'
 import BounceSenderInput from '@components/bounce-sender-input'
-import ConfirmDialog from '@components/confirm-dialog'
-import ErrorSnackbar from '@components/error-snackbar'
 import InstallOffer from '@components/install-offer'
-import LoadingSpinner from '@components/loading-spinner'
 import NotificationSettings from '@components/notification-settings'
 import { ImpactFootnote, isSpamImpactResponse, PhraseImpact, PhraseImpactFailed } from '@components/phrase-impact'
 import SpamFilterSettings, { SpamFilterSettingsHandle } from '@components/spam-filter-settings'
+import Dialog from '@components/ui/dialog'
+import Divider from '@components/ui/divider'
+import { CheckIcon } from '@components/ui/icons'
+import SectionHeading from '@components/ui/section-heading'
+import Snackbar from '@components/ui/snackbar'
+import Spinner from '@components/ui/spinner'
+import TextInput from '@components/ui/text-input'
 import { getAccount, postSpamImpact, putAccount } from '@services/emails'
 import {
   Account,
@@ -26,8 +30,8 @@ import {
 const sameAddresses = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((value, index) => value === b[index])
 
-// Every field the Save button owns, or a change to the one it forgets leaves Save reading "Saved"
-// while an edit sits unwritten on screen. notificationPreview is not among them: it saves the
+// Every field the Save button owns, or a change to the one it forgets leaves Save saying there is
+// nothing to save while an edit sits unwritten on screen. notificationPreview is not among them: it saves the
 // moment it is chosen, so by the time Save is offered it already matches the server.
 type SaveableFields = Pick<Account, 'bounceSenders' | 'forwardTargets' | 'name'> & { spamFilter: SpamFilter }
 
@@ -163,10 +167,12 @@ const AccountSettings = (): React.ReactNode => {
   const spamFilterRef = useRef<SpamFilterSettingsHandle>(null)
   // The tier the server last acknowledged. A failed save reverts to what is actually in effect,
   // which is not necessarily the tier this page loaded with -- an earlier choice may have saved.
-  // At most one save is in flight at a time, because the radio group is disabled while one is.
+  // At most one save is in flight at a time, because the radio group is read-only while one is.
   const savedPreview = useRef<NotificationPreview | undefined>(undefined)
 
   const forwardTargets = forwardAddresses.map((address) => address.address)
+  // Never disabled (spec G7): while a save or the phrase check runs, the fields are read-only.
+  const isBusy = isSaving || isChecking
   const hasUnsavedChanges =
     account !== undefined && hasChanges(account, { bounceSenders, forwardTargets, name, spamFilter })
 
@@ -273,40 +279,26 @@ const AccountSettings = (): React.ReactNode => {
 
       <div className="flex flex-col gap-8">
         {/* Display name */}
-        <section>
-          <div
-            className="mb-2 text-xs font-semibold uppercase"
-            style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-          >
-            Display name
+        <section aria-busy={isBusy || undefined}>
+          <div className="mb-2">
+            <SectionHeading as="div">Display name</SectionHeading>
           </div>
-          <input
+          <TextInput
             aria-label="From name"
-            className="w-full rounded-md px-3 py-2.5 outline-none"
-            disabled={account === undefined || isSaving || isChecking}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
             placeholder="Your display name"
-            style={{
-              background: 'var(--paper-surface)',
-              border: '1px solid var(--paper-border)',
-              color: 'var(--text-paper)',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-            }}
+            readOnly={account === undefined || isBusy}
             value={name}
           />
         </section>
 
-        <SettingsDivider />
+        <Divider opacity={0.7} />
 
         {/* Forward targets */}
         {account !== undefined && (
-          <section>
-            <div
-              className="mb-1 text-xs font-semibold uppercase"
-              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-            >
-              Forward emails to
+          <section aria-busy={isBusy || undefined}>
+            <div className="mb-1">
+              <SectionHeading as="div">Forward emails to</SectionHeading>
             </div>
             <p className="mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
               We&apos;ll forward incoming emails to these addresses.
@@ -314,29 +306,28 @@ const AccountSettings = (): React.ReactNode => {
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
               <AddressLine
                 addresses={forwardAddresses}
-                disabled={isSaving || isChecking}
                 label="To:"
+                readOnly={isBusy}
+                readOnlyReason={WAIT_FOR_SAVE_REASON}
                 setAddresses={setForwardAddresses}
               />
             </div>
           </section>
         )}
 
-        {account !== undefined && <SettingsDivider />}
+        {account !== undefined && <Divider opacity={0.7} />}
 
         {/* Bounce rules */}
         {account !== undefined && (
-          <section>
-            <div
-              className="mb-1 text-xs font-semibold uppercase"
-              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-            >
-              Bounce rules
+          <section aria-busy={isBusy || undefined}>
+            <div className="mb-1">
+              <SectionHeading as="div">Bounce rules</SectionHeading>
             </div>
             <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
               <BounceSenderInput
-                disabled={isSaving || isChecking}
                 label="Reject emails from:"
+                readOnly={isBusy}
+                readOnlyReason={WAIT_FOR_SAVE_REASON}
                 rules={bounceSenders}
                 setRules={setBounceSenders}
               />
@@ -348,31 +339,33 @@ const AccountSettings = (): React.ReactNode => {
           </section>
         )}
 
-        {account !== undefined && <SettingsDivider />}
+        {account !== undefined && <Divider opacity={0.7} />}
 
         {account !== undefined && (
           <SpamFilterSettings
-            disabled={isSaving || isChecking}
             onChange={setSpamFilter}
+            readOnly={isBusy}
+            readOnlyReason={WAIT_FOR_SAVE_REASON}
             ref={spamFilterRef}
             value={spamFilter}
           />
         )}
 
-        {account !== undefined && <SettingsDivider />}
+        {account !== undefined && <Divider opacity={0.7} />}
 
         {account !== undefined && loggedInUser?.username && (
           <NotificationSettings
             accountId={loggedInUser.username}
-            disabled={isSaving || isChecking}
             onPreviewChange={(preview: NotificationPreview) =>
               handlePreviewChange(loggedInUser.username, account, preview)
             }
             preview={notificationPreview}
+            readOnly={isBusy}
+            readOnlyReason={WAIT_FOR_SAVE_REASON}
           />
         )}
 
-        {account !== undefined && <SettingsDivider />}
+        {account !== undefined && <Divider opacity={0.7} />}
 
         {/* The install offer's permanent home (not dismissible here, unlike the sign-in
             card). It renders its own heading and returns null when the browser can't install
@@ -383,8 +376,8 @@ const AccountSettings = (): React.ReactNode => {
           <div className="flex flex-col items-end gap-1 pt-2">
             <div className="flex w-full flex-wrap items-center justify-between gap-3">
               {/* The other half of the "Saved automatically" line on the Notifications section.
-                  A reader who changed only a notification setting arrives at a button reading
-                  "Saved" and needs to be told why, not left to press it and watch nothing happen. */}
+                  A reader who changed only a notification setting arrives at a Save with nothing to
+                  save and needs to be told why, not left to press it and watch nothing happen. */}
               <p
                 className="text-xs"
                 style={{
@@ -421,10 +414,19 @@ const AccountSettings = (): React.ReactNode => {
                 minHeight: '1.25rem',
               }}
             >
-              {isChecking ? 'Checking your mail…' : hasUnsavedChanges ? '' : saveStatus}
+              {isChecking ? (
+                'Checking your mail…'
+              ) : hasUnsavedChanges || !saveStatus ? (
+                ''
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckIcon size={12} />
+                  {saveStatus}
+                </span>
+              )}
             </p>
-            {/* Go back returns focus to Save (ConfirmDialog's trigger) and saves nothing. */}
-            <ConfirmDialog
+            {/* Go back returns focus to Save (Dialog's trigger) and saves nothing. */}
+            <Dialog
               cancelLabel="Go back"
               confirmLabel={impactCheck ? impactConfirmLabel(impactCheck) : 'Save anyway'}
               describedBy={IMPACT_LEAD_ID}
@@ -435,7 +437,7 @@ const AccountSettings = (): React.ReactNode => {
               title="Check your new block phrases"
             >
               {impactCheck && <ImpactDialogBody check={impactCheck} leadId={IMPACT_LEAD_ID} />}
-            </ConfirmDialog>
+            </Dialog>
           </div>
         )}
       </div>
@@ -485,8 +487,16 @@ const AccountSettings = (): React.ReactNode => {
 
   return (
     <>
-      <SettingsCard>{isLoading ? <LoadingSpinner /> : renderSettings()}</SettingsCard>
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      <SettingsCard>
+        {isLoading ? (
+          <div className="flex h-full min-h-[120px] items-center justify-center">
+            <Spinner label="Loading…" size={40} />
+          </div>
+        ) : (
+          renderSettings()
+        )}
+      </SettingsCard>
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

@@ -1,12 +1,27 @@
 import '@aws-amplify/ui-react/styles.css'
 import { deleteUser, signOut } from 'aws-amplify/auth'
-import { LogOut, Mail, Menu, Pencil, Send, Settings, Shield, ShieldAlert, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
-import ConfirmDialog from '@components/confirm-dialog'
-import ErrorSnackbar from '@components/error-snackbar'
 import OfflineNotice from '@components/offline-notice'
+import Button from '@components/ui/button'
+import Dialog from '@components/ui/dialog'
+import Divider from '@components/ui/divider'
+import IconButton from '@components/ui/icon-button'
+import {
+  CloseIcon,
+  IconProps,
+  LogOutIcon,
+  MailIcon,
+  MenuIcon,
+  PencilIcon,
+  SendIcon,
+  SettingsIcon,
+  ShieldAlertIcon,
+  ShieldIcon,
+  TrashIcon,
+} from '@components/ui/icons'
+import Snackbar from '@components/ui/snackbar'
 import { SIGN_OUT_TIMEOUT_MS, unsubscribeFromPush } from '@services/push'
 import { AuthUser } from '@types'
 
@@ -19,16 +34,22 @@ export interface IconDrawerProps {
   setLoggedInUser: (user?: AuthUser) => void
 }
 
-const navItems = [
-  { icon: <Pencil size={16} strokeWidth={1.5} />, label: 'Compose', path: '/compose' },
-  { icon: <Mail size={16} strokeWidth={1.5} />, label: 'Inbox', path: '/inbox' },
-  { icon: <ShieldAlert size={16} strokeWidth={1.5} />, label: 'Spam', path: '/spam' },
-  { icon: <Send size={16} strokeWidth={1.5} />, label: 'Sent', path: '/outbox' },
+interface NavItem {
+  icon: React.ComponentType<IconProps>
+  label: string
+  path: string
+}
+
+const navItems: NavItem[] = [
+  { icon: PencilIcon, label: 'Compose', path: '/compose' },
+  { icon: MailIcon, label: 'Inbox', path: '/inbox' },
+  { icon: ShieldAlertIcon, label: 'Spam', path: '/spam' },
+  { icon: SendIcon, label: 'Sent', path: '/outbox' },
 ]
 
-const settingsItems = [
-  { icon: <Settings size={16} strokeWidth={1.5} />, label: 'Settings', path: '/settings' },
-  { icon: <Shield size={16} strokeWidth={1.5} />, label: 'Privacy policy', path: '/privacy-policy' },
+const settingsItems: NavItem[] = [
+  { icon: SettingsIcon, label: 'Settings', path: '/settings' },
+  { icon: ShieldIcon, label: 'Privacy policy', path: '/privacy-policy' },
 ]
 
 const IconDrawer = ({
@@ -118,28 +139,31 @@ const IconDrawer = ({
 
   const isActive = (path: string): boolean => Boolean(pathname.match(new RegExp(`${path}/?$`)))
 
-  const renderNavItem = (
-    item: { icon: React.ReactNode; label: string; path: string },
-    index: number,
-    staggerDelay: number,
-  ): React.ReactNode => {
+  // Resting text and icons take the shell variant's --text-primary (at least 7.1:1 on the shell
+  // surfaces). The active label is --accent-hover, which clears AA on both shell surfaces where
+  // --accent doesn't; the active icon keeps --accent. The inline background replaces the variant's
+  // hover, as before.
+  const renderNavItem = (item: NavItem, index: number, staggerDelay: number): React.ReactNode => {
     const active = isActive(item.path)
+    const Icon = item.icon
     return (
       <li key={index}>
-        <button
-          className="group relative flex w-full items-center gap-3"
+        <Button
+          aria-current={active ? 'page' : undefined}
+          className="group relative w-full"
           onClick={() => {
             router.push(item.path)
             closeMenu()
           }}
           style={{
+            display: 'flex',
+            gap: '12px',
             padding: navMenuOpen ? '11px 16px' : '11px 0',
             justifyContent: navMenuOpen ? 'flex-start' : 'center',
             background: active
               ? 'linear-gradient(90deg, rgba(124,93,244,0.15) 0%, rgba(124,93,244,0.04) 100%)'
               : 'transparent',
             borderRadius: '10px',
-            cursor: 'pointer',
             transition: 'background 0.2s cubic-bezier(0.32,0.72,0,1)',
             ...(navMenuOpen
               ? {
@@ -149,6 +173,7 @@ const IconDrawer = ({
               : {}),
           }}
           title={navMenuOpen ? undefined : item.label}
+          variant="shell"
         >
           {/* Icon container */}
           <div
@@ -162,14 +187,14 @@ const IconDrawer = ({
               flexShrink: 0,
               background: active ? 'var(--accent-subtle)' : 'transparent',
               border: active ? '1px solid var(--accent-border)' : '1px solid transparent',
-              color: active ? 'var(--accent)' : 'var(--text-muted)',
+              color: active ? 'var(--accent)' : undefined,
               transition: 'all 0.2s cubic-bezier(0.32,0.72,0,1)',
               marginLeft: navMenuOpen ? '0' : 'auto',
               marginRight: navMenuOpen ? '0' : 'auto',
               boxShadow: active ? 'var(--glow-accent-sm)' : 'none',
             }}
           >
-            {item.icon}
+            <Icon />
           </div>
 
           {/* Label */}
@@ -183,7 +208,7 @@ const IconDrawer = ({
               fontSize: '14px',
               fontWeight: active ? 600 : 400,
               letterSpacing: '0.01em',
-              color: active ? 'var(--accent)' : 'var(--text-primary)',
+              color: active ? 'var(--accent-hover)' : undefined,
               transition: 'max-width 0.25s cubic-bezier(0.32,0.72,0,1), opacity 0.2s ease',
             }}
           >
@@ -204,31 +229,31 @@ const IconDrawer = ({
               }}
             />
           )}
-        </button>
+        </Button>
       </li>
     )
   }
 
+  // The shell variant paints the --shell-surface-hover background on hover.
   const renderDangerItem = (
-    icon: React.ReactNode,
+    Icon: React.ComponentType<IconProps>,
     label: string,
     onClick: () => void,
     index: number,
   ): React.ReactNode => (
     <li key={index}>
-      <button
-        className="group flex w-full items-center gap-3"
+      <Button
+        className="group w-full"
         onClick={onClick}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)')}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
         style={{
+          display: 'flex',
+          gap: '12px',
           padding: navMenuOpen ? '10px 16px' : '10px 0',
           justifyContent: navMenuOpen ? 'flex-start' : 'center',
-          borderRadius: '10px',
-          cursor: 'pointer',
           transition: 'background 0.2s cubic-bezier(0.32,0.72,0,1)',
         }}
         title={navMenuOpen ? undefined : label}
+        variant="shell"
       >
         <div
           style={{
@@ -239,12 +264,11 @@ const IconDrawer = ({
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            color: 'var(--text-muted)',
             marginLeft: navMenuOpen ? '0' : 'auto',
             marginRight: navMenuOpen ? '0' : 'auto',
           }}
         >
-          {icon}
+          <Icon />
         </div>
         <span
           style={{
@@ -254,13 +278,12 @@ const IconDrawer = ({
             opacity: navMenuOpen ? 1 : 0,
             fontFamily: 'Outfit, sans-serif',
             fontSize: '14px',
-            color: 'var(--text-muted)',
             transition: 'max-width 0.25s cubic-bezier(0.32,0.72,0,1), opacity 0.2s ease',
           }}
         >
           {label}
         </span>
-      </button>
+      </Button>
     </li>
   )
 
@@ -371,63 +394,25 @@ const IconDrawer = ({
               </div>
 
               {/* Close button */}
-              <button
-                aria-label="Close navigation menu"
+              <IconButton
+                icon={CloseIcon}
+                label="Close navigation menu"
                 onClick={closeMenu}
-                onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
-                  ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-                }}
-                onMouseLeave={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-                }}
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease, color 0.15s ease',
-                }}
-              >
-                <X size={14} strokeWidth={1.5} />
-              </button>
+                size={14}
+                style={{ borderRadius: '8px', height: '30px', width: '30px' }}
+                variant="shell"
+              />
             </>
           ) : (
             /* Collapsed: hamburger → monogram toggle */
-            <button
-              aria-label="Open navigation menu"
+            <IconButton
+              icon={MenuIcon}
+              label="Open navigation menu"
               onClick={openMenu}
-              onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'var(--shell-surface-hover)'
-                ;(e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'
-              }}
-              onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-              }}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease, color 0.15s ease',
-              }}
-            >
-              <Menu size={17} strokeWidth={1.5} />
-            </button>
+              size={17}
+              style={{ height: '36px', width: '36px' }}
+              variant="shell"
+            />
           )}
         </div>
 
@@ -447,13 +432,9 @@ const IconDrawer = ({
           </ul>
 
           {/* Divider */}
-          <div
-            style={{
-              margin: '10px 4px',
-              height: '1px',
-              background: 'var(--shell-border)',
-            }}
-          />
+          <div style={{ margin: '10px 4px' }}>
+            <Divider surface="shell" />
+          </div>
 
           <ul
             style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
@@ -468,7 +449,7 @@ const IconDrawer = ({
             style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
           >
             {renderDangerItem(
-              <LogOut size={16} strokeWidth={1.5} />,
+              LogOutIcon,
               'Sign out',
               () => {
                 closeMenu()
@@ -477,12 +458,7 @@ const IconDrawer = ({
               },
               0,
             )}
-            {renderDangerItem(
-              <Trash2 size={16} strokeWidth={1.5} />,
-              'Delete account',
-              () => setShowDeleteDialog(true),
-              1,
-            )}
+            {renderDangerItem(TrashIcon, 'Delete account', () => setShowDeleteDialog(true), 1)}
           </ul>
 
           {/* User avatar */}
@@ -549,7 +525,7 @@ const IconDrawer = ({
         {children}
       </div>
 
-      <ConfirmDialog
+      <Dialog
         cancelLabel="Go back"
         confirmLabel="Delete my account"
         onCancel={() => setShowDeleteDialog(false)}
@@ -558,8 +534,8 @@ const IconDrawer = ({
         title="Delete account?"
       >
         Deleting your account is permanent. Basic server logs are kept for up to 30 days.
-      </ConfirmDialog>
-      <ErrorSnackbar
+      </Dialog>
+      <Snackbar
         message={showDeleteErrorSnackbar ? "Couldn't delete your account. Please try again." : undefined}
         onClose={() => setShowDeleteErrorSnackbar(false)}
       />

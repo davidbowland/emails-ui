@@ -1,12 +1,14 @@
-import { X } from 'lucide-react'
 import React from 'react'
 
-export interface ErrorSnackbarProps {
+import IconButton from '@components/ui/icon-button'
+import { CloseIcon } from '@components/ui/icons'
+
+export interface SnackbarProps {
   message: string | undefined
   onClose: () => void
 }
 
-const ErrorSnackbar = ({ message, onClose }: ErrorSnackbarProps): React.ReactNode => {
+const Snackbar = ({ message, onClose }: SnackbarProps): React.ReactNode => {
   if (message === undefined) {
     return null
   }
@@ -32,16 +34,17 @@ const ErrorSnackbar = ({ message, onClose }: ErrorSnackbarProps): React.ReactNod
           style={{ background: 'var(--accent)' }}
         />
         <span style={{ color: 'var(--text-paper)', minWidth: 0, overflowWrap: 'anywhere' }}>{message}</span>
-        <button
-          aria-label="Close"
-          className="btn-close ml-1 flex flex-shrink-0 items-center transition-opacity"
+        <IconButton
+          className="ml-1 flex-shrink-0 transition-opacity"
+          icon={CloseIcon}
+          label="Close"
           onClick={onClose}
-        >
-          <X aria-hidden="true" size={14} strokeWidth={1.5} />
-        </button>
+          size={14}
+          variant="close"
+        />
       </div>
     </div>
   )
 }
 
-export default ErrorSnackbar
+export default Snackbar

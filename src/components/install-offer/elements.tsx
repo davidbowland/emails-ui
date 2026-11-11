@@ -1,13 +1,19 @@
 import React from 'react'
 
+import Button from '@components/ui/button'
+import { ChevronDownIcon, DownloadIcon, IconProps, IconSize, ShieldCheckIcon } from '@components/ui/icons'
+import SectionHeading from '@components/ui/section-heading'
 import { InstallSurface } from '@types'
 
 // --- Surface tokens -------------------------------------------------------------------
 // Never uses --text-muted for readable text: it fails AA on the shell (2.29:1). Shell text
-// is --text-primary (7.84:1), paper text is --text-paper (15.28:1).
+// is --text-primary (at least 7.1:1), paper text is --text-paper (15.28:1).
 
 export interface SurfaceTokens {
   border: string
+  // The library variant for this surface's text-style buttons. Each button paints its own
+  // background and text color inline, so the variant contributes its focus ring and cursor.
+  buttonVariant: 'shell' | 'toolbar'
   cardBg: string
   disclosureFill: string
   iconAccent: string
@@ -18,6 +24,7 @@ export const getSurfaceTokens = (surface: InstallSurface): SurfaceTokens =>
   surface === 'paper'
     ? {
         border: 'var(--paper-border)',
+        buttonVariant: 'toolbar',
         cardBg: 'var(--paper-bg)',
         disclosureFill: 'rgba(0,0,0,0.035)',
         iconAccent: 'var(--accent-deep)',
@@ -25,100 +32,24 @@ export const getSurfaceTokens = (surface: InstallSurface): SurfaceTokens =>
       }
     : {
         border: 'var(--shell-border)',
+        buttonVariant: 'shell',
         cardBg: 'var(--shell-surface-hover)',
         disclosureFill: 'rgba(255,255,255,0.035)',
         iconAccent: 'var(--accent-hover)',
         text: 'var(--text-primary)',
       }
 
-// --- Icons (stroke-based inline SVG, no lucide-react) ---------------------------------
+// --- Icon tile (icon + surface, paired with a text heading elsewhere) ------------------
 
-interface IconProps {
-  size?: number
-}
-
-const svgProps = (size: number) => ({
-  'aria-hidden': true as const,
-  fill: 'none',
-  height: size,
-  stroke: 'currentColor',
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  strokeWidth: 1.75,
-  viewBox: '0 0 24 24',
-  width: size,
-})
-
-export const DownloadIcon = ({ size = 16 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <path d="M12 3v12" />
-    <path d="m7 10 5 5 5-5" />
-    <path d="M4 21h16" />
-  </svg>
-)
-
-export const WindowIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <rect height="16" rx="2" width="20" x="2" y="4" />
-    <path d="M2 9h20" />
-  </svg>
-)
-
-export const AppsIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <rect height="7" rx="1.5" width="7" x="3" y="3" />
-    <rect height="7" rx="1.5" width="7" x="14" y="3" />
-    <rect height="7" rx="1.5" width="7" x="3" y="14" />
-    <rect height="7" rx="1.5" width="7" x="14" y="14" />
-  </svg>
-)
-
-export const OfflineIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <path d="M5 12.5a4 4 0 0 1 3.6-4" />
-    <path d="M17 8.5a4.5 4.5 0 0 1 .5 9H7" />
-    <path d="m2 2 20 20" />
-  </svg>
-)
-
-export const ShieldIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <path d="M12 3 4 6v6c0 4.5 3.2 8.3 8 9 4.8-.7 8-4.5 8-9V6Z" />
-    <path d="m9 12 2 2 4-4" />
-  </svg>
-)
-
-export const ChevronDownIcon = ({ size = 16 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-)
-
-export const MenuDotsIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <circle cx="12" cy="5" r="1.4" />
-    <circle cx="12" cy="12" r="1.4" />
-    <circle cx="12" cy="19" r="1.4" />
-  </svg>
-)
-
-export const PhoneIcon = ({ size = 18 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <rect height="20" rx="3" width="12" x="6" y="2" />
-    <path d="M11 18.5h2" />
-  </svg>
-)
-
-export const RefreshIcon = ({ size = 16 }: IconProps): React.ReactNode => (
-  <svg {...svgProps(size)}>
-    <path d="M21 12a9 9 0 1 1-3-6.7" />
-    <path d="M21 4v5h-5" />
-  </svg>
-)
-
-// --- Badge (icon + surface, paired with a text heading elsewhere) ---------------------
-
-export const Badge = ({ children, tokens }: { children: React.ReactNode; tokens: SurfaceTokens }): React.ReactNode => (
+export const IconTile = ({
+  icon: Icon,
+  size,
+  tokens,
+}: {
+  icon: React.ComponentType<IconProps>
+  size: IconSize
+  tokens: SurfaceTokens
+}): React.ReactNode => (
   <div
     aria-hidden="true"
     style={{
@@ -134,73 +65,66 @@ export const Badge = ({ children, tokens }: { children: React.ReactNode; tokens:
       width: '36px',
     }}
   >
-    {children}
+    <Icon size={size} />
   </div>
 )
 
 // --- Install button (filled, white on --accent-deep: 5.34:1) --------------------------
 
 export const InstallButton = ({ onClick }: { onClick: () => void }): React.ReactNode => (
-  <button
+  <Button
+    className="min-h-9"
+    icon={DownloadIcon}
     onClick={onClick}
     style={{
-      alignItems: 'center',
       background: 'var(--accent-deep)',
-      border: 'none',
       borderRadius: '10px',
       boxShadow: 'var(--shadow-sm)',
-      color: '#ffffff',
-      cursor: 'pointer',
-      display: 'inline-flex',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '14px',
       fontWeight: 500,
-      gap: '8px',
-      minHeight: '36px',
       padding: '8px 18px',
       whiteSpace: 'nowrap',
     }}
-    type="button"
+    variant="primary"
   >
-    <span aria-hidden="true" style={{ display: 'inline-flex' }}>
-      <DownloadIcon />
-    </span>
     Install
-  </button>
+  </Button>
 )
 
 // --- Collapsed one-line link ----------------------------------------------------------
 
-export const CollapsedLink = React.forwardRef<HTMLButtonElement, { onClick: () => void; tokens: SurfaceTokens }>(
-  ({ onClick, tokens }, ref): React.ReactNode => (
-    <button
-      onClick={onClick}
-      ref={ref}
-      style={{
-        alignItems: 'center',
-        background: 'none',
-        border: 'none',
-        color: tokens.text,
-        cursor: 'pointer',
-        display: 'inline-flex',
-        fontFamily: 'Outfit, sans-serif',
-        fontSize: '13px',
-        gap: '8px',
-        minHeight: '26px',
-        padding: '3px 8px',
-        textDecoration: 'underline',
-        textUnderlineOffset: '3px',
-      }}
-      type="button"
-    >
-      <span aria-hidden="true" style={{ color: tokens.iconAccent, display: 'inline-flex' }}>
-        <DownloadIcon />
-      </span>
-      Install Email
-    </button>
-  ),
+export const CollapsedLink = ({
+  onClick,
+  ref,
+  tokens,
+}: {
+  onClick: () => void
+  ref?: React.Ref<HTMLButtonElement>
+  tokens: SurfaceTokens
+}): React.ReactNode => (
+  <Button
+    className="min-h-[26px]"
+    onClick={onClick}
+    ref={ref}
+    style={{
+      background: 'none',
+      borderRadius: 0,
+      color: tokens.text,
+      fontFamily: 'Outfit, sans-serif',
+      fontSize: '13px',
+      padding: '3px 8px',
+      textDecoration: 'underline',
+      textUnderlineOffset: '3px',
+    }}
+    variant={tokens.buttonVariant}
+  >
+    <span style={{ color: tokens.iconAccent, display: 'inline-flex' }}>
+      <DownloadIcon />
+    </span>
+    Install Email
+  </Button>
 )
-CollapsedLink.displayName = 'CollapsedLink'
 
 // --- Disclosure trigger (bordered, single line, chevron pinned right) -----------------
 
@@ -217,36 +141,33 @@ export const DisclosureTrigger = ({
   onToggle: () => void
   tokens: SurfaceTokens
 }): React.ReactNode => (
-  <button
+  <Button
     aria-controls={controls}
     aria-expanded={expanded}
+    className="min-h-8"
     onClick={onToggle}
     style={{
-      alignItems: 'center',
       background: tokens.disclosureFill,
       border: `1px solid ${tokens.border}`,
       borderRadius: '9px',
       color: tokens.text,
-      cursor: 'pointer',
       // Full-width, and the label is free to wrap: on a narrow card an inline nowrap control
       // ran off the edge and pushed the chevron off-screen.
       display: 'flex',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '13px',
       fontWeight: 500,
-      gap: '8px',
+      justifyContent: 'flex-start',
       letterSpacing: '0.01em',
       marginTop: '14px',
-      minHeight: '32px',
       padding: '6px 12px',
       textAlign: 'left',
       width: '100%',
     }}
-    type="button"
+    variant={tokens.buttonVariant}
   >
     <span style={{ overflowWrap: 'anywhere' }}>{label}</span>
     <span
-      aria-hidden="true"
       style={{
         display: 'inline-flex',
         flexShrink: 0,
@@ -258,7 +179,7 @@ export const DisclosureTrigger = ({
     >
       <ChevronDownIcon />
     </span>
-  </button>
+  </Button>
 )
 
 // --- Numbered step list (number AND text, never a hue-only indicator) -----------------
@@ -314,29 +235,22 @@ export const ChangesPanel = ({
   changesHeadingId,
   reassuranceHeading,
   reassuranceLines,
+  surface,
   tokens,
 }: {
   changes: Change[]
   changesHeadingId: string
   reassuranceHeading: string
   reassuranceLines: string[]
+  surface: InstallSurface
   tokens: SurfaceTokens
 }): React.ReactNode => (
   <div style={{ borderTop: `1px solid ${tokens.border}`, marginTop: '14px', paddingTop: '14px' }}>
-    <h3
-      id={changesHeadingId}
-      style={{
-        color: tokens.text,
-        fontFamily: 'Outfit, sans-serif',
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.1em',
-        margin: '0 0 12px',
-        textTransform: 'uppercase',
-      }}
-    >
-      What changes
-    </h3>
+    <div style={{ marginBottom: '12px' }}>
+      <SectionHeading as="h3" id={changesHeadingId} size={11} surface={surface} tone="strong">
+        What changes
+      </SectionHeading>
+    </div>
     <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
       {changes.map((change, index) => (
         <div key={index} style={{ alignItems: 'flex-start', display: 'flex', gap: '10px', minWidth: 0 }}>
@@ -382,7 +296,7 @@ export const ChangesPanel = ({
       }}
     >
       <span aria-hidden="true" style={{ color: tokens.iconAccent, marginTop: '2px' }}>
-        <ShieldIcon />
+        <ShieldCheckIcon size={18} />
       </span>
       <div>
         <h3

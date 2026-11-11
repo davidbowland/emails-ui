@@ -1,6 +1,7 @@
-import { Check, TriangleAlert } from 'lucide-react'
 import React from 'react'
 
+import { CheckIcon, TriangleAlertIcon } from '@components/ui/icons'
+import Spinner from '@components/ui/spinner'
 import { SpamCheckedCount, SpamFolderImpact, SpamImpactResponse, SpamPhraseImpact } from '@types'
 
 type Checked = SpamImpactResponse['checked']
@@ -45,22 +46,14 @@ export const isSpamImpactResponse = (value: unknown, phraseCount: number): value
 
 const emailNoun = (count: number): string => (count === 1 ? 'email' : 'emails')
 
-const AlertIcon = (): React.ReactNode => (
-  <TriangleAlert
-    aria-hidden="true"
-    className="mt-px flex-shrink-0"
-    size={12}
-    strokeWidth={2}
-    style={{ color: 'var(--accent)' }}
-  />
+const AlertMark = (): React.ReactNode => (
+  <TriangleAlertIcon className="mt-px flex-shrink-0" size={12} style={{ color: 'var(--accent)' }} />
 )
 
-const CheckIcon = (): React.ReactNode => (
-  <Check aria-hidden="true" className="mt-px flex-shrink-0" size={12} strokeWidth={2} />
-)
+const CheckMark = (): React.ReactNode => <CheckIcon className="mt-px flex-shrink-0" size={12} />
 
-// Spans with list roles instead of <ul>, because this renders inside a <label> in the suggestions
-// modal, where a list element is invalid HTML.
+// Spans with list roles instead of <ul>, so these lines stay phrasing content wherever they are placed,
+// including inside a <label>, where a list element is invalid HTML.
 const EmailList = ({ folder }: { folder: SpamFolderImpact }): React.ReactNode => (
   <span className="mt-0.5 list-disc pl-4" role="list" style={{ color: 'var(--text-paper-muted)', display: 'block' }}>
     {folder.emails.map((email) => (
@@ -93,7 +86,7 @@ const InboxLine = ({
   if (impact.count > 0) {
     return (
       <>
-        <AlertIcon />
+        <AlertMark />
         <span className="min-w-0">
           <span id={textId}>
             Matches {impact.count} of {checked.checked} Inbox {emailNoun(checked.checked)}:
@@ -106,7 +99,7 @@ const InboxLine = ({
   if (checked.total === 0) {
     return (
       <>
-        <CheckIcon />
+        <CheckMark />
         <span id={textId}>Your Inbox is empty, so we had nothing to check.</span>
       </>
     )
@@ -114,7 +107,7 @@ const InboxLine = ({
   if (checked.checked === 0) {
     return (
       <>
-        <AlertIcon />
+        <AlertMark />
         <span id={textId}>We couldn&apos;t check your Inbox.</span>
       </>
     )
@@ -122,7 +115,7 @@ const InboxLine = ({
   if (inboxIncomplete) {
     return (
       <>
-        <AlertIcon />
+        <AlertMark />
         <span id={textId}>
           No matches in {checked.checked} Inbox {emailNoun(checked.checked)}, but we couldn&apos;t check the rest of
           your Inbox.
@@ -132,7 +125,7 @@ const InboxLine = ({
   }
   return (
     <>
-      <CheckIcon />
+      <CheckMark />
       <span id={textId}>
         No matches in {checked.checked} Inbox {emailNoun(checked.checked)}
       </span>
@@ -155,7 +148,7 @@ const SpamLine = ({
   if (impact.count > 0) {
     return (
       <span className={LINE_CLASS} style={LINE_STYLE}>
-        <CheckIcon />
+        <CheckMark />
         <span className="min-w-0">
           <span id={textId}>
             {/* "Also" only follows an Inbox match. */}
@@ -206,18 +199,16 @@ export const PhraseImpact = ({ checked, id, impact, inboxIncomplete }: PhraseImp
 // stays mounted.
 export const PhraseImpactPending = ({ id }: { id: string }): React.ReactNode => (
   <span className={LINE_CLASS} id={id} style={LINE_STYLE}>
-    <span
-      aria-hidden="true"
-      className="mt-px inline-block h-3 w-3 flex-shrink-0 animate-spin rounded-full"
-      style={{ border: '2px solid var(--paper-border)', borderTopColor: 'var(--accent)' }}
-    />
+    <span aria-hidden="true" className="mt-px inline-flex flex-shrink-0">
+      <Spinner size={12} />
+    </span>
     <span>Checking your mail…</span>
   </span>
 )
 
 export const PhraseImpactFailed = ({ id }: { id: string }): React.ReactNode => (
   <span className={LINE_CLASS} id={id} style={LINE_STYLE}>
-    <AlertIcon />
+    <AlertMark />
     <span>We couldn&apos;t check this phrase against your mail.</span>
   </span>
 )

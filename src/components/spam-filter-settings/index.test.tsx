@@ -28,10 +28,18 @@ describe('SpamFilterSettings', () => {
 
   const renderSettings = (
     value: SpamFilter = spamFilter,
-    disabled = false,
+    readOnly = false,
     ref?: React.Ref<SpamFilterSettingsHandle>,
   ): void => {
-    render(<SpamFilterSettings disabled={disabled} onChange={onChange} ref={ref} value={value} />)
+    render(
+      <SpamFilterSettings
+        onChange={onChange}
+        readOnly={readOnly}
+        readOnlyReason="Wait until Save finishes."
+        ref={ref}
+        value={value}
+      />,
+    )
   }
 
   const phraseBox = (): HTMLInputElement => screen.getByRole('textbox', { name: 'Block phrases:' }) as HTMLInputElement
@@ -61,7 +69,7 @@ describe('SpamFilterSettings', () => {
     it('explains the score on the group itself (AC-037)', () => {
       renderSettings()
 
-      expect(screen.getByRole('group', { name: 'Sensitivity' })).toHaveAccessibleDescription(
+      expect(screen.getByRole('radiogroup', { name: 'Sensitivity' })).toHaveAccessibleDescription(
         'Every new email gets a spam score from warning signs like hidden characters in your domain, placeholder text such as {{First Name}}, and "reply NO to stop" lines. Sensitivity sets how high that score must be before mail goes to Spam. Mail that fails our spam or virus scan on arrival always goes to Spam.',
       )
     })
@@ -231,6 +239,26 @@ describe('SpamFilterSettings', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Remove crypto' }))
 
       expect(onChange).toHaveBeenCalledWith({ ...spamFilter, blockPhrases: [] })
+    })
+
+    it('removes nothing while the page is saving, and says why', async () => {
+      renderSettings(spamFilter, true)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Remove crypto' }))
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(screen.getAllByRole('status').map((region) => region.textContent)).toContain('Wait until Save finishes.')
+    })
+
+    it('keeps a phrase typed before the save in its box, unadded, while the page is saving', async () => {
+      const { rerender } = render(<SpamFilterSettings onChange={onChange} readOnly={false} value={spamFilter} />)
+
+      await userEvent.type(phraseBox(), 'invoice')
+      rerender(<SpamFilterSettings onChange={onChange} readOnly={true} value={spamFilter} />)
+      await userEvent.type(phraseBox(), '{Enter}')
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(phraseBox()).toHaveValue('invoice')
     })
   })
 

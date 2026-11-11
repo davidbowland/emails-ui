@@ -1,19 +1,20 @@
 import React from 'react'
 
-import ConfirmDialog from './index'
+import Dialog from './index'
+import Button from '@components/ui/button'
 import '@testing-library/jest-dom'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-describe('ConfirmDialog component', () => {
+describe('Dialog component', () => {
   const onCancel = jest.fn()
   const onConfirm = jest.fn()
 
   it('should render title and children when open', () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     expect(screen.getByText(/Delete item\?/i)).toBeVisible()
@@ -22,16 +23,10 @@ describe('ConfirmDialog component', () => {
 
   it('should be described by the element describedBy names', () => {
     render(
-      <ConfirmDialog
-        describedBy="dialog-lead"
-        onCancel={onCancel}
-        onConfirm={onConfirm}
-        open={true}
-        title="Delete item?"
-      >
+      <Dialog describedBy="dialog-lead" onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         <p id="dialog-lead">This cannot be undone.</p>
         <p>Other detail.</p>
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     expect(screen.getByRole('dialog', { name: 'Delete item?' })).toHaveAccessibleDescription('This cannot be undone.')
@@ -39,41 +34,41 @@ describe('ConfirmDialog component', () => {
 
   it('should have no description without describedBy', () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     expect(screen.getByRole('dialog', { name: 'Delete item?' })).toHaveAccessibleDescription('')
   })
 
-  it('should call onCancel when cancel button is clicked', () => {
+  it('should call onCancel when cancel button is clicked', async () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
-    fireEvent.click(screen.getByText(/Cancel/i, { selector: 'button' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 
-  it('should call onConfirm when confirm button is clicked', () => {
+  it('should call onConfirm when confirm button is clicked', async () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
-    fireEvent.click(screen.getByText(/Confirm/i, { selector: 'button' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
   it('should use custom button labels when provided', () => {
     render(
-      <ConfirmDialog
+      <Dialog
         cancelLabel="Go back"
         confirmLabel="Continue"
         onCancel={onCancel}
@@ -82,18 +77,18 @@ describe('ConfirmDialog component', () => {
         title="Delete item?"
       >
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
-    expect(screen.getByText(/Go back/i, { selector: 'button' })).toBeVisible()
-    expect(screen.getByText(/Continue/i, { selector: 'button' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeVisible()
   })
 
   it('should be named by its title', () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} title="Delete item?">
         Are you sure?
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     expect(screen.getByRole('dialog', { name: 'Delete item?' })).toBeInTheDocument()
@@ -102,14 +97,14 @@ describe('ConfirmDialog component', () => {
   it('should render a custom footer in place of the default buttons', async () => {
     const onApply = jest.fn()
     render(
-      <ConfirmDialog
+      <Dialog
         footer={<button onClick={onApply}>Apply changes</button>}
         onCancel={onCancel}
         open={true}
         title="Suggested rule changes"
       >
         Pick the changes you want.
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
@@ -121,10 +116,10 @@ describe('ConfirmDialog component', () => {
 
   it('should show its content and buttons when scrollable', async () => {
     render(
-      <ConfirmDialog onCancel={onCancel} onConfirm={onConfirm} open={true} scrollable={true} title="Long list">
+      <Dialog onCancel={onCancel} onConfirm={onConfirm} open={true} scrollable={true} title="Long list">
         <p>First row</p>
         <p>Last row</p>
-      </ConfirmDialog>,
+      </Dialog>,
     )
 
     expect(screen.getByText('First row')).toBeVisible()
@@ -137,9 +132,9 @@ describe('ConfirmDialog component', () => {
     const DialogHarness = ({ footer, open }: { footer?: React.ReactNode; open: boolean }): React.ReactNode => (
       <>
         <button>Open dialog</button>
-        <ConfirmDialog footer={footer} onCancel={onCancel} onConfirm={onConfirm} open={open} title="Check">
+        <Dialog footer={footer} onCancel={onCancel} onConfirm={onConfirm} open={open} title="Check">
           Body
-        </ConfirmDialog>
+        </Dialog>
       </>
     )
 
@@ -199,6 +194,34 @@ describe('ConfirmDialog component', () => {
       await userEvent.keyboard('{Escape}')
 
       expect(onCancel).toHaveBeenCalledTimes(1)
+    })
+
+    it('should stay open when a control inside has already handled Escape', async () => {
+      const footer = (
+        <button onKeyDown={(event) => event.key === 'Escape' && event.preventDefault()}>Handles Escape</button>
+      )
+      const { rerender } = render(<DialogHarness footer={footer} open={false} />)
+      rerender(<DialogHarness footer={footer} open={true} />)
+
+      await userEvent.keyboard('{Escape}')
+
+      expect(onCancel).not.toHaveBeenCalled()
+      expect(screen.getByRole('dialog', { name: 'Check' })).toBeVisible()
+    })
+
+    it('should close only the reason when Escape is pressed on an unavailable button', async () => {
+      const footer = <Button unavailableReason="Pick a sender first.">Apply</Button>
+      const { rerender } = render(<DialogHarness footer={footer} open={false} />)
+      rerender(<DialogHarness footer={footer} open={true} />)
+      const dialog = screen.getByRole('dialog', { name: 'Check' })
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Apply' }))
+      expect(within(dialog).getByRole('status')).toHaveTextContent('Pick a sender first.')
+
+      await userEvent.keyboard('{Escape}')
+
+      expect(within(dialog).getByRole('status')).toBeEmptyDOMElement()
+      expect(dialog).toBeVisible()
+      expect(onCancel).not.toHaveBeenCalled()
     })
 
     it('should return focus to the trigger when closed', async () => {

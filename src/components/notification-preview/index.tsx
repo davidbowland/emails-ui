@@ -38,6 +38,7 @@ const NotificationPreviewFigure = ({ preview }: NotificationPreviewProps): React
           padding: '12px 14px',
         }}
       >
+        {/* The app's brand mark, drawn as a letter, not an icon. */}
         <span
           aria-hidden="true"
           style={{

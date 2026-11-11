@@ -15,7 +15,7 @@ jest.mock('dompurify')
 jest.mock('@components/address-line')
 jest.mock('@components/attachment-viewer')
 jest.mock('@components/compose')
-jest.mock('@components/confirm-dialog', () => {
+jest.mock('@components/ui/dialog', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ cancelLabel, children, confirmLabel, onCancel, onConfirm, open, title }: any) =>
@@ -28,7 +28,7 @@ jest.mock('@components/confirm-dialog', () => {
       React.createElement('button', { onClick: onConfirm }, confirmLabel),
     )
 })
-jest.mock('@components/error-snackbar', () => {
+jest.mock('@components/ui/snackbar', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
@@ -37,7 +37,7 @@ jest.mock('@components/error-snackbar', () => {
           'div',
           { role: 'alert' },
           message,
-          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, 'Close'),
         )
       : null
 })

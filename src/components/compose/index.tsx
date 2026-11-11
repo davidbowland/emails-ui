@@ -2,12 +2,15 @@ import { getCurrentUser } from 'aws-amplify/auth'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
-import { ComposeDivider, DiscardButton, SendButton } from './elements'
+import { DiscardButton, SENDING_REASON, SendButton } from './elements'
 import AddressLine from '@components/address-line'
 import AttachmentUploader from '@components/attachment-uploader'
-import ConfirmDialog from '@components/confirm-dialog'
-import ErrorSnackbar from '@components/error-snackbar'
 import HtmlEditor from '@components/html-editor'
+import Dialog from '@components/ui/dialog'
+import Divider from '@components/ui/divider'
+import SectionHeading from '@components/ui/section-heading'
+import Snackbar from '@components/ui/snackbar'
+import TextInput from '@components/ui/text-input'
 import { postSentEmail } from '@services/emails'
 import { AuthUser, EmailAddress, EmailAttachment, EmailOutbound } from '@types'
 
@@ -167,20 +170,15 @@ const Compose = ({
             className="flex flex-shrink-0 items-center justify-between px-8 py-4"
             style={{ borderBottom: '1px solid var(--paper-border)' }}
           >
-            <span
-              className="text-xs font-semibold uppercase tracking-widest"
-              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-            >
-              New Message
-            </span>
+            <SectionHeading as="div">New message</SectionHeading>
           </div>
 
           {/* Address fields */}
           <div className="flex-shrink-0" style={{ borderBottom: '1px solid var(--paper-border)' }}>
             <AddressLine addresses={toAddresses} label="To:" setAddresses={setToAddresses} />
-            <div style={{ height: '1px', background: 'var(--paper-border)' }} />
+            <Divider />
             <AddressLine addresses={ccAddresses} label="CC:" setAddresses={setCcAddresses} />
-            <div style={{ height: '1px', background: 'var(--paper-border)' }} />
+            <Divider />
             <AddressLine addresses={bccAddresses} label="BCC:" setAddresses={setBccAddresses} />
           </div>
           {recipientMessage && (
@@ -191,29 +189,30 @@ const Compose = ({
 
           {/* Subject */}
           <div className="flex-shrink-0" style={{ borderBottom: '1px solid var(--paper-border)' }}>
-            <input
+            <TextInput
               aria-label="Subject"
-              className="w-full bg-transparent px-8 py-3 font-display outline-none"
+              className="font-display"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSubject(event.target.value)}
               placeholder="Subject"
               style={{
+                fontFamily: 'Libre Baskerville, Georgia, serif',
                 fontSize: '18px',
                 fontWeight: 400,
-                color: 'var(--text-paper)',
-                fontFamily: 'Libre Baskerville, Georgia, serif',
+                padding: '12px 32px',
               }}
               value={subject}
+              variant="bare"
             />
           </div>
 
-          <ComposeDivider />
+          <Divider />
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-8 py-4">
             <HtmlEditor initialBody={initialBody} inputRef={editor} />
           </div>
 
-          <ComposeDivider />
+          <Divider />
 
           {/* Footer: attachments + actions */}
           <div className="flex-shrink-0" style={{ borderTop: '1px solid var(--paper-border)' }}>
@@ -230,11 +229,13 @@ const Compose = ({
               </p>
             )}
             <div className="flex items-center justify-end gap-3 px-8 py-4">
-              <DiscardButton disabled={isSubmitting} onClick={() => setIsDiscardDialogOpen(true)} />
+              <DiscardButton
+                onClick={() => setIsDiscardDialogOpen(true)}
+                unavailableReason={isSubmitting ? SENDING_REASON : undefined}
+              />
               {loggedInUser?.username && editor.current && (
                 <SendButton
-                  disabled={isSubmitting}
-                  isSubmitting={isSubmitting}
+                  busy={isSubmitting}
                   onClick={() =>
                     loggedInUser?.username && editor.current && handleSendClick(loggedInUser.username, editor.current)
                   }
@@ -245,7 +246,7 @@ const Compose = ({
         </div>
       </div>
 
-      <ConfirmDialog
+      <Dialog
         cancelLabel="Keep editing"
         confirmLabel="Discard"
         onCancel={discardDialogClose}
@@ -260,8 +261,8 @@ const Compose = ({
         title="Discard message?"
       >
         Your draft will be permanently deleted.
-      </ConfirmDialog>
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      </Dialog>
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

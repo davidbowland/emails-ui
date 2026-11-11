@@ -1,8 +1,8 @@
 import axios from 'axios'
 import React, { useRef, useState } from 'react'
 
-import { AttachmentButton } from './elements'
-import ErrorSnackbar from '@components/error-snackbar'
+import { AttachmentButton, DOWNLOADING_REASON } from './elements'
+import Snackbar from '@components/ui/snackbar'
 import { EmailAttachment, SignedUrl } from '@types'
 
 type getAttachmentFn = (accountId: string, emailId: string, attachmentId: string) => Promise<SignedUrl>
@@ -61,7 +61,6 @@ const AttachmentViewer = ({
         <span>Attachments:</span>
         {attachments.map((attachment, index) => (
           <AttachmentButton
-            disabled={attachmentDownloading !== undefined}
             filename={attachment.filename}
             isDownloading={attachmentDownloading === attachment.id}
             key={index}
@@ -73,11 +72,16 @@ const AttachmentViewer = ({
                 ? `${(attachment.size / 1_000_000).toFixed(1)} MB`
                 : `${Math.round(attachment.size / 1000)} KB`
             }
+            unavailableReason={
+              attachmentDownloading === undefined || attachmentDownloading === attachment.id
+                ? undefined
+                : DOWNLOADING_REASON
+            }
           />
         ))}
       </div>
       <a ref={anchorRef} style={{ display: 'none' }}></a>
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

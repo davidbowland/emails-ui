@@ -127,13 +127,56 @@ describe('SpamNotice component', () => {
     it('shows saving and ignores presses while saving', async () => {
       render(<SpamNotice {...baseProps} trustState="saving" />)
 
-      expect(screen.getByText('Saving…')).toBeVisible()
-      await userEvent.click(screen.getByRole('button', { name: 'Trust this address' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Trust all @harborcountyvotes.org' }))
-      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }))
+      expect(screen.getByText('Saving…', { selector: 'p' })).toBeVisible()
+      const busyButtons = screen.getAllByRole('button', { name: 'Saving…' })
+      expect(busyButtons).toHaveLength(3)
+      await userEvent.click(busyButtons[0])
+      await userEvent.click(busyButtons[1])
+      await userEvent.click(busyButtons[2])
 
       expect(onTrust).not.toHaveBeenCalled()
       expect(onDecline).not.toHaveBeenCalled()
+    })
+
+    it('marks only the pressed button busy and explains the others while saving', async () => {
+      const { rerender } = render(<SpamNotice {...baseProps} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Trust all @harborcountyvotes.org' }))
+      rerender(<SpamNotice {...baseProps} trustState="saving" />)
+
+      expect(screen.getByRole('button', { name: 'Trust this address' })).toHaveAccessibleDescription(
+        new RegExp('Wait until your changes finish saving\\.$'),
+      )
+      expect(screen.getByRole('button', { name: 'No thanks' })).toHaveAccessibleDescription(
+        'Wait until your changes finish saving.',
+      )
+      expect(screen.getByRole('button', { name: 'Saving…' })).not.toHaveAccessibleDescription(/Wait/)
+    })
+
+    it('ignores the pressed button and shows why the others wait while saving', async () => {
+      const { rerender } = render(<SpamNotice {...baseProps} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Trust this address' }))
+      rerender(<SpamNotice {...baseProps} trustState="saving" />)
+      await userEvent.click(screen.getByRole('button', { name: 'Saving…' }))
+      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }))
+
+      expect(onTrust).toHaveBeenCalledTimes(1)
+      expect(onDecline).not.toHaveBeenCalled()
+      expect(
+        screen.getByText('Wait until your changes finish saving.', { selector: '[role="status"] span' }),
+      ).toBeInTheDocument()
+    })
+
+    it('closes the reason, not the notice, on Escape', async () => {
+      const { rerender } = render(<SpamNotice {...baseProps} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Trust this address' }))
+      rerender(<SpamNotice {...baseProps} trustState="saving" />)
+      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }))
+      const reason = screen.getByText('Wait until your changes finish saving.', { selector: '[role="status"] > span' })
+        .parentElement as HTMLElement
+      await userEvent.keyboard('{Escape}')
+
+      expect(reason).toBeEmptyDOMElement()
+      expect(onDismiss).not.toHaveBeenCalled()
     })
 
     it('confirms the trusted sender', () => {

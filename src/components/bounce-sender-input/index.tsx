@@ -1,23 +1,27 @@
 import React from 'react'
 
-import { RuleChip, RuleInput, RuleInputProps } from './elements'
+import Chip from '@components/ui/chip'
+import ChipInput, { ChipInputProps } from '@components/ui/chip-input'
 
 type BounceRuleSetter = (value: string[]) => void
 
 export interface BounceSenderInputProps {
   // Points at helper text or an inline error, so a screen reader hears it with the field.
   describedBy?: string
-  disabled?: boolean
-  enterKeyHint?: RuleInputProps['enterKeyHint']
+  enterKeyHint?: ChipInputProps['enterKeyHint']
   // When given, the label becomes a <label> for this id and names the input.
   inputId?: string
   // Lets a caller read or clear what is still typed in the box (e.g. to commit it on Save).
-  inputRef?: RuleInputProps['inputRef']
+  inputRef?: ChipInputProps['ref']
   invalid?: boolean
   label: string
   // Called with the trimmed entry when it fails validation, so the caller can show why.
   onInvalid?: (value: string) => void
   placeholder?: string
+  // Never disabled (spec G7): while read-only, typed text stays put and a press on a chip's remove
+  // control shows readOnlyReason instead of removing anything.
+  readOnly?: boolean
+  readOnlyReason?: string
   rules: string[]
   setRules?: BounceRuleSetter
   // Reuse for another list (block phrases, trusted senders): only the new entry is checked, and
@@ -53,7 +57,6 @@ const formatRuleDisplay = (rule: string): string => {
 
 const BounceSenderInput = ({
   describedBy,
-  disabled = false,
   enterKeyHint,
   inputId,
   inputRef,
@@ -61,6 +64,8 @@ const BounceSenderInput = ({
   label,
   onInvalid,
   placeholder = 'Email, @domain.com, or * for all',
+  readOnly = false,
+  readOnlyReason,
   rules,
   setRules,
   validate,
@@ -120,24 +125,24 @@ const BounceSenderInput = ({
         ))}
       <div className="flex flex-1 flex-wrap items-center gap-1">
         {rules.map((rule, index) => (
-          <RuleChip
-            disabled={disabled}
+          <Chip
             key={index}
             label={formatRuleDisplay(rule)}
-            onDelete={setRules ? () => handleDelete(index) : undefined}
+            onRemove={setRules ? () => handleDelete(index) : undefined}
+            removeUnavailableReason={readOnly ? readOnlyReason : undefined}
           />
         ))}
         {setRules && (
-          <RuleInput
+          <ChipInput
             ariaLabel={inputId ? undefined : 'Sender to block'}
             describedBy={describedBy}
-            disabled={disabled}
             enterKeyHint={enterKeyHint}
             inputId={inputId}
-            inputRef={inputRef}
             invalid={invalid}
             onAdd={handleAdd}
             placeholder={placeholder}
+            readOnly={readOnly}
+            ref={inputRef}
           />
         )}
       </div>

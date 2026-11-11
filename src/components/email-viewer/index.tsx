@@ -18,8 +18,8 @@ import {
 import AddressLine from '@components/address-line'
 import AttachmentViewer from '@components/attachment-viewer'
 import Compose from '@components/compose'
-import ConfirmDialog from '@components/confirm-dialog'
-import ErrorSnackbar from '@components/error-snackbar'
+import Dialog from '@components/ui/dialog'
+import Snackbar from '@components/ui/snackbar'
 import { EmailAddress, EmailContents, SignedUrl } from '@types'
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN
@@ -301,7 +301,7 @@ const EmailViewer = ({
     <>
       {renderEmail()}
       <LoadingOverlay open={backdropShown} />
-      <ConfirmDialog
+      <Dialog
         cancelLabel="Cancel"
         confirmLabel="Bounce"
         onCancel={bounceDialogClose}
@@ -311,8 +311,8 @@ const EmailViewer = ({
       >
         This will send a rejection notice to the sender, telling them this address doesn&apos;t exist. To auto-reject
         messages from specific senders, go to Settings.
-      </ConfirmDialog>
-      <ConfirmDialog
+      </Dialog>
+      <Dialog
         cancelLabel="Cancel"
         confirmLabel="Delete"
         onCancel={deleteDialogClose}
@@ -321,8 +321,8 @@ const EmailViewer = ({
         title="Delete email"
       >
         This email will be permanently deleted.
-      </ConfirmDialog>
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      </Dialog>
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

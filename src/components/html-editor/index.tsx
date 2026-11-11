@@ -1,27 +1,30 @@
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  Bold,
-  IndentDecrease,
-  IndentIncrease,
-  Italic,
-  Link,
-  Link2Off,
-  List,
-  ListOrdered,
-  Palette,
-  RemoveFormatting,
-  Strikethrough,
-  Subscript,
-  Superscript,
-  Type,
-  Underline,
-} from 'lucide-react'
 import React, { RefObject, useEffect, useRef, useState } from 'react'
 
 import { ToolbarButton, ToolbarDivider } from './elements'
-import ConfirmDialog from '@components/confirm-dialog'
+import Button from '@components/ui/button'
+import ColorInput from '@components/ui/color-input'
+import Dialog from '@components/ui/dialog'
+import {
+  AlignCenterIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
+  BoldIcon,
+  IndentDecreaseIcon,
+  IndentIncreaseIcon,
+  ItalicIcon,
+  LinkIcon,
+  LinkOffIcon,
+  ListIcon,
+  ListOrderedIcon,
+  PaletteIcon,
+  RemoveFormattingIcon,
+  StrikethroughIcon,
+  SubscriptIcon,
+  SuperscriptIcon,
+  TypeIcon,
+  UnderlineIcon,
+} from '@components/ui/icons'
+import TextInput from '@components/ui/text-input'
 
 const fontSizeOptions = [
   { label: 'Extra small', value: '1' },
@@ -34,10 +37,10 @@ const fontSizeOptions = [
 ]
 
 const formatColorButtons = [
-  { command: 'foreColor', icon: <Type size={15} />, id: 'font-color', label: 'Font color', value: '#000000' },
+  { command: 'foreColor', icon: TypeIcon, id: 'font-color', label: 'Font color', value: '#000000' },
   {
     command: 'backColor',
-    icon: <Palette size={15} />,
+    icon: PaletteIcon,
     id: 'background-color',
     label: 'Background color',
     value: '#ffffff',
@@ -45,22 +48,22 @@ const formatColorButtons = [
 ]
 
 const formatTextButtons = [
-  { command: 'bold', icon: <Bold size={15} />, label: 'Bold' },
-  { command: 'italic', icon: <Italic size={15} />, label: 'Italic' },
-  { command: 'underline', icon: <Underline size={15} />, label: 'Underline' },
-  { command: 'strikeThrough', icon: <Strikethrough size={15} />, label: 'Strikethrough' },
-  { command: 'subscript', icon: <Subscript size={15} />, label: 'Subscript' },
-  { command: 'superscript', icon: <Superscript size={15} />, label: 'Superscript' },
+  { command: 'bold', icon: BoldIcon, label: 'Bold' },
+  { command: 'italic', icon: ItalicIcon, label: 'Italic' },
+  { command: 'underline', icon: UnderlineIcon, label: 'Underline' },
+  { command: 'strikeThrough', icon: StrikethroughIcon, label: 'Strikethrough' },
+  { command: 'subscript', icon: SubscriptIcon, label: 'Subscript' },
+  { command: 'superscript', icon: SuperscriptIcon, label: 'Superscript' },
 ]
 
 const formatParagraphButtons = [
-  { command: 'justifyLeft', icon: <AlignLeft size={15} />, label: 'Left align' },
-  { command: 'justifyCenter', icon: <AlignCenter size={15} />, label: 'Center align' },
-  { command: 'justifyRight', icon: <AlignRight size={15} />, label: 'Right align' },
-  { command: 'outdent', icon: <IndentDecrease size={15} />, label: 'Decrease indent' },
-  { command: 'indent', icon: <IndentIncrease size={15} />, label: 'Increase indent' },
-  { command: 'insertOrderedList', icon: <ListOrdered size={15} />, label: 'Numbered list' },
-  { command: 'insertUnorderedList', icon: <List size={15} />, label: 'Bulleted list' },
+  { command: 'justifyLeft', icon: AlignLeftIcon, label: 'Left align' },
+  { command: 'justifyCenter', icon: AlignCenterIcon, label: 'Center align' },
+  { command: 'justifyRight', icon: AlignRightIcon, label: 'Right align' },
+  { command: 'outdent', icon: IndentDecreaseIcon, label: 'Decrease indent' },
+  { command: 'indent', icon: IndentIncreaseIcon, label: 'Increase indent' },
+  { command: 'insertOrderedList', icon: ListOrderedIcon, label: 'Numbered list' },
+  { command: 'insertUnorderedList', icon: ListIcon, label: 'Bulleted list' },
 ]
 
 export interface HtmlEditorProps {
@@ -166,50 +169,53 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
       >
         <span className="inline-flex">
           {formatTextButtons.map((button, index) => (
-            <ToolbarButton key={index} label={button.label} onClick={() => handleButtonClick(button.command)}>
-              {button.icon}
-            </ToolbarButton>
+            <ToolbarButton
+              icon={button.icon}
+              key={index}
+              label={button.label}
+              onClick={() => handleButtonClick(button.command)}
+            />
           ))}
         </span>
         <ToolbarDivider />
         <span className="inline-flex">
           {formatParagraphButtons.map((button, index) => (
-            <ToolbarButton key={index} label={button.label} onClick={() => handleButtonClick(button.command)}>
-              {button.icon}
-            </ToolbarButton>
+            <ToolbarButton
+              icon={button.icon}
+              key={index}
+              label={button.label}
+              onClick={() => handleButtonClick(button.command)}
+            />
           ))}
         </span>
         <ToolbarDivider />
         <span className="inline-flex">
           {formatColorButtons.map((button, index) => (
             <React.Fragment key={index}>
-              <input
+              <ColorInput
                 data-testid={button.id}
                 id={button.id}
-                onChange={(event) => handleColorChange(button.command, event.target.value)}
-                style={{ display: 'none' }}
-                type="color"
+                label={button.label}
+                onChange={(value) => handleColorChange(button.command, value)}
                 value={button.value}
               />
-              <ToolbarButton label={button.label} onClick={() => document.getElementById(button.id)?.click()}>
-                {button.icon}
-              </ToolbarButton>
+              <ToolbarButton
+                icon={button.icon}
+                label={button.label}
+                onClick={() => document.getElementById(button.id)?.click()}
+              />
             </React.Fragment>
           ))}
-          <ToolbarButton label="Font size" onClick={(event: any) => setSizeMenuEl(event.currentTarget)}>
-            <Type size={15} />
-          </ToolbarButton>
+          <ToolbarButton icon={TypeIcon} label="Font size" onClick={(event) => setSizeMenuEl(event.currentTarget)} />
           <ToolbarDivider />
-          <ToolbarButton label="Create link" onClick={linkDialogOpen}>
-            <Link size={15} />
-          </ToolbarButton>
-          <ToolbarButton label="Unlink" onClick={() => handleButtonClick('unlink')}>
-            <Link2Off size={15} />
-          </ToolbarButton>
+          <ToolbarButton icon={LinkIcon} label="Create link" onClick={linkDialogOpen} />
+          <ToolbarButton icon={LinkOffIcon} label="Unlink" onClick={() => handleButtonClick('unlink')} />
           <ToolbarDivider />
-          <ToolbarButton label="Remove format" onClick={() => handleButtonClick('removeFormat')}>
-            <RemoveFormatting size={15} />
-          </ToolbarButton>
+          <ToolbarButton
+            icon={RemoveFormattingIcon}
+            label="Remove format"
+            onClick={() => handleButtonClick('removeFormat')}
+          />
         </span>
       </div>
 
@@ -248,22 +254,27 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
           }}
         >
           {fontSizeOptions.map((size, index) => (
-            <button
-              className="block w-full px-4 py-2 text-left text-sm transition-colors"
+            // The toolbar variant gives the hover; the option keeps its square, full-width row.
+            <Button
+              className="w-full px-4 py-2 text-left text-sm transition-colors"
               key={index}
               onClick={() => handleFontSizeSelect(size.value)}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--paper-border)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               role="option"
-              style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif' }}
+              style={{
+                borderRadius: 0,
+                color: 'var(--text-paper)',
+                display: 'block',
+                fontFamily: 'Outfit, sans-serif',
+              }}
+              variant="toolbar"
             >
               {size.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
-      <ConfirmDialog
+      <Dialog
         cancelLabel="Cancel"
         confirmLabel="Add link"
         onCancel={linkDialogClose}
@@ -273,20 +284,13 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
       >
         <div className="flex flex-col gap-4">
           <label>
-            <input
+            <TextInput
               aria-label="Link text"
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+              className="text-sm"
               name="link-text"
               onChange={(event) => setLinkText(event.target.value)}
               placeholder="Link text"
-              style={{
-                background: 'var(--paper-surface)',
-                border: '1px solid var(--paper-border)',
-                color: 'var(--text-paper)',
-                fontFamily: 'Outfit, sans-serif',
-                maxWidth: '450px',
-              }}
-              type="text"
+              style={{ maxWidth: '450px', padding: '8px 12px' }}
               value={linkText}
             />
             {!linkText && (
@@ -296,20 +300,13 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
             )}
           </label>
           <label>
-            <input
+            <TextInput
               aria-label="Link to add"
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+              className="text-sm"
               name="link-to-add"
               onChange={(event) => setLinkTarget(event.target.value)}
               placeholder="https://…"
-              style={{
-                background: 'var(--paper-surface)',
-                border: '1px solid var(--paper-border)',
-                color: 'var(--text-paper)',
-                fontFamily: 'IBM Plex Mono, monospace',
-                maxWidth: '450px',
-              }}
-              type="text"
+              style={{ fontFamily: 'IBM Plex Mono, monospace', maxWidth: '450px', padding: '8px 12px' }}
               value={linkTarget}
             />
             {linkErrorMessage && (
@@ -319,7 +316,7 @@ const HtmlEditor = ({ initialBody, inputRef }: HtmlEditorProps): React.ReactNode
             )}
           </label>
         </div>
-      </ConfirmDialog>
+      </Dialog>
     </>
   )
 }

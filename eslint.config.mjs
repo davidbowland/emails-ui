@@ -21,7 +21,10 @@ import prettier from 'eslint-config-prettier'
 import jest from 'eslint-plugin-jest'
 import react from 'eslint-plugin-react'
 import globals from 'globals'
+import { createRequire } from 'node:module'
 import tseslint from 'typescript-eslint'
+
+const libraryRules = createRequire(import.meta.url)('./eslint/library-rules.cjs')
 
 export default tseslint.config(
   // 1) ADAPT PER REPO.
@@ -90,7 +93,7 @@ export default tseslint.config(
 
   // 4) Node scripts / config files may use CommonJS require().
   {
-    files: ['scripts/**/*.js', '*.config.js', 'next.config.js'],
+    files: ['scripts/**/*.js', '*.config.js', 'next.config.js', 'eslint/**/*.cjs'],
     languageOptions: { globals: { ...globals.node } },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
@@ -115,6 +118,9 @@ export default tseslint.config(
     },
   },
 
-  // 6) Prettier LAST — disables all formatting rules that would fight prettier.
+  // 6) Component-library enforcement (spec G5).
+  ...libraryRules,
+
+  // 7) Prettier LAST — disables all formatting rules that would fight prettier.
   prettier,
 )

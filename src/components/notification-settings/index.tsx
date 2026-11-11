@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react'
 
 import { isIosDevice } from '@components/install-offer/use-install-prompt'
 import NotificationPreviewFigure, { PREVIEW_LABELS } from '@components/notification-preview'
+import Button from '@components/ui/button'
+import RadioGroup from '@components/ui/radio-group'
+import SectionHeading from '@components/ui/section-heading'
 import { isPushSupported, isSubscribedToPush, PushResult, subscribeToPush, unsubscribeFromPush } from '@services/push'
 import { NotificationPreview } from '@types'
 
@@ -11,15 +14,20 @@ export type PushState = PushResult | 'idle' | 'pending'
 
 export interface NotificationSettingsProps {
   accountId: string
-  disabled: boolean
   // Awaited, because the choice is saved the moment it is made: everything else in this section
   // applies instantly, and a radio that only looked chosen would leave the account on the tier
   // the reader just rejected.
   onPreviewChange: (preview: NotificationPreview) => Promise<void>
   preview: NotificationPreview
+  // True while the Save button at the foot of the page is writing. Nothing here is disabled (spec
+  // G4, G7): a press on the button shows readOnlyReason, and the radios are read-only.
+  readOnly: boolean
+  readOnlyReason?: string
 }
 
 const CHOICES: NotificationPreview[] = ['sender-and-subject', 'sender-only', 'none']
+
+const PREVIEW_OPTIONS = CHOICES.map((choice) => ({ label: PREVIEW_LABELS[choice], value: choice }))
 
 // A bare union widening does not produce a compile error on its own, so this is what makes a new
 // PushState member fail the build until the status line handles it.
@@ -55,9 +63,10 @@ const statusMessage = (state: PushState, iosDevice: boolean, turningOff: boolean
 
 const NotificationSettings = ({
   accountId,
-  disabled,
   onPreviewChange,
   preview,
+  readOnly,
+  readOnlyReason,
 }: NotificationSettingsProps): React.ReactNode => {
   // undefined until isSubscribedToPush resolves. The subscription is the fact, not the
   // permission, and reading it never prompts.
@@ -106,19 +115,8 @@ const NotificationSettings = ({
     setSavingPreview(false)
   }
 
-  // A disabled control must say why, so the label carries the reason rather than a separate hint
-  // that a screen reader may skip on a disabled button.
+  // What the button offers once nothing is in flight.
   const buttonLabel = (): string => {
-    // Why the whole section is unavailable: the Save button at the foot of the page is writing.
-    if (disabled) {
-      return 'Saving your settings…'
-    }
-    if (isOn === undefined) {
-      return 'Checking notifications…'
-    }
-    if (state === 'pending') {
-      return turningOff ? 'Turning off…' : 'Turning on…'
-    }
     if (isOn) {
       return 'Turn off notifications'
     }
@@ -130,6 +128,14 @@ const NotificationSettings = ({
     return state === 'failed' || state === 'denied' || state === 'dismissed' ? 'Try again' : 'Turn on notifications'
   }
 
+  // What the button says while a check or a request is in flight.
+  const busyLabel = (): string => {
+    if (isOn === undefined) {
+      return 'Checking notifications…'
+    }
+    return turningOff ? 'Turning off…' : 'Turning on…'
+  }
+
   const handleButtonClick = (): void => {
     if (state === 'unready') {
       window.location.reload()
@@ -139,18 +145,12 @@ const NotificationSettings = ({
   }
 
   const status = statusMessage(state, iosDevice, turningOff)
-  const busy = isOn === undefined || state === 'pending' || disabled
-  const previewDisabled = disabled || savingPreview
+  const busy = isOn === undefined || state === 'pending'
 
   return (
     <section>
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-        <div
-          className="text-xs font-semibold uppercase"
-          style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-        >
-          Notifications
-        </div>
+        <SectionHeading as="div">Notifications</SectionHeading>
         {/* Plain text, not a coloured pill: this is the one section on the page the Save button
             does not own, and a reader who cannot tell the pill's colour from any other would be
             left with no signal at all. */}
@@ -166,23 +166,24 @@ const NotificationSettings = ({
       {/* No button on a browser that cannot do notifications: the status line below already says
           so, and the only thing pressing it could do is say the same thing a tap later. */}
       {supported && (
-        <button
+        <Button
           aria-describedby="notification-status"
-          className="btn-accent"
-          disabled={busy}
+          busy={busy}
+          busyLabel={busyLabel()}
           onClick={handleButtonClick}
           style={{
-            cursor: busy ? 'not-allowed' : 'pointer',
             fontFamily: 'Outfit, sans-serif',
             fontSize: '14px',
             fontWeight: 600,
             minHeight: '44px',
             padding: '9px 20px',
           }}
-          type="button"
+          // The Save at the foot of the page is writing the whole account; a press says so.
+          unavailableReason={readOnly ? readOnlyReason : undefined}
+          variant="primary"
         >
           {buttonLabel()}
-        </button>
+        </Button>
       )}
 
       {/* Mounted whether or not there is anything to say. A live region has to be in the
@@ -200,46 +201,31 @@ const NotificationSettings = ({
         {status ?? ''}
       </p>
 
-      <fieldset
-        aria-busy={savingPreview}
-        aria-describedby="notification-preview-status"
-        style={{ border: 'none', margin: '20px 0 0', padding: 0 }}
-      >
-        <legend
-          className="text-xs font-semibold uppercase"
-          style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif', letterSpacing: '0.1em' }}
-        >
-          What notifications show
-        </legend>
-        <p className="mt-1 mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
-          Anyone holding your phone can read this before you unlock it.
-        </p>
-        {CHOICES.map((choice) => (
-          // The label wraps the input so the whole 44px row is the target.
-          <label
-            key={choice}
-            style={{
-              alignItems: 'center',
-              color: 'var(--text-paper)',
-              cursor: previewDisabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-              gap: '10px',
-              minHeight: '44px',
-            }}
-          >
-            <input
-              checked={preview === choice}
-              disabled={previewDisabled}
-              name="notification-preview"
-              onChange={() => void handlePreviewChange(choice)}
-              type="radio"
-              value={choice}
-            />
-            {PREVIEW_LABELS[choice]}
-          </label>
-        ))}
+      {/* RadioGroup adds no top margin of its own. */}
+      <div style={{ marginTop: '20px' }}>
+        <RadioGroup
+          busy={savingPreview || readOnly}
+          describedBy="notification-preview-status"
+          help={
+            <p
+              className="mt-1 mb-2 text-xs"
+              style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}
+            >
+              Anyone holding your phone can read this before you unlock it.
+            </p>
+          }
+          legend="What notifications show"
+          name="notification-preview"
+          onChange={(next: string) => {
+            const choice = CHOICES.find((candidate) => candidate === next)
+            if (choice) {
+              void handlePreviewChange(choice)
+            }
+          }}
+          options={PREVIEW_OPTIONS}
+          readOnly={readOnly || savingPreview}
+          value={preview}
+        />
         {/* Mounted whether or not there is anything to say, so a screen reader has the region
             before its text changes -- a region created in the same commit as its content is
             reliably not announced. The height is reserved so nothing below it jumps. */}
@@ -252,7 +238,7 @@ const NotificationSettings = ({
           {savingPreview ? 'Saving your choice…' : ''}
         </p>
         <NotificationPreviewFigure preview={preview} />
-      </fieldset>
+      </div>
     </section>
   )
 }

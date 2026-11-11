@@ -342,6 +342,20 @@ describe('Authenticated component', () => {
       expect(mockPush).toHaveBeenCalledWith(path)
     })
 
+    it('should mark the current page in the navigation', async () => {
+      window.location.pathname = '/inbox'
+      render(
+        <Authenticated>
+          <p>Testing children</p>
+        </Authenticated>,
+      )
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Open navigation menu' }))
+
+      expect(screen.getByRole('button', { current: 'page', name: 'Inbox' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { current: false, name: 'Sent' })).toBeInTheDocument()
+    })
+
     it('should list Spam between Inbox and Sent', async () => {
       render(
         <Authenticated>

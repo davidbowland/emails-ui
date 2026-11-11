@@ -293,24 +293,23 @@ describe('BounceSenderInput component', () => {
     })
   })
 
-  it('should disable each chip remove button while disabled', async () => {
-    render(<BounceSenderInput disabled={true} label="Bounce:" rules={['spam.com']} setRules={setRules} />)
+  it('should remove nothing while read-only, and say why', async () => {
+    render(
+      <BounceSenderInput
+        label="Bounce:"
+        readOnly
+        readOnlyReason="Wait until Save finishes."
+        rules={['spam.com']}
+        setRules={setRules}
+      />,
+    )
 
     const button = screen.getByRole('button', { name: 'Remove spam.com' })
     await userEvent.click(button)
 
-    expect(button).toBeDisabled()
     expect(setRules).not.toHaveBeenCalled()
-  })
-
-  it('should give each chip remove button a 24px target without growing the chip', () => {
-    render(<BounceSenderInput label="Bounce:" rules={['spam.com']} setRules={setRules} />)
-
-    expect(screen.getByRole('button', { name: 'Remove spam.com' })).toHaveStyle({
-      margin: '-6px',
-      minHeight: '24px',
-      minWidth: '24px',
-    })
+    expect(button).toHaveAccessibleDescription('Wait until Save finishes.')
+    expect(screen.getByRole('status')).toHaveTextContent('Wait until Save finishes.')
   })
 
   it('should hand the input to inputRef', () => {
@@ -320,11 +319,23 @@ describe('BounceSenderInput component', () => {
     expect(inputRef.current).toBe(screen.getByRole('textbox'))
   })
 
-  it('should not accept typing while disabled', async () => {
-    render(<BounceSenderInput disabled={true} label="Bounce:" rules={[]} setRules={setRules} />)
+  it('should not accept typing while read-only', async () => {
+    render(<BounceSenderInput label="Bounce:" readOnly rules={[]} setRules={setRules} />)
 
     await userEvent.type(screen.getByRole('textbox'), 'ok.com{Enter}')
 
     expect(setRules).not.toHaveBeenCalled()
+  })
+
+  it('should keep typed text in the box, uncommitted, while read-only', async () => {
+    const { rerender } = render(<BounceSenderInput label="Bounce:" rules={[]} setRules={setRules} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'ok.com')
+    rerender(<BounceSenderInput label="Bounce:" readOnly rules={[]} setRules={setRules} />)
+    await userEvent.type(screen.getByRole('textbox'), '{Enter}')
+    await userEvent.tab()
+
+    expect(setRules).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox')).toHaveValue('ok.com')
   })
 })

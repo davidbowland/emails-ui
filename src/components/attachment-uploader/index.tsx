@@ -1,8 +1,8 @@
 import axios from 'axios'
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 
 import { AttachmentTag, UploadArea } from './elements'
-import ErrorSnackbar from '@components/error-snackbar'
+import Snackbar from '@components/ui/snackbar'
 import { postSentAttachment } from '@services/emails'
 import { EmailAttachment } from '@types'
 
@@ -17,8 +17,6 @@ export interface AttachmentUploaderProps {
 const AttachmentUploader = ({ accountId, attachments, setAttachments }: AttachmentUploaderProps): React.ReactNode => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [uploadingFilename, setUploadingFilename] = useState<string | undefined>()
-
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFileUpload = async (file: File): Promise<void> => {
     setUploadingFilename(file.name)
@@ -67,13 +65,9 @@ const AttachmentUploader = ({ accountId, attachments, setAttachments }: Attachme
             onRemove={() => removeAttachmentById(attachment.id)}
           />
         ))}
-        <UploadArea
-          inputRef={inputRef}
-          onFileSelect={(file) => handleFileUpload(file)}
-          uploadingFilename={uploadingFilename}
-        />
+        <UploadArea onFileSelect={(file) => handleFileUpload(file)} uploadingFilename={uploadingFilename} />
       </div>
-      <ErrorSnackbar message={errorMessage} onClose={snackbarErrorClose} />
+      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
     </>
   )
 }

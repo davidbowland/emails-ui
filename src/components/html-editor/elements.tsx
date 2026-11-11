@@ -1,17 +1,25 @@
 import React from 'react'
 
+import IconButton from '@components/ui/icon-button'
+import { IconProps } from '@components/ui/icons'
+
 export const ToolbarButton = ({
-  children,
+  icon,
   label,
   onClick,
 }: {
-  children: React.ReactNode
+  icon: React.ComponentType<IconProps>
   label: string
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
 }): React.ReactNode => (
-  <button aria-label={label} className="btn-toolbar rounded p-1.5 transition-colors" onClick={onClick} title={label}>
-    {children}
-  </button>
+  <IconButton
+    className="rounded p-1.5 transition-colors"
+    icon={icon}
+    label={label}
+    onClick={onClick}
+    size={15}
+    title={label}
+  />
 )
 
 export const ToolbarDivider = (): React.ReactNode => (

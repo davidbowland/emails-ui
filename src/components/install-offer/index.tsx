@@ -1,23 +1,30 @@
 import React, { useEffect, useId, useRef, useState } from 'react'
 
 import {
-  AppsIcon,
-  Badge,
   Change,
   ChangesPanel,
   CollapsedLink,
   DisclosureTrigger,
-  DownloadIcon,
   getSurfaceTokens,
+  IconTile,
   InstallButton,
-  MenuDotsIcon,
-  OfflineIcon,
-  PhoneIcon,
-  RefreshIcon,
   StepList,
-  WindowIcon,
 } from './elements'
 import { isPhoneLike, useInstallPrompt } from './use-install-prompt'
+import Button from '@components/ui/button'
+import IconButton from '@components/ui/icon-button'
+import {
+  AppWindowIcon,
+  CloseIcon,
+  CloudOffIcon,
+  DownloadIcon,
+  EllipsisVerticalIcon,
+  IconProps,
+  IconSize,
+  LayoutGridIcon,
+  RotateCwIcon,
+  SmartphoneIcon,
+} from '@components/ui/icons'
 import { setInstallCollapsed, isInstallCollapsed } from '@services/install-dismissal'
 import { InstallState, InstallSurface } from '@types'
 
@@ -45,26 +52,34 @@ const REASSURANCE_LINES = [
 const buildChanges = (phone: boolean): Change[] => [
   {
     body: 'No tabs, no address bar — the mailbox gets the whole window.',
-    icon: <WindowIcon />,
+    icon: <AppWindowIcon size={18} />,
     title: 'It opens in its own window',
   },
   phone
-    ? { body: 'Named Email, beside your other apps.', icon: <AppsIcon />, title: 'An icon lands on your home screen' }
-    : { body: 'Named Email, beside your other apps.', icon: <AppsIcon />, title: 'An icon lands in your dock' },
+    ? {
+        body: 'Named Email, beside your other apps.',
+        icon: <LayoutGridIcon size={18} />,
+        title: 'An icon lands on your home screen',
+      }
+    : {
+        body: 'Named Email, beside your other apps.',
+        icon: <LayoutGridIcon size={18} />,
+        title: 'An icon lands in your dock',
+      },
   {
     body: 'The app still opens in a dead spot. New mail arrives when the connection does.',
-    icon: <OfflineIcon />,
+    icon: <CloudOffIcon size={18} />,
     title: 'It opens with no connection',
   },
 ]
 
 // The manual browser instructions revealed by the override, plus the per-state step sets.
 const CHROMIUM_STEPS = [
-  'Open the browser menu — the ⋮ at the top right',
+  'Open the browser menu (the three dots at the top right)',
   'Choose Cast, save and share',
   'Choose Install page as app',
 ]
-const FIREFOX_STEPS = ['Open the Firefox menu — the ⋮ at the top right', 'Tap Install, then confirm with Add']
+const FIREFOX_STEPS = ['Open the Firefox menu (the three dots at the top right)', 'Tap Install, then confirm with Add']
 const IOS_STEPS = ['Tap Share in the toolbar', 'Tap Add to Home Screen', 'Tap Add']
 
 const OVERRIDE_SETS = [
@@ -74,7 +89,7 @@ const OVERRIDE_SETS = [
 ]
 
 interface StateCopy {
-  badge: React.ReactNode
+  badge: { icon: React.ComponentType<IconProps>; size: IconSize }
   body: string
   hasButton: boolean
   heading: string
@@ -86,14 +101,14 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
   switch (state) {
     case 'promptable':
       return {
-        badge: <DownloadIcon />,
+        badge: { icon: DownloadIcon, size: 16 },
         body: 'Its own window, its own icon — and you sign in once inside it.',
         hasButton: true,
         heading: 'Install Email',
       }
     case 'spent':
       return {
-        badge: <MenuDotsIcon />,
+        badge: { icon: EllipsisVerticalIcon, size: 18 },
         body: 'You closed the install prompt, and this browser offers it only once per visit.',
         hasButton: false,
         heading: 'Install Email from your browser menu',
@@ -102,7 +117,7 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
       }
     case 'menu':
       return {
-        badge: <MenuDotsIcon />,
+        badge: { icon: EllipsisVerticalIcon, size: 18 },
         body: 'Firefox for Android installs from its menu.',
         hasButton: false,
         heading: 'Add Email to your home screen from the Firefox menu',
@@ -110,7 +125,7 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
       }
     case 'ios':
       return {
-        badge: <PhoneIcon />,
+        badge: { icon: SmartphoneIcon, size: 18 },
         body: "Safari adds Email to your home screen. Only Safari can — other iOS browsers can't.",
         hasButton: false,
         heading: 'Add Email to your home screen',
@@ -121,13 +136,13 @@ const getStateCopy = (state: InstallState): StateCopy | null => {
     // the state upgrades to `promptable` and the one-click button replaces this.
     case 'chromium':
       return {
-        badge: <DownloadIcon />,
+        badge: { icon: DownloadIcon, size: 16 },
         body: 'Chrome and Edge install from the address bar or the browser menu.',
         hasButton: false,
         heading: 'Install Email from your browser',
         steps: [
           'Click the install icon at the right of the address bar',
-          'Or open the ⋮ menu and choose Install Email',
+          'Or open the three-dot menu and choose Install Email',
         ],
       }
     default:
@@ -218,36 +233,31 @@ const InstallOffer = ({
       {/* Dismiss sits in the top-right corner, absolutely positioned, so it lands there on a
           narrow card too — in a flex row it would wrap to the bottom. */}
       {dismissible && (
-        <button
-          aria-label="Collapse this offer to a one-line link"
+        <IconButton
+          icon={CloseIcon}
+          label="Collapse this offer to a one-line link"
           onClick={() => {
             pendingFocus.current = 'link'
             setInstallCollapsed(true)
             setCollapsed(true)
           }}
+          size={14}
           style={{
-            alignItems: 'center',
             background: 'none',
-            border: 'none',
             borderRadius: '8px',
             color: tokens.text,
-            cursor: 'pointer',
             display: 'flex',
             height: '28px',
-            justifyContent: 'center',
-            lineHeight: 1,
             position: 'absolute',
             right: '10px',
             top: '10px',
             width: '28px',
           }}
-          type="button"
-        >
-          <span aria-hidden="true">✕</span>
-        </button>
+          variant={tokens.buttonVariant}
+        />
       )}
       <div style={{ alignItems: 'flex-start', display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px 20px' }}>
-        <Badge tokens={tokens}>{copy.badge}</Badge>
+        <IconTile icon={copy.badge.icon} size={copy.badge.size} tokens={tokens} />
 
         <div style={{ flex: '1 1 260px', minWidth: 0, paddingRight: dismissible ? '28px' : 0 }}>
           <h2
@@ -288,8 +298,8 @@ const InstallOffer = ({
                 marginTop: '12px',
               }}
             >
-              <span aria-hidden="true" style={{ color: tokens.iconAccent, marginTop: '2px' }}>
-                <RefreshIcon />
+              <span style={{ color: tokens.iconAccent, display: 'inline-flex', marginTop: '2px' }}>
+                <RotateCwIcon />
               </span>
               <span>{copy.note}</span>
             </p>
@@ -312,6 +322,7 @@ const InstallOffer = ({
                 changesHeadingId={`${changesRegionId}-h`}
                 reassuranceHeading={REASSURANCE_HEADING}
                 reassuranceLines={REASSURANCE_LINES}
+                surface={surface}
                 tokens={tokens}
               />
             </div>
@@ -319,26 +330,25 @@ const InstallOffer = ({
 
           {showOverride && (
             <div style={{ marginTop: '12px' }}>
-              <button
+              <Button
                 aria-controls={overrideRegionId}
                 aria-expanded={overrideOpen}
+                className="min-h-7"
                 onClick={() => setOverrideOpen((open) => !open)}
                 style={{
                   background: 'none',
-                  border: 'none',
+                  borderRadius: 0,
                   color: tokens.text,
-                  cursor: 'pointer',
                   fontFamily: 'Outfit, sans-serif',
                   fontSize: '13px',
-                  minHeight: '28px',
                   padding: '4px 0',
                   textDecoration: 'underline',
                   textUnderlineOffset: '3px',
                 }}
-                type="button"
+                variant={tokens.buttonVariant}
               >
                 {OVERRIDE_LABEL}
-              </button>
+              </Button>
               {overrideOpen && (
                 <div
                   className="animate-fade-in"

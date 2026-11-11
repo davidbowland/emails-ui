@@ -1,6 +1,8 @@
 import React, { useEffect, useId, useRef } from 'react'
 
-export interface ConfirmDialogProps {
+import Button from '@components/ui/button'
+
+export interface DialogProps {
   cancelLabel?: string
   children: React.ReactNode
   confirmLabel?: string
@@ -20,7 +22,7 @@ export interface ConfirmDialogProps {
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
-const ConfirmDialog = ({
+const Dialog = ({
   cancelLabel = 'Cancel',
   children,
   confirmLabel = 'Confirm',
@@ -31,7 +33,7 @@ const ConfirmDialog = ({
   open,
   scrollable = false,
   title,
-}: ConfirmDialogProps): React.ReactNode => {
+}: DialogProps): React.ReactNode => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<Element | null>(null)
   const titleId = useId()
@@ -53,6 +55,9 @@ const ConfirmDialog = ({
     if (!open) return
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
+        // A control inside already handled this Escape (an unavailable Button closing its reason
+        // bubble), so the dialog stays open.
+        if (event.defaultPrevented) return
         event.stopPropagation()
         onCancel()
         return
@@ -120,20 +125,22 @@ const ConfirmDialog = ({
         </div>
         {footer ?? (
           <div className="flex justify-end gap-2">
-            <button
-              className="btn-ghost-paper rounded-md px-4 py-2 text-sm font-medium transition-all"
+            <Button
+              className="rounded-md px-4 py-2 text-sm font-medium transition-all"
               onClick={onCancel}
               style={{ fontFamily: 'Outfit, sans-serif' }}
+              variant="secondary"
             >
               {cancelLabel}
-            </button>
-            <button
-              className="btn-accent rounded-md px-4 py-2 text-sm font-medium transition-all"
+            </Button>
+            <Button
+              className="rounded-md px-4 py-2 text-sm font-medium transition-all"
               onClick={onConfirm}
               style={{ fontFamily: 'Outfit, sans-serif' }}
+              variant="primary"
             >
               {confirmLabel}
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -141,4 +148,4 @@ const ConfirmDialog = ({
   )
 }
 
-export default ConfirmDialog
+export default Dialog

@@ -1,73 +1,59 @@
-import { Spinner } from '@heroui/react'
-import { Send, Trash2 } from 'lucide-react'
 import React from 'react'
 
-export const ComposeDivider = (): React.ReactNode => (
-  <div style={{ height: '1px', background: 'var(--paper-border)' }} />
-)
+import Button from '@components/ui/button'
+import ButtonIconTile, { BUTTON_ICON_TILE_SIZE } from '@components/ui/button-icon-tile'
+import { SendIcon, TrashIcon } from '@components/ui/icons'
 
-export const SendButton = ({
-  disabled,
-  isSubmitting,
-  onClick,
-}: {
-  disabled: boolean
-  isSubmitting: boolean
-  onClick: () => void
-}): React.ReactNode => (
-  <button
-    className="btn-accent"
-    disabled={disabled}
+export const SENDING_REASON = 'Wait until your email finishes sending.'
+
+const SendTileIcon = (): React.ReactNode => <ButtonIconTile icon={SendIcon} />
+
+export const SendButton = ({ busy, onClick }: { busy: boolean; onClick: () => void }): React.ReactNode => (
+  <Button
+    busy={busy}
+    busyLabel="Sending…"
+    icon={SendTileIcon}
+    iconSize={BUTTON_ICON_TILE_SIZE}
     onClick={onClick}
     style={{
+      cursor: busy ? 'progress' : 'pointer',
       display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '9px 20px',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '14px',
       fontWeight: 600,
+      gap: '8px',
       letterSpacing: '0.01em',
-      cursor: disabled ? 'not-allowed' : 'pointer',
+      padding: '9px 20px',
     }}
+    variant="primary"
   >
-    {/* Button-in-button icon */}
-    <div
-      style={{
-        width: '24px',
-        height: '24px',
-        borderRadius: '7px',
-        background: 'rgba(255,255,255,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        transition: 'transform 0.15s cubic-bezier(0.32,0.72,0,1)',
-      }}
-    >
-      {isSubmitting ? <Spinner size="sm" /> : <Send size={12} strokeWidth={2} />}
-    </div>
     Send
-  </button>
+  </Button>
 )
 
-export const DiscardButton = ({ disabled, onClick }: { disabled: boolean; onClick: () => void }): React.ReactNode => (
-  <button
-    className="btn-ghost-paper"
-    disabled={disabled}
+export const DiscardButton = ({
+  onClick,
+  unavailableReason,
+}: {
+  onClick: () => void
+  unavailableReason?: string
+}): React.ReactNode => (
+  <Button
+    icon={TrashIcon}
+    iconSize={13}
     onClick={onClick}
     style={{
+      cursor: 'pointer',
       display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '9px 16px',
       fontFamily: 'Outfit, sans-serif',
       fontSize: '14px',
       fontWeight: 400,
-      cursor: disabled ? 'not-allowed' : 'pointer',
+      gap: '8px',
+      padding: '9px 16px',
     }}
+    unavailableReason={unavailableReason}
+    variant="secondary"
   >
-    <Trash2 size={13} strokeWidth={1.5} />
     Discard
-  </button>
+  </Button>
 )

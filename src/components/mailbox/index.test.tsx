@@ -15,7 +15,7 @@ jest.mock('aws-amplify/auth')
 jest.mock('@components/email-viewer')
 jest.mock('@components/spam-suggestions')
 jest.mock('@services/emails')
-jest.mock('@components/error-snackbar', () => {
+jest.mock('@components/ui/snackbar', () => {
   const React = require('react')
   // eslint-disable-next-line react/display-name
   return ({ message, onClose }: any) =>
@@ -24,14 +24,9 @@ jest.mock('@components/error-snackbar', () => {
           'div',
           { role: 'alert' },
           message,
-          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, '✕'),
+          React.createElement('button', { 'aria-label': 'Close', onClick: onClose }, 'Close'),
         )
       : null
-})
-jest.mock('@components/loading-spinner', () => {
-  const React = require('react')
-  // eslint-disable-next-line react/display-name
-  return () => React.createElement('div', null, 'Loading...')
 })
 jest.mock('@config/amplify')
 
@@ -246,6 +241,24 @@ describe('Mailbox component', () => {
       expect(deleteEmail).toHaveBeenCalledWith(user.username, emailId)
     })
     expect(getAllEmails).toHaveBeenCalledWith(user.username)
+  })
+
+  it('should announce one loading status until the emails arrive', async () => {
+    getAllEmails.mockReturnValueOnce(new Promise(() => undefined))
+    render(
+      <Mailbox
+        deleteEmail={deleteEmail}
+        getAllEmails={getAllEmails}
+        getEmailAttachment={getEmailAttachment}
+        getEmailContents={getEmailContents}
+        patchEmail={patchEmail}
+      />,
+    )
+
+    expect(await screen.findAllByRole('status')).toEqual(
+      expect.arrayContaining([expect.objectContaining({ textContent: 'Loading…' })]),
+    )
+    expect(screen.getAllByText('Loading…')).toHaveLength(1)
   })
 
   it('should show email content when clicking forward button', async () => {

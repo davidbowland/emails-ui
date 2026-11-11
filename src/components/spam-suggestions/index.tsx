@@ -1,7 +1,5 @@
-import { Check, TriangleAlert } from 'lucide-react'
 import React, { useEffect, useId, useState } from 'react'
 
-import ConfirmDialog from '@components/confirm-dialog'
 import {
   ImpactFootnote,
   impactSummaryIds,
@@ -10,6 +8,11 @@ import {
   PhraseImpactFailed,
   PhraseImpactPending,
 } from '@components/phrase-impact'
+import Button from '@components/ui/button'
+import Checkbox from '@components/ui/checkbox'
+import Dialog from '@components/ui/dialog'
+import { CheckIcon, TriangleAlertIcon } from '@components/ui/icons'
+import Spinner from '@components/ui/spinner'
 import { getAccount, postSpamImpact, postSpamSuggestions, putAccount } from '@services/emails'
 import { applySuggestions, SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
 import {
@@ -54,6 +57,10 @@ const STATE_MESSAGES: Readonly<Partial<Record<DialogState, { detail: string; lea
     lead: "We don't have any suggestions for this email.",
   },
 }
+
+// Why a footer button can't act yet, shown when it is pressed.
+const NOTHING_PICKED = 'Pick at least one change to apply.'
+const WAIT_FOR_APPLY = 'Wait until we finish applying your changes.'
 
 const APPLY_FAILURE = "We couldn't save those changes. Your picks are still here — try again."
 
@@ -139,18 +146,12 @@ const applyCounted = (base: SpamFilter, picks: SpamSuggestion[]): { changed: num
 const ImpactLine = ({ id, suggestion }: { id: string; suggestion: SpamSuggestion }): React.ReactNode =>
   suggestion.kind === 'raiseSensitivity' && suggestion.value === 'high' ? (
     <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id} style={{ color: 'var(--text-paper)' }}>
-      <TriangleAlert
-        aria-hidden="true"
-        className="mt-px flex-shrink-0"
-        size={12}
-        strokeWidth={2}
-        style={{ color: 'var(--accent)' }}
-      />
+      <TriangleAlertIcon className="mt-px flex-shrink-0" size={12} style={{ color: 'var(--accent)' }} />
       <span>Applies to new mail only. High may catch real mail.</span>
     </span>
   ) : (
     <span className="mt-1.5 flex items-start gap-1.5 text-xs" id={id}>
-      <Check aria-hidden="true" className="mt-px flex-shrink-0" size={12} strokeWidth={2} />
+      <CheckIcon className="mt-px flex-shrink-0" size={12} />
       <span>Applies to new mail only</span>
     </span>
   )
@@ -162,7 +163,6 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [impactState, setImpactState] = useState<ImpactState>({ status: 'idle' })
   const baseId = useId()
-  const introId = `${baseId}-intro`
 
   useEffect(() => {
     if (!open) {
@@ -291,35 +291,34 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
   const primaryLabel =
     pickedCount === 0
       ? 'Apply changes'
-      : applying
-        ? 'Applying…'
-        : `Apply ${pickedCount} ${plural(pickedCount, 'change', 'changes')}${matchingPicks > 0 || unsureOfPicks ? ' anyway' : ''}`
+      : `Apply ${pickedCount} ${plural(pickedCount, 'change', 'changes')}${matchingPicks > 0 || unsureOfPicks ? ' anyway' : ''}`
 
   // One first button for every state, so the element that holds focus while loading is the same
   // one after the results (Cancel) or a message (Close) arrive.
   const closesOnly = !showRows && state !== 'loading'
   const footer = (
     <div className="flex flex-shrink-0 justify-end gap-2">
-      <button
-        aria-disabled={applying || undefined}
-        className={`${closesOnly ? 'btn-accent' : 'btn-ghost-paper'} rounded-md px-4 py-2 text-sm font-medium transition-all`}
+      <Button
+        className="rounded-md px-4 py-2 text-sm font-medium transition-all"
         onClick={handleClose}
         style={{ fontFamily: 'Outfit, sans-serif' }}
-        type="button"
+        unavailableReason={applying ? WAIT_FOR_APPLY : undefined}
+        variant={closesOnly ? 'primary' : 'secondary'}
       >
         {closesOnly ? 'Close' : 'Cancel'}
-      </button>
+      </Button>
       {showRows && (
-        <button
-          aria-describedby={pickedCount === 0 ? introId : undefined}
-          aria-disabled={pickedCount === 0 || applying || undefined}
-          className="btn-accent rounded-md px-4 py-2 text-sm font-medium transition-all"
+        <Button
+          busy={applying}
+          busyLabel="Applying…"
+          className="rounded-md px-4 py-2 text-sm font-medium transition-all"
           onClick={handleApply}
           style={{ fontFamily: 'Outfit, sans-serif' }}
-          type="button"
+          unavailableReason={pickedCount === 0 ? NOTHING_PICKED : undefined}
+          variant="primary"
         >
           {primaryLabel}
-        </button>
+        </Button>
       )}
     </div>
   )
@@ -327,16 +326,12 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
   const message = STATE_MESSAGES[state]
 
   return (
-    <ConfirmDialog footer={footer} onCancel={handleClose} open={open} scrollable title="Suggested rule changes">
+    <Dialog footer={footer} onCancel={handleClose} open={open} scrollable title="Suggested rule changes">
       {/* Mounted for every state, so each change of state is announced. */}
       <div role="status">
         {state === 'loading' && (
           <div className="flex flex-col items-center gap-3.5 pb-2 pt-5 text-center">
-            <div
-              aria-hidden="true"
-              className="h-8 w-8 animate-spin rounded-full"
-              style={{ border: '2px solid var(--paper-border)', borderTopColor: 'var(--accent)' }}
-            />
+            <Spinner size={24} />
             <p style={{ color: 'var(--text-paper)' }}>Reading this email…</p>
           </div>
         )}
@@ -367,22 +362,14 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
               color: 'var(--text-paper)',
             }}
           >
-            <TriangleAlert
-              aria-hidden="true"
-              className="mt-0.5 flex-shrink-0"
-              size={14}
-              strokeWidth={2}
-              style={{ color: 'var(--accent)' }}
-            />
+            <TriangleAlertIcon className="mt-0.5 flex-shrink-0" size={14} style={{ color: 'var(--accent)' }} />
             <span style={{ overflowWrap: 'anywhere' }}>{errorMessage}</span>
           </p>
         )}
       </div>
       {showRows && (
         <>
-          <p className="mb-3" id={introId}>
-            Pick the changes you want. Nothing is saved until you apply them.
-          </p>
+          <p className="mb-3">Pick the changes you want. We save nothing until you apply them.</p>
           {matchingPicks > 0 && (
             <div
               className="mb-3 flex items-start gap-2 rounded-[10px] px-3 py-2.5 text-[13px] leading-[18px]"
@@ -393,13 +380,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
                 color: 'var(--text-paper)',
               }}
             >
-              <TriangleAlert
-                aria-hidden="true"
-                className="mt-0.5 flex-shrink-0"
-                size={14}
-                strokeWidth={2}
-                style={{ color: 'var(--accent)' }}
-              />
+              <TriangleAlertIcon className="mt-0.5 flex-shrink-0" size={14} style={{ color: 'var(--accent)' }} />
               <span>
                 {matchingPicks === 1
                   ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
@@ -409,7 +390,6 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
           )}
           <ul className="flex flex-col gap-2">
             {suggestions.map((suggestion, index) => {
-              const labelId = `${baseId}-${index}-label`
               const reasonId = `${baseId}-${index}-reason`
               const impactId = `${baseId}-${index}-impact`
               const checked = picked.has(suggestion.id)
@@ -420,43 +400,46 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
                   : `${reasonId} ${impactId}`
               return (
                 <li key={suggestion.id}>
-                  <label
-                    className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[10px] px-3 py-2.5"
+                  {/* The card around the Checkbox. Its padding is the Checkbox's, so a click anywhere in
+                      the card toggles the pick. accent-color is inherited, so the tick stays violet. */}
+                  <div
+                    className="rounded-[10px]"
                     style={{
+                      accentColor: 'var(--accent-deep)',
                       background: checked
                         ? 'linear-gradient(0deg, var(--accent-subtle), var(--accent-subtle)), var(--paper-surface)'
                         : 'var(--paper-surface)',
                       border: `1px solid ${checked ? 'var(--accent-border)' : 'var(--paper-border)'}`,
                     }}
                   >
-                    <input
-                      aria-describedby={describedBy}
-                      aria-disabled={applying || undefined}
-                      aria-labelledby={labelId}
+                    {/* Named by the change alone. The reason and impact lines are the Checkbox's
+                        details: in the same clickable row, out of the name, and described through
+                        describedBy (the counts only, so the email lists stay readable but unread). */}
+                    <Checkbox
                       checked={checked}
-                      className="mt-0.5 h-4 w-4 flex-shrink-0"
+                      className="px-3 py-2.5"
+                      describedBy={describedBy}
+                      details={
+                        <span className="block" style={{ color: 'var(--text-paper-muted)' }}>
+                          <span className="mt-0.5 block text-xs" id={reasonId}>
+                            {suggestion.reason}
+                          </span>
+                          {suggestion.kind === 'addBlockPhrase' ? (
+                            phraseImpactLine(suggestion, impactId)
+                          ) : (
+                            <ImpactLine id={impactId} suggestion={suggestion} />
+                          )}
+                        </span>
+                      }
+                      label={
+                        <span className="block text-sm font-medium" style={{ overflowWrap: 'anywhere' }}>
+                          {changeLabel(suggestion)}
+                        </span>
+                      }
                       onChange={() => togglePick(suggestion.id)}
-                      style={{ accentColor: 'var(--accent-deep)' }}
-                      type="checkbox"
+                      readOnly={applying}
                     />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className="block text-sm font-medium"
-                        id={labelId}
-                        style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}
-                      >
-                        {changeLabel(suggestion)}
-                      </span>
-                      <span className="mt-0.5 block text-xs" id={reasonId}>
-                        {suggestion.reason}
-                      </span>
-                      {suggestion.kind === 'addBlockPhrase' ? (
-                        phraseImpactLine(suggestion, impactId)
-                      ) : (
-                        <ImpactLine id={impactId} suggestion={suggestion} />
-                      )}
-                    </span>
-                  </label>
+                  </div>
                 </li>
               )
             })}
@@ -473,7 +456,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
             )}
         </>
       )}
-    </ConfirmDialog>
+    </Dialog>
   )
 }
 

@@ -1,5 +1,13 @@
-import { Check, Save } from 'lucide-react'
 import React from 'react'
+
+import Button from '@components/ui/button'
+import ButtonIconTile, { BUTTON_ICON_TILE_SIZE } from '@components/ui/button-icon-tile'
+import { SaveIcon } from '@components/ui/icons'
+
+// Why a control in a section Save owns can't run while Save is busy. AccountSettings passes it to
+// every such control as its readOnlyReason. Worded for the mail check too, when nothing is being
+// written yet.
+export const WAIT_FOR_SAVE_REASON = 'Wait until Save finishes.'
 
 export const SettingsCard = ({ children }: { children: React.ReactNode }): React.ReactNode => (
   <div
@@ -58,84 +66,19 @@ export const SettingsTitle = (): React.ReactNode => (
   </div>
 )
 
-export const SettingsDivider = (): React.ReactNode => (
-  <div style={{ height: '1px', background: 'var(--paper-border)', opacity: 0.7 }} />
-)
+const SaveTileIcon = (): React.ReactNode => <ButtonIconTile icon={SaveIcon} />
 
-// 'saved' is the resting state: everything on screen is what the server holds. A disabled control
-// has to say why it is disabled, so the state is the label rather than a hint beside it -- a screen
-// reader skips the hint on a disabled button.
-export type SaveState = 'checking' | 'saved' | 'saving' | 'unsaved'
-
-export const saveState = (hasUnsavedChanges: boolean, isSaving: boolean, isChecking: boolean): SaveState => {
-  if (isChecking) {
-    return 'checking'
-  }
-  if (isSaving) {
-    return 'saving'
-  }
-  return hasUnsavedChanges ? 'unsaved' : 'saved'
+const SAVE_BUTTON_STYLE: React.CSSProperties = {
+  fontFamily: 'Outfit, sans-serif',
+  fontSize: '14px',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  padding: '9px 20px',
 }
 
-const SAVE_LABELS: Record<SaveState, string> = {
-  checking: 'Checking your mail…',
-  saved: 'Saved',
-  saving: 'Saving…',
-  unsaved: 'Save',
-}
-
-// .btn-accent:disabled is painted for the dark shell, where it lands at 1.9:1 on linen -- fine for
-// the rare disabled button, wrong for one that sits disabled most of the time. 'saved' therefore
-// gets a paper treatment that stays legible (5.6:1), and 'saving' keeps the accent it was pressed
-// in so one click does not restyle the button twice on its way to settling.
-const ACCENT: React.CSSProperties = {
-  background: 'linear-gradient(135deg, var(--accent-deep) 0%, var(--accent-deep-hover) 100%)',
-  color: '#fff',
-}
-
-const SAVE_STYLES: Record<SaveState, React.CSSProperties> = {
-  checking: ACCENT,
-  saved: {
-    background: 'var(--paper-surface)',
-    border: '1px solid var(--paper-border)',
-    boxShadow: 'none',
-    color: 'var(--text-paper-muted)',
-  },
-  saving: ACCENT,
-  unsaved: ACCENT,
-}
-
-const BADGE_BACKGROUNDS: Record<SaveState, string> = {
-  checking: 'rgba(255,255,255,0.15)',
-  saved: 'rgba(28,26,23,0.06)',
-  saving: 'rgba(255,255,255,0.15)',
-  unsaved: 'rgba(255,255,255,0.15)',
-}
-
-const SaveIcon = ({ state }: { state: SaveState }): React.ReactNode => {
-  if (state === 'saving' || state === 'checking') {
-    return (
-      <span
-        aria-hidden="true"
-        style={{
-          animation: 'spin 0.8s linear infinite',
-          border: '1.5px solid rgba(255,255,255,0.3)',
-          borderRadius: '50%',
-          borderTopColor: '#fff',
-          display: 'block',
-          height: '12px',
-          width: '12px',
-        }}
-      />
-    )
-  }
-  return state === 'saved' ? (
-    <Check aria-hidden="true" size={12} strokeWidth={2.5} />
-  ) : (
-    <Save aria-hidden="true" size={12} strokeWidth={2} />
-  )
-}
-
+// Never disabled (spec G4): with nothing to save, a press says so instead of saving; while a save or
+// the phrase check runs, it is busy. Busy and unavailable both keep the button in the tab order, so
+// focus stays on it when the save lands instead of dropping to the top of the page.
 export const SaveButton = ({
   hasUnsavedChanges,
   isChecking,
@@ -146,54 +89,17 @@ export const SaveButton = ({
   isChecking: boolean
   isSaving: boolean
   onClick: () => void
-}): React.ReactNode => {
-  const state = saveState(hasUnsavedChanges, isSaving, isChecking)
-  const pressable = state === 'unsaved'
-
-  // aria-disabled, not disabled: a disabled button leaves the tab order the moment the save lands,
-  // dropping focus to the body, so a keyboard reader's next Tab restarts at the top of the page.
-  // The press is refused here instead. The label says which state refused it.
-  const handleClick = (): void => {
-    if (pressable) {
-      onClick()
-    }
-  }
-
-  return (
-    <button
-      aria-disabled={!pressable}
-      className="btn-accent"
-      onClick={handleClick}
-      style={{
-        alignItems: 'center',
-        cursor: pressable ? 'pointer' : 'not-allowed',
-        display: 'flex',
-        fontFamily: 'Outfit, sans-serif',
-        fontSize: '14px',
-        fontWeight: 600,
-        gap: '8px',
-        letterSpacing: '0.01em',
-        padding: '9px 20px',
-        ...SAVE_STYLES[state],
-      }}
-      type="button"
-    >
-      {/* Button-in-button icon */}
-      <div
-        style={{
-          alignItems: 'center',
-          background: BADGE_BACKGROUNDS[state],
-          borderRadius: '7px',
-          display: 'flex',
-          flexShrink: 0,
-          height: '24px',
-          justifyContent: 'center',
-          width: '24px',
-        }}
-      >
-        <SaveIcon state={state} />
-      </div>
-      {SAVE_LABELS[state]}
-    </button>
-  )
-}
+}): React.ReactNode => (
+  <Button
+    busy={isChecking || isSaving}
+    busyLabel={isChecking ? 'Checking your mail…' : 'Saving…'}
+    icon={SaveTileIcon}
+    iconSize={BUTTON_ICON_TILE_SIZE}
+    onClick={onClick}
+    style={SAVE_BUTTON_STYLE}
+    unavailableReason={hasUnsavedChanges ? undefined : 'You have no changes to save.'}
+    variant="primary"
+  >
+    Save
+  </Button>
+)

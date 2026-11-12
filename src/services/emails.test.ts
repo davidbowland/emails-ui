@@ -333,7 +333,9 @@ describe('Emails service', () => {
 
     describe('postSpamSuggestions', () => {
       const suggestionsResponse: SpamSuggestionsResponse = {
-        suggestions: [{ id: 's1', kind: 'addBlockPhrase', reason: 'Pitch line', value: 'reply with no' }],
+        suggestions: [
+          { id: 's1', kind: 'addBlockPhrase', level: 'targeted', reason: 'Pitch line', value: 'reply with no' },
+        ],
       }
 
       it('should return the suggestions from the API call', async () => {

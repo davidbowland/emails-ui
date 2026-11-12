@@ -587,6 +587,8 @@ describe('Mailbox component', () => {
     }
 
     const noticeOf = (text: string | RegExp): HTMLElement => screen.getByText(text).closest('section') as HTMLElement
+    // The list alone: the notice names the moved email too.
+    const spamList = (): HTMLElement => screen.getByRole('navigation', { name: 'Spam emails' })
 
     describe('first load', () => {
       const unread = { ...first, data: { ...first.data, viewed: false } }
@@ -622,11 +624,24 @@ describe('Mailbox component', () => {
         expect(getAllEmails).toHaveBeenCalledTimes(2)
         expect(await screen.findByText('Viewing s2')).toBeInTheDocument()
         expect(getEmailContents).toHaveBeenLastCalledWith(accountId, 's2')
-        expect(screen.queryByText('Polling place notice')).not.toBeInTheDocument()
-        expect(noticeOf('Moved to Inbox.')).toHaveFocus()
-        expect(within(noticeOf('Moved to Inbox.')).getByText(sender)).toBeInTheDocument()
-        expect(screen.getByText(/Spam has 1 more email from this sender/)).toBeInTheDocument()
+        expect(within(spamList()).queryByText('Polling place notice')).not.toBeInTheDocument()
+        expect(noticeOf('Moved to Inbox:')).toHaveFocus()
+        expect(noticeOf('Moved to Inbox:')).toHaveTextContent(`Always trust ${sender}?`)
+        expect(within(noticeOf('Moved to Inbox:')).getByText(/^Spam has 1 more email from/)).toHaveTextContent(
+          `Spam has 1 more email from ${sender}.`,
+        )
         expect(SpamSuggestions).not.toHaveBeenCalled()
+      })
+
+      it('should name the moved email in the notice, not the one now in the viewer', async () => {
+        await setup('spam', [first, second, third])
+
+        await move('Not spam', [second, third])
+
+        expect(await screen.findByText('Viewing s2')).toBeInTheDocument()
+        const notice = noticeOf('Moved to Inbox:')
+        expect(notice).toHaveTextContent(`“Polling place notice” from Harbor County <${sender}>`)
+        expect(notice).not.toHaveTextContent('Second notice')
       })
 
       it('should place the notice in the viewer, after the list, at md and up', async () => {
@@ -636,7 +651,7 @@ describe('Mailbox component', () => {
 
         expect(matchMedia).toHaveBeenCalledWith('(min-width: 768px)')
         const list = screen.getByRole('navigation', { name: 'Spam emails' })
-        expect(list.compareDocumentPosition(noticeOf('Moved to Inbox.'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(list.compareDocumentPosition(noticeOf('Moved to Inbox:'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
       })
 
       it('should return to the list below md, with the notice on top of it and focused', async () => {
@@ -644,7 +659,7 @@ describe('Mailbox component', () => {
 
         await move('Not spam', [second])
 
-        const notice = noticeOf('Moved to Inbox.')
+        const notice = noticeOf('Moved to Inbox:')
         const list = screen.getByRole('navigation', { name: 'Spam emails' })
         expect(notice.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
         expect(notice).toHaveFocus()
@@ -660,7 +675,7 @@ describe('Mailbox component', () => {
 
         expect(getAllEmails).toHaveBeenCalledTimes(1)
         expect(screen.getByText('Polling place notice')).toBeInTheDocument()
-        expect(screen.queryByText('Moved to Inbox.')).not.toBeInTheDocument()
+        expect(screen.queryByText('Moved to Inbox:')).not.toBeInTheDocument()
       })
 
       it('should drop the moved email and still show the notice when the reload fails', async () => {
@@ -670,8 +685,8 @@ describe('Mailbox component', () => {
         await click('Not spam')
 
         expect(await screen.findByText(/Couldn't load your emails/)).toBeInTheDocument()
-        expect(screen.queryByText('Polling place notice')).not.toBeInTheDocument()
-        expect(noticeOf('Moved to Inbox.')).toHaveFocus()
+        expect(within(spamList()).queryByText('Polling place notice')).not.toBeInTheDocument()
+        expect(noticeOf('Moved to Inbox:')).toHaveFocus()
         expect(screen.getByText(/Spam has 1 more email/)).toBeInTheDocument()
       })
 
@@ -684,7 +699,7 @@ describe('Mailbox component', () => {
 
         expect(moveEmail).toHaveBeenLastCalledWith(accountId, 's2', 'inbox')
         expect(await screen.findByText('Viewing s3')).toBeInTheDocument()
-        expect(noticeOf('Moved to Inbox.')).toHaveFocus()
+        expect(noticeOf('Moved to Inbox:')).toHaveFocus()
         expect(screen.queryByText(/more email/)).not.toBeInTheDocument()
       })
 
@@ -695,7 +710,7 @@ describe('Mailbox component', () => {
 
         expect(await screen.findByText('No spam right now')).toBeInTheDocument()
         expect(screen.getByText('Select an email to view')).toBeInTheDocument()
-        expect(noticeOf('Moved to Inbox.')).toHaveFocus()
+        expect(noticeOf('Moved to Inbox:')).toHaveFocus()
       })
 
       it('should keep a refresh that started before the move from showing the moved email again', async () => {
@@ -730,7 +745,7 @@ describe('Mailbox component', () => {
           resolveStaleLoad([unreadFirst, second])
         })
 
-        expect(screen.queryByText('Polling place notice')).not.toBeInTheDocument()
+        expect(within(spamList()).queryByText('Polling place notice')).not.toBeInTheDocument()
         expect(screen.getByText('Second notice')).toBeInTheDocument()
       })
 
@@ -739,7 +754,7 @@ describe('Mailbox component', () => {
 
         await move('Not spam', [])
 
-        expect(await screen.findByText('Moved to Inbox.')).toBeInTheDocument()
+        expect(await screen.findByText('Moved to Inbox:')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
       })
     })
@@ -748,13 +763,13 @@ describe('Mailbox component', () => {
       const moveFirst = async (): Promise<void> => {
         await setup('spam', [first, second])
         await move('Not spam', [second])
-        await screen.findByText('Moved to Inbox.')
+        await screen.findByText('Moved to Inbox:')
       }
 
       it('should add the address to trusted senders', async () => {
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(getAccount).toHaveBeenCalledWith(accountId)
         expect(putAccount).toHaveBeenCalledWith(accountId, {
@@ -785,7 +800,7 @@ describe('Mailbox component', () => {
         })
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(await screen.findByText(/added to trusted senders/)).toBeInTheDocument()
         expect(putAccount).not.toHaveBeenCalled()
@@ -799,7 +814,7 @@ describe('Mailbox component', () => {
         })
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(await screen.findByText(/Your trusted senders list is full/)).toBeInTheDocument()
         expect(putAccount).not.toHaveBeenCalled()
@@ -809,12 +824,12 @@ describe('Mailbox component', () => {
         jest.mocked(putAccount).mockRejectedValueOnce(new Error('Network Error'))
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(
           await screen.findByText("We couldn't add that trusted sender. Nothing changed — try again."),
         ).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: `Trust ${sender}` })).toBeInTheDocument()
       })
 
       it('should show the list-full message when the save that fills the list is refused', async () => {
@@ -826,7 +841,7 @@ describe('Mailbox component', () => {
         jest.mocked(putAccount).mockRejectedValueOnce(Object.assign(new Error('Bad Request'), { status: 400 }))
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(await screen.findByText(/Your trusted senders list is full/)).toBeInTheDocument()
         expect(screen.queryByText(/We couldn't add that trusted sender/)).not.toBeInTheDocument()
@@ -836,20 +851,20 @@ describe('Mailbox component', () => {
         jest.mocked(putAccount).mockRejectedValueOnce(Object.assign(new Error('Bad Request'), { status: 400 }))
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(
           await screen.findByText("We couldn't add that trusted sender. Nothing changed — try again."),
         ).toBeInTheDocument()
         expect(screen.queryByText(/Your trusted senders list is full/)).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: `Trust ${sender}` })).toBeInTheDocument()
       })
 
       it('should keep the offer when the account cannot be read', async () => {
         jest.mocked(getAccount).mockRejectedValueOnce(new Error('Network Error'))
         await moveFirst()
 
-        await click('Trust this address')
+        await click(`Trust ${sender}`)
 
         expect(await screen.findByText(/We couldn't add that trusted sender/)).toBeInTheDocument()
         expect(putAccount).not.toHaveBeenCalled()
@@ -861,7 +876,7 @@ describe('Mailbox component', () => {
         await click('No thanks')
 
         expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
-        expect(screen.getByText('Moved to Inbox.')).toBeInTheDocument()
+        expect(screen.getByText('Moved to Inbox:')).toBeInTheDocument()
         expect(getAccount).not.toHaveBeenCalled()
         expect(putAccount).not.toHaveBeenCalled()
       })
@@ -872,7 +887,7 @@ describe('Mailbox component', () => {
         await move('Not spam', [first])
 
         expect(moveEmail).toHaveBeenCalledWith(accountId, 's4', 'inbox')
-        expect(await screen.findByRole('button', { name: 'Trust this address' })).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: 'Trust deals@gmail.com' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Trust all/ })).not.toBeInTheDocument()
       })
     })
@@ -918,7 +933,7 @@ describe('Mailbox component', () => {
 
         await click('Dismiss')
 
-        expect(screen.queryByText('Moved to Inbox.')).not.toBeInTheDocument()
+        expect(screen.queryByText('Moved to Inbox:')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Not spam' })).toHaveFocus()
       })
 
@@ -931,7 +946,7 @@ describe('Mailbox component', () => {
           await userEvent.keyboard('{Escape}')
         })
 
-        expect(screen.queryByText('Moved to Inbox.')).not.toBeInTheDocument()
+        expect(screen.queryByText('Moved to Inbox:')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Not spam' })).toHaveFocus()
       })
 
@@ -965,9 +980,29 @@ describe('Mailbox component', () => {
 
         expect(moveEmail).toHaveBeenCalledWith(accountId, 'i1', 'spam')
         expect(await screen.findByText('Viewing i2')).toBeInTheDocument()
-        expect(noticeOf('Moved to Spam.')).toHaveFocus()
+        expect(noticeOf('Moved to Spam:')).toHaveFocus()
         expect(screen.getByRole('button', { name: 'Suggest rule changes' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Trust/ })).not.toBeInTheDocument()
+      })
+
+      it('should name the moved email in the notice, not the one now in the viewer', async () => {
+        await setup('inbox', [inboxFirst, inboxSecond])
+
+        await move('Move to spam', [inboxSecond])
+
+        expect(await screen.findByText('Viewing i2')).toBeInTheDocument()
+        const notice = noticeOf('Moved to Spam:')
+        expect(notice).toHaveTextContent('“App development offer” from pitch@agency.com')
+        expect(notice).not.toHaveTextContent('Lunch?')
+        expect(notice).not.toHaveTextContent('friend@domain.com')
+      })
+
+      it('should say the moved email had no subject', async () => {
+        await setup('inbox', [batch('i3', 'pitch@agency.com', '', 4000), inboxSecond])
+
+        await move('Move to spam', [inboxSecond])
+
+        expect(noticeOf('Moved to Spam:')).toHaveTextContent('The email with no subject from pitch@agency.com')
       })
 
       it('should open suggestions for the moved email', async () => {
@@ -978,7 +1013,13 @@ describe('Mailbox component', () => {
 
         expect(screen.getByRole('dialog')).toHaveTextContent('Suggestions for i1')
         expect(SpamSuggestions).toHaveBeenLastCalledWith(
-          expect.objectContaining({ accountId, emailId: 'i1', open: true }),
+          expect.objectContaining({
+            accountId,
+            emailFrom: 'pitch@agency.com',
+            emailId: 'i1',
+            emailSubject: 'App development offer',
+            open: true,
+          }),
           undefined,
         )
       })
@@ -992,7 +1033,7 @@ describe('Mailbox component', () => {
 
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(screen.getByText('2 rule changes saved.')).toBeInTheDocument()
-        expect(noticeOf('Moved to Spam.')).toHaveFocus()
+        expect(noticeOf('Moved to Spam:')).toHaveFocus()
       })
 
       it('should close suggestions and keep the offer when canceled', async () => {

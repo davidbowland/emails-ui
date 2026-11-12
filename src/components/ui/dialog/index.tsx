@@ -14,6 +14,8 @@ export interface DialogProps {
   // Only the default footer calls this, so a dialog with its own footer may leave it out.
   onConfirm?: () => void
   open: boolean
+  // Where focus goes on close, instead of the element that had it when the dialog opened.
+  returnFocusTo?: () => HTMLElement | null
   // For long content: the panel stops short of the viewport and the body scrolls between the
   // fixed title and footer.
   scrollable?: boolean
@@ -31,11 +33,13 @@ const Dialog = ({
   onCancel,
   onConfirm,
   open,
+  returnFocusTo,
   scrollable = false,
   title,
 }: DialogProps): React.ReactNode => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<Element | null>(null)
+  const wasOpenRef = useRef(false)
   const titleId = useId()
 
   useEffect(() => {
@@ -46,9 +50,11 @@ const Dialog = ({
       Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
         .find((element) => element.getAttribute('aria-disabled') !== 'true')
         ?.focus()
-    } else {
-      ;(triggerRef.current as HTMLElement | null)?.focus()
+    } else if (wasOpenRef.current) {
+      ;((returnFocusTo?.() ?? triggerRef.current) as HTMLElement | null)?.focus()
     }
+    wasOpenRef.current = open
+    // returnFocusTo is read only when the dialog closes; a new function identity must not refire it.
   }, [open])
 
   useEffect(() => {

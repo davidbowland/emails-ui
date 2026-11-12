@@ -40,24 +40,43 @@ describe('SpamSuggestions component', () => {
   const appDevelopment: SpamSuggestion = {
     id: 's1',
     kind: 'addBlockPhrase',
+    level: 'targeted',
     reason: 'A pitch for outsourced app work.',
     value: 'app development',
   }
-  const lottery: SpamSuggestion = { id: 's2', kind: 'addBlockPhrase', reason: 'A prize scam.', value: 'lottery' }
-  const crypto: SpamSuggestion = { id: 's3', kind: 'addBlockPhrase', reason: 'Crypto offers.', value: 'crypto' }
+  const lottery: SpamSuggestion = {
+    id: 's2',
+    kind: 'addBlockPhrase',
+    level: 'broader',
+    reason: 'A prize scam.',
+    value: 'lottery',
+  }
+  const crypto: SpamSuggestion = {
+    id: 's3',
+    kind: 'addBlockPhrase',
+    level: 'aggressive',
+    reason: 'Crypto offers.',
+    value: 'crypto',
+  }
   const removeSender: SpamSuggestion = {
     id: 's4',
     kind: 'removeTrustedSender',
+    level: 'targeted',
     reason: 'This sender sent the spam.',
     value: '@pitch.example',
   }
   const raiseHigh: SpamSuggestion = {
     id: 's5',
     kind: 'raiseSensitivity',
+    level: 'aggressive',
     reason: 'More spam is slipping by.',
     value: 'high',
   }
+  // In the response's order, which is not the order of the groups.
   const suggestions: SpamSuggestion[] = [appDevelopment, lottery, crypto, removeSender, raiseHigh]
+  // The same suggestions as an API from before levels sends them, with no level, so none is picked when they
+  // arrive. For tests that pick from scratch.
+  const unpicked = suggestions.map(({ level: _level, ...suggestion }) => suggestion) as unknown as SpamSuggestion[]
 
   const spamAccount: Account = {
     ...account,
@@ -67,7 +86,17 @@ describe('SpamSuggestions component', () => {
   const onApplied = jest.fn()
   const onClose = jest.fn()
 
-  const props: SpamSuggestionsProps = { accountId, emailId, onApplied, onClose, open: true }
+  const emailSubject = 'You won the lottery'
+  const emailFrom = 'Prize Desk <prizes@lucky.example>'
+  const props: SpamSuggestionsProps = {
+    accountId,
+    emailFrom,
+    emailId,
+    emailSubject,
+    onApplied,
+    onClose,
+    open: true,
+  }
 
   const httpError = (status?: number, code?: string): HttpError => Object.assign(new Error('failed'), { code, status })
 
@@ -85,6 +114,24 @@ describe('SpamSuggestions component', () => {
       .find(
         (status) => within(status.parentElement as HTMLElement).queryAllByRole('button').length === 0,
       ) as HTMLElement
+
+  const renderUnpicked = async (): Promise<void> => {
+    jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
+    await renderResults()
+  }
+
+  const groupNames = (): string[] =>
+    screen
+      .getAllByRole('list')
+      .map((list) => list.getAttribute('aria-labelledby'))
+      .filter((id): id is string => id !== null)
+      .map((id) => document.getElementById(id)?.textContent ?? '')
+
+  const rowsIn = (group: string): string[] =>
+    within(screen.getByRole('list', { name: group }))
+      .getAllByRole('checkbox')
+      .map((checkbox) => checkbox.getAttribute('aria-labelledby') ?? '')
+      .map((id) => document.getElementById(id)?.textContent ?? '')
 
   const pick = async (name: string): Promise<void> => {
     await userEvent.click(screen.getByRole('checkbox', { name }))
@@ -112,10 +159,24 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
 
       expect(screen.getByRole('dialog', { name: 'Suggested rule changes' })).toBeVisible()
-      expect(dialogStatus()).toHaveTextContent('Reading this email…')
+      expect(dialogStatus()).toHaveTextContent(`Reading “${emailSubject}”`)
     })
 
-    it('asks for suggestions for this email', () => {
+    it('says the email has no subject', () => {
+      jest.mocked(emails).postSpamSuggestions.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} emailSubject="" />)
+
+      expect(dialogStatus()).toHaveTextContent(/^Reading the email with no subject$/)
+    })
+
+    it('cuts a long subject short', () => {
+      jest.mocked(emails).postSpamSuggestions.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} emailSubject={`${'a'.repeat(80)}bcdef`} />)
+
+      expect(dialogStatus()).toHaveTextContent(new RegExp(`^Reading “${'a'.repeat(80)}…”$`))
+    })
+
+    it('asks for suggestions for the moved email', () => {
       jest.mocked(emails).postSpamSuggestions.mockReturnValueOnce(new Promise(() => undefined))
       render(<SpamSuggestions {...props} />)
 
@@ -176,20 +237,188 @@ describe('SpamSuggestions component', () => {
   })
 
   describe('results', () => {
-    it('lists each suggestion as a labeled checkbox with nothing picked', async () => {
-      await renderResults()
+    it('lists each suggestion as a labeled checkbox, with Targeted and Broader picked and Aggressive not', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “app development” to block phrases' })
 
-      const names = screen.getAllByRole('checkbox').map((checkbox) => checkbox.getAttribute('aria-labelledby'))
-      expect(names).toHaveLength(5)
-      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).not.toBeChecked()
-      expect(screen.getByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })).not.toBeChecked()
+      expect(screen.getAllByRole('checkbox')).toHaveLength(5)
+      expect(screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Add “crypto” to block phrases' })).not.toBeChecked()
       expect(screen.getByRole('checkbox', { name: 'Raise sensitivity to High' })).not.toBeChecked()
+      expect(screen.getByRole('button', { name: 'Apply 3 changes anyway' })).toBeInTheDocument()
     })
 
-    it('announces how many changes are suggested', async () => {
+    it('unticks a phrase we picked once the check finds it in the Inbox', async () => {
       await renderResults()
 
-      expect(dialogStatus()).toHaveTextContent('5 suggested changes.')
+      expect(screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' })).not.toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toBeChecked()
+      expect(screen.queryByRole('note')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Apply 2 changes' })).toBeInTheDocument()
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes, 2 picked for you.')
+    })
+
+    it('asks for picks when the check unticks every phrase we picked', async () => {
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [appDevelopment, crypto] })
+      jest
+        .mocked(emails)
+        .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [impactResponse.phrases[0], noImpact] })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
+
+      expect(screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' })).not.toBeChecked()
+      expect(screen.getByText('Pick the changes you want. We save nothing until you apply them.')).toBeVisible()
+      expect(screen.queryByText(/We picked the safer changes/)).not.toBeInTheDocument()
+      expect(dialogStatus()).toHaveTextContent('2 suggested changes, none picked for you.')
+    })
+
+    it('leaves the picks alone when the check finishes after the person changed them', async () => {
+      const response = deferred<SpamImpactResponse>()
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(response.promise)
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      await pick('Add “lottery” to block phrases')
+
+      await act(async () => response.resolve(impactResponse))
+
+      expect(screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).not.toBeChecked()
+      expect(screen.getByRole('button', { name: 'Apply 2 changes anyway' })).toBeInTheDocument()
+    })
+
+    it('groups the rows by level, from Targeted to Aggressive, under headings with help', async () => {
+      await renderResults()
+
+      expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+        'Targeted',
+        'Broader',
+        'Aggressive',
+      ])
+      expect(groupNames()).toEqual(['Targeted', 'Broader', 'Aggressive'])
+      expect(rowsIn('Targeted')).toEqual([
+        'Add “app development” to block phrases',
+        'Remove @pitch.example from trusted senders',
+      ])
+      expect(rowsIn('Broader')).toEqual(['Add “lottery” to block phrases'])
+      expect(rowsIn('Aggressive')).toEqual(['Add “crypto” to block phrases', 'Raise sensitivity to High'])
+      expect(screen.getByText('Closest to the email you moved. These rarely catch mail you want.')).toBeVisible()
+      expect(screen.getByText('These catch more mail like that one. They may catch some mail you want.')).toBeVisible()
+      expect(
+        screen.getByText(
+          "These catch the most. They're the likeliest to catch mail you want, so we didn't pick them for you.",
+        ),
+      ).toBeVisible()
+    })
+
+    it('leaves out a group with no suggestions', async () => {
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [crypto, removeSender] })
+      jest
+        .mocked(emails)
+        .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [impactResponse.phrases[2]] })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
+
+      expect(groupNames()).toEqual(['Targeted', 'Aggressive'])
+      expect(screen.queryByRole('heading', { name: 'Broader' })).not.toBeInTheDocument()
+      expect(screen.queryByText(/These catch more mail like this/)).not.toBeInTheDocument()
+    })
+
+    it('treats a suggestion without a level as targeted', async () => {
+      const { level: _level, ...noLevel } = crypto
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [noLevel, raiseHigh],
+      } as unknown as SpamSuggestionsResponse)
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [noImpact] })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+
+      expect(rowsIn('Targeted')).toEqual(['Add “crypto” to block phrases'])
+      expect(screen.getByRole('checkbox', { name: 'Add “crypto” to block phrases' })).toBeChecked()
+    })
+
+    it('treats a High sensitivity change without a level as aggressive, and a Medium one as broader', async () => {
+      const { level: _high, ...legacyHigh } = raiseHigh
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [legacyHigh],
+      } as unknown as SpamSuggestionsResponse)
+      const { unmount } = render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Raise sensitivity to High' })
+
+      expect(groupNames()).toEqual(['Aggressive'])
+      expect(screen.getByRole('checkbox', { name: 'Raise sensitivity to High' })).not.toBeChecked()
+      unmount()
+
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [{ id: 'm', kind: 'raiseSensitivity', reason: 'Some spam gets through.', value: 'medium' }],
+      } as unknown as SpamSuggestionsResponse)
+      render(<SpamSuggestions {...props} />)
+
+      await screen.findByRole('checkbox', { name: 'Raise sensitivity to Medium' })
+      expect(groupNames()).toEqual(['Broader'])
+    })
+
+    it('groups a response from before levels, but picks none of it', async () => {
+      jest
+        .mocked(emails)
+        .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [noImpact, noImpact, noImpact] })
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+
+      expect(groupNames()).toEqual(['Targeted', 'Aggressive'])
+      expect(rowsIn('Targeted')).toEqual([
+        'Add “app development” to block phrases',
+        'Add “lottery” to block phrases',
+        'Add “crypto” to block phrases',
+        'Remove @pitch.example from trusted senders',
+      ])
+      expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0)
+      expect(screen.getByText('Pick the changes you want. We save nothing until you apply them.')).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Apply changes' })).toBeInTheDocument()
+    })
+
+    it.each(['extreme', '', null])('drops a suggestion with the level %p', async (level) => {
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [{ ...crypto, level }, raiseHigh],
+      } as unknown as SpamSuggestionsResponse)
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Raise sensitivity to High' })
+
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1)
+      expect(emails.postSpamImpact).not.toHaveBeenCalled()
+    })
+
+    it('guesses the level only when it is missing, and drops one with an unknown level', async () => {
+      const { level: _level, ...noLevel } = lottery
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [noLevel, { ...crypto, level: 'extreme' }],
+      } as unknown as SpamSuggestionsResponse)
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [noImpact] })
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/We finished checking your mail/)
+
+      expect(groupNames()).toEqual(['Targeted'])
+      expect(rowsIn('Targeted')).toEqual(['Add “lottery” to block phrases'])
+      expect(screen.queryByRole('checkbox', { name: 'Add “crypto” to block phrases' })).not.toBeInTheDocument()
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['lottery'], emailId)
+    })
+
+    it('announces how many changes are suggested and how many we picked', async () => {
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes, 3 picked for you.')
+    })
+
+    it('announces when we picked none', async () => {
+      await renderUnpicked()
+
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes, none picked for you.')
     })
 
     it('announces a single suggestion', async () => {
@@ -199,13 +428,29 @@ describe('SpamSuggestions component', () => {
         .postSpamImpact.mockResolvedValueOnce({ ...impactResponse, phrases: [impactResponse.phrases[1]] })
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText(/1 suggested change\./)).toBeInTheDocument()
+      expect(await screen.findByText(/1 suggested change, 1 picked for you\./)).toBeInTheDocument()
     })
 
-    it('shows the intro and the footnote about what was checked', async () => {
+    it('says we picked the safer changes when it picked some', async () => {
       await renderResults()
 
+      expect(
+        screen.getByText(
+          'We picked the safer changes for you. You can change them. We save nothing until you apply them.',
+        ),
+      ).toBeVisible()
+    })
+
+    it('asks for picks when it picked none', async () => {
+      await renderUnpicked()
+
       expect(screen.getByText('Pick the changes you want. We save nothing until you apply them.')).toBeVisible()
+      expect(screen.queryByText(/We picked the safer changes/)).not.toBeInTheDocument()
+    })
+
+    it('shows the footnote about what was checked', async () => {
+      await renderResults()
+
       expect(
         screen.getByText(
           "We checked subjects and message text in 100 of 150 Inbox emails and 25 of 40 Spam emails, newest first. We didn't check attachments or older mail. If you add these phrases, future mail with them will go to Spam, unless it comes from a trusted sender.",
@@ -263,7 +508,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
 
-      expect(dialogStatus()).toHaveTextContent('5 suggested changes. Checking your mail…')
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes, 3 picked for you. Checking your mail…')
     })
 
     it('announces when the check could not read all of the Inbox', async () => {
@@ -274,14 +519,18 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check all of your Inbox/)
 
-      expect(dialogStatus()).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
+      expect(dialogStatus()).toHaveTextContent(
+        "5 suggested changes, 3 picked for you. We couldn't check all of your Inbox.",
+      )
       expect(dialogStatus()).not.toHaveTextContent('We finished checking your mail.')
     })
 
     it('announces how many suggested phrases match the Inbox when the check finishes', async () => {
       await renderResults()
 
-      expect(dialogStatus()).toHaveTextContent('5 suggested changes. 2 suggested phrases match emails in your Inbox.')
+      expect(dialogStatus()).toHaveTextContent(
+        '5 suggested changes, 2 picked for you. 2 suggested phrases match emails in your Inbox.',
+      )
       expect(dialogStatus()).not.toHaveTextContent('We finished checking your mail.')
     })
 
@@ -297,7 +546,9 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
 
-      expect(dialogStatus()).toHaveTextContent('5 suggested changes. 1 suggested phrase matches emails in your Inbox.')
+      expect(dialogStatus()).toHaveTextContent(
+        '5 suggested changes, 3 picked for you. 1 suggested phrase matches emails in your Inbox.',
+      )
     })
 
     it('announces that the check finished when no suggested phrase matches the Inbox', async () => {
@@ -312,7 +563,7 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We finished checking your mail/)
 
-      expect(dialogStatus()).toHaveTextContent('5 suggested changes. We finished checking your mail.')
+      expect(dialogStatus()).toHaveTextContent('5 suggested changes, 3 picked for you. We finished checking your mail.')
       expect(dialogStatus()).not.toHaveTextContent(/match emails in your Inbox/)
     })
 
@@ -323,7 +574,9 @@ describe('SpamSuggestions component', () => {
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check all of your Inbox/)
 
-      expect(dialogStatus()).toHaveTextContent("5 suggested changes. We couldn't check all of your Inbox.")
+      expect(dialogStatus()).toHaveTextContent(
+        "5 suggested changes, 2 picked for you. We couldn't check all of your Inbox.",
+      )
       expect(dialogStatus()).not.toHaveTextContent(/match emails in your Inbox/)
     })
 
@@ -333,6 +586,45 @@ describe('SpamSuggestions component', () => {
       expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toHaveAccessibleDescription(
         'A prize scam. No matches in 100 Inbox emails No matches in 25 Spam emails',
       )
+    })
+
+    it("keeps each phrase's result on its row when the groups reorder the rows", async () => {
+      // Response order: crypto (aggressive), lottery (broader), app development (targeted). The groups
+      // show them in reverse, but the results follow the response.
+      const response: SpamImpactResponse = {
+        ...impactResponse,
+        phrases: [
+          phraseImpact('crypto', { inbox: inboxHit }),
+          phraseImpact('lottery', { spam: spamHit }),
+          phraseImpact('app development', {}),
+        ],
+      }
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
+        suggestions: [crypto, raiseHigh, lottery, removeSender, appDevelopment],
+      })
+      jest.mocked(emails).postSpamImpact.mockResolvedValueOnce(response)
+      render(<SpamSuggestions {...props} />)
+      await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
+
+      expect(emails.postSpamImpact).toHaveBeenCalledWith(accountId, ['crypto', 'lottery', 'app development'], emailId)
+      expect(rowsIn('Targeted')).toEqual([
+        'Remove @pitch.example from trusted senders',
+        'Add “app development” to block phrases',
+      ])
+      expect(rowsIn('Aggressive')).toEqual(['Add “crypto” to block phrases', 'Raise sensitivity to High'])
+      expect(screen.getByRole('checkbox', { name: 'Add “crypto” to block phrases' })).toHaveAccessibleDescription(
+        'Crypto offers. Matches 2 of 100 Inbox emails: No matches in 25 Spam emails',
+      )
+      expect(screen.getByRole('checkbox', { name: 'Add “lottery” to block phrases' })).toHaveAccessibleDescription(
+        'A prize scam. No matches in 100 Inbox emails Matches 3 of 25 Spam emails:',
+      )
+      expect(
+        screen.getByRole('checkbox', { name: 'Add “app development” to block phrases' }),
+      ).toHaveAccessibleDescription(
+        'A pitch for outsourced app work. No matches in 100 Inbox emails No matches in 25 Spam emails',
+      )
+      expect(screen.queryByRole('note')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Apply 3 changes' })).toBeInTheDocument()
     })
 
     it("shows each phrase's result in its own position", async () => {
@@ -479,7 +771,9 @@ describe('SpamSuggestions component', () => {
 
     it('gives no extra warning for Medium', async () => {
       jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({
-        suggestions: [{ id: 'm', kind: 'raiseSensitivity', reason: 'Some spam gets through.', value: 'medium' }],
+        suggestions: [
+          { id: 'm', kind: 'raiseSensitivity', level: 'broader', reason: 'Some spam gets through.', value: 'medium' },
+        ],
       })
       render(<SpamSuggestions {...props} />)
 
@@ -491,7 +785,7 @@ describe('SpamSuggestions component', () => {
 
   describe('apply button', () => {
     it('reads "Apply changes" and explains instead of applying with no picks', async () => {
-      await renderResults()
+      await renderUnpicked()
 
       const apply = screen.getByRole('button', { name: 'Apply changes' })
       expect(apply).toHaveAccessibleDescription('Pick at least one change to apply.')
@@ -505,7 +799,7 @@ describe('SpamSuggestions component', () => {
     })
 
     it('applies once a change is picked after a press with none', async () => {
-      await renderResults()
+      await renderUnpicked()
       await userEvent.click(screen.getByRole('button', { name: 'Apply changes' }))
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
@@ -514,7 +808,7 @@ describe('SpamSuggestions component', () => {
     })
 
     it('closes only the reason, not the dialog, on Escape', async () => {
-      await renderResults()
+      await renderUnpicked()
       const apply = screen.getByRole('button', { name: 'Apply changes' })
       await userEvent.click(apply)
       const reason = within(apply.parentElement as HTMLElement).getByRole('status')
@@ -527,7 +821,7 @@ describe('SpamSuggestions component', () => {
     })
 
     it('counts one pick', async () => {
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
 
       expect(screen.getByRole('button', { name: 'Apply 1 change' })).toBeInTheDocument()
@@ -535,7 +829,7 @@ describe('SpamSuggestions component', () => {
     })
 
     it('counts several picks', async () => {
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await pick('Raise sensitivity to High')
 
@@ -543,7 +837,7 @@ describe('SpamSuggestions component', () => {
     })
 
     it('drops a pick when unticked', async () => {
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await pick('Add “lottery” to block phrases')
 
@@ -551,29 +845,30 @@ describe('SpamSuggestions component', () => {
     })
 
     it('warns once a matching phrase is picked', async () => {
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “app development” to block phrases')
 
       expect(screen.getByRole('note')).toHaveTextContent(
-        'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.',
+        'A picked phrase matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.',
       )
       expect(screen.getByRole('button', { name: 'Apply 1 change anyway' })).toBeInTheDocument()
     })
 
     it('uses the plural warning for two matching phrases', async () => {
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “app development” to block phrases')
       await pick('Add “crypto” to block phrases')
       await pick('Add “lottery” to block phrases')
 
       expect(screen.getByRole('note')).toHaveTextContent(
-        'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.',
+        'Picked phrases match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.',
       )
       expect(screen.getByRole('button', { name: 'Apply 3 changes anyway' })).toBeInTheDocument()
     })
 
     it('says "anyway" while the check is still running, and applies', async () => {
       jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
       render(<SpamSuggestions {...props} />)
       await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
       await pick('Add “lottery” to block phrases')
@@ -585,6 +880,7 @@ describe('SpamSuggestions component', () => {
 
     it('says "anyway" when the check failed', async () => {
       jest.mocked(emails).postSpamImpact.mockRejectedValueOnce(httpError(503))
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check your mail/)
       await pick('Add “lottery” to block phrases')
@@ -598,6 +894,7 @@ describe('SpamSuggestions component', () => {
         ...spamImpactIncomplete,
         phrases: [phraseImpact('app development', {}), phraseImpact('lottery', {}), phraseImpact('crypto', {})],
       })
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/We couldn't check all of your Inbox/)
       await pick('Add “lottery” to block phrases')
@@ -614,6 +911,7 @@ describe('SpamSuggestions component', () => {
           impactResponse.phrases[2],
         ],
       })
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
       render(<SpamSuggestions {...props} />)
       await screen.findByText(/1 suggested phrase matches emails in your Inbox/)
       await pick('Add “app development” to block phrases')
@@ -623,6 +921,7 @@ describe('SpamSuggestions component', () => {
 
     it('does not say "anyway" for a sender change while the check runs', async () => {
       jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: unpicked })
       render(<SpamSuggestions {...props} />)
       await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
       await pick('Remove @pitch.example from trusted senders')
@@ -632,8 +931,40 @@ describe('SpamSuggestions component', () => {
   })
 
   describe('applying', () => {
-    it('re-reads the account, saves only the picks and reports the count', async () => {
+    it('applies the changes we picked without any further picks', async () => {
       await renderResults()
+      await userEvent.click(screen.getByRole('button', { name: 'Apply 2 changes' }))
+
+      expect(emails.putAccount).toHaveBeenCalledWith(accountId, {
+        ...spamAccount,
+        spamFilter: {
+          blockPhrases: ['casino', 'lottery'],
+          sensitivity: 'medium',
+          trustedSenders: ['me@home.com'],
+        },
+      })
+      expect(onApplied).toHaveBeenCalledWith(2)
+    })
+
+    it('stops before the API when the picks we made would pass the block-phrase limit', async () => {
+      const full = Array.from({ length: 99 }, (_, index) => `phrase ${index}`)
+      jest.mocked(emails).getAccount.mockResolvedValueOnce({
+        ...spamAccount,
+        spamFilter: { blockPhrases: full, sensitivity: 'medium', trustedSenders: [] },
+      })
+      jest.mocked(emails).postSpamImpact.mockReturnValueOnce(new Promise(() => undefined))
+      render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
+      await userEvent.click(screen.getByRole('button', { name: 'Apply 3 changes anyway' }))
+
+      expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent(
+        'These would put your block phrases over the limit of 100.',
+      )
+      expect(emails.putAccount).not.toHaveBeenCalled()
+    })
+
+    it('re-reads the account, saves only the picks and reports the count', async () => {
+      await renderUnpicked()
       await pick('Add “app development” to block phrases')
       await pick('Remove @pitch.example from trusted senders')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 2 changes anyway' }))
@@ -655,7 +986,7 @@ describe('SpamSuggestions component', () => {
         ...spamAccount,
         spamFilter: { blockPhrases: ['Lottery'], sensitivity: 'medium', trustedSenders: [] },
       })
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await pick('Remove @pitch.example from trusted senders')
       await pick('Raise sensitivity to High')
@@ -673,7 +1004,7 @@ describe('SpamSuggestions component', () => {
         ...spamAccount,
         spamFilter: { blockPhrases: ['Lottery'], sensitivity: 'medium', trustedSenders: [] },
       })
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -683,7 +1014,7 @@ describe('SpamSuggestions component', () => {
 
     it('starts from the default filter for an account without one', async () => {
       jest.mocked(emails).getAccount.mockResolvedValueOnce(account)
-      await renderResults()
+      await renderUnpicked()
       await pick('Raise sensitivity to High')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -695,7 +1026,7 @@ describe('SpamSuggestions component', () => {
 
     it('shows "Applying…" and ignores Escape, Cancel and picks while saving', async () => {
       jest.mocked(emails).putAccount.mockReturnValueOnce(new Promise(() => undefined))
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -721,7 +1052,7 @@ describe('SpamSuggestions component', () => {
         ...spamAccount,
         spamFilter: { blockPhrases: full, sensitivity: 'medium', trustedSenders: [] },
       })
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -739,7 +1070,7 @@ describe('SpamSuggestions component', () => {
         ...spamAccount,
         spamFilter: { blockPhrases: [], sensitivity: 'medium', trustedSenders: overFull },
       })
-      await renderResults()
+      await renderUnpicked()
       await pick('Raise sensitivity to High')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -753,7 +1084,7 @@ describe('SpamSuggestions component', () => {
 
     it('keeps the picks and explains when saving fails', async () => {
       jest.mocked(emails).putAccount.mockRejectedValueOnce(httpError(500))
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -772,7 +1103,7 @@ describe('SpamSuggestions component', () => {
 
     it('explains when re-reading the account fails', async () => {
       jest.mocked(emails).getAccount.mockRejectedValueOnce(httpError(503))
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
 
@@ -783,14 +1114,14 @@ describe('SpamSuggestions component', () => {
     })
 
     it('keeps an empty alert region mounted before any error', async () => {
-      await renderResults()
+      await renderUnpicked()
 
       expect(within(screen.getByRole('dialog')).getByRole('alert')).toBeEmptyDOMElement()
     })
 
     it('clears the error when applying again', async () => {
       jest.mocked(emails).putAccount.mockRejectedValueOnce(httpError(500))
-      await renderResults()
+      await renderUnpicked()
       await pick('Add “lottery” to block phrases')
       await userEvent.click(screen.getByRole('button', { name: 'Apply 1 change' }))
       await screen.findByText("We couldn't save those changes. Your picks are still here — try again.")
@@ -845,6 +1176,47 @@ describe('SpamSuggestions component', () => {
       expect(screen.getByRole('button', { name: 'Suggest rule changes' })).toHaveFocus()
     })
 
+    it('picks the safer changes again when opened again', async () => {
+      const { rerender } = render(<SpamSuggestions {...props} />)
+      await screen.findByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })
+      await pick('Remove @pitch.example from trusted senders')
+      expect(screen.getByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })).not.toBeChecked()
+      rerender(<SpamSuggestions {...props} open={false} />)
+
+      rerender(<SpamSuggestions {...props} />)
+
+      expect(await screen.findByRole('checkbox', { name: 'Remove @pitch.example from trusted senders' })).toBeChecked()
+    })
+
+    it('says which email the suggestions are based on, before the lead', async () => {
+      await renderResults()
+
+      const basedOn = screen.getByText(/^Based on/)
+      expect(basedOn).toHaveTextContent(`Based on “${emailSubject}” from ${emailFrom}.`)
+      expect(basedOn.compareDocumentPosition(screen.getByText(/^We picked the safer changes/))).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+    })
+
+    it('says the suggestions are based on an email with no subject', async () => {
+      await renderResults({ emailSubject: '' })
+
+      expect(screen.getByText(/^Based on/)).toHaveTextContent(`Based on the email with no subject from ${emailFrom}.`)
+    })
+
+    it('says the sender of the email is unknown', async () => {
+      await renderResults({ emailFrom: 'unknown' })
+
+      expect(screen.getByText(/^Based on/)).toHaveTextContent(`Based on “${emailSubject}” from an unknown sender.`)
+    })
+
+    it('drops bidi controls from the subject', async () => {
+      await renderResults({ emailSubject: 'Invoice \u202Efdp.exe' })
+
+      expect(screen.getByText(/^Based on/)).toHaveTextContent(`Based on “Invoice fdp.exe” from ${emailFrom}.`)
+      expect(screen.getByText(/^Based on/).textContent).not.toContain('\u202E')
+    })
+
     it('starts fresh when opened again', async () => {
       const { rerender } = render(<SpamSuggestions {...props} />)
       await screen.findByRole('checkbox', { name: 'Add “lottery” to block phrases' })
@@ -854,7 +1226,7 @@ describe('SpamSuggestions component', () => {
 
       rerender(<SpamSuggestions {...props} />)
 
-      expect(dialogStatus()).toHaveTextContent('Reading this email…')
+      expect(dialogStatus()).toHaveTextContent(`Reading “${emailSubject}”`)
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
     })
   })
@@ -865,55 +1237,55 @@ describe('SpamSuggestions component', () => {
         429,
         'DAILY_LIMIT',
         "You've reached today's limit for rule suggestions.",
-        'Try again tomorrow. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again tomorrow. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
       [
         429,
         undefined,
         "Rule suggestions aren't available right now.",
-        'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
       [
         429,
         'THROTTLED',
         "Rule suggestions aren't available right now.",
-        'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
       [
         503,
         undefined,
         "Rule suggestions aren't available right now.",
-        'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
       [
         403,
         undefined,
-        "Rule suggestions aren't available for this email.",
+        `Rule suggestions aren't available for “${emailSubject}”.`,
         "It's still in Spam, and you can change your spam filter anytime in Settings.",
       ],
       [
         404,
         undefined,
-        "Rule suggestions aren't available for this email.",
+        `Rule suggestions aren't available for “${emailSubject}”.`,
         "It's still in Spam, and you can change your spam filter anytime in Settings.",
       ],
       [
         500,
         undefined,
         "Rule suggestions aren't available right now.",
-        'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
       [
         undefined,
         undefined,
         "Rule suggestions aren't available right now.",
-        'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+        'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
       ],
     ])('shows the message for status %s with code %s', async (status, code, lead, detail) => {
       jest.mocked(emails).postSpamSuggestions.mockRejectedValueOnce(httpError(status, code))
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText(lead)).toBeVisible()
+      await screen.findByRole('button', { name: 'Close' })
       expect(dialogStatus()).toHaveTextContent(`${lead}${detail}`)
       expect(screen.queryByRole('button', { name: /Apply/ })).not.toBeInTheDocument()
     })
@@ -938,7 +1310,9 @@ describe('SpamSuggestions component', () => {
       jest.mocked(emails).postSpamSuggestions.mockResolvedValueOnce({ suggestions: [] })
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText("We don't have any suggestions for this email.")).toBeVisible()
+      expect(await screen.findByText(/^We don't have any suggestions for/)).toHaveTextContent(
+        `We don't have any suggestions for “${emailSubject}”.`,
+      )
       expect(
         screen.getByText(
           "It's still in Spam. To catch more mail like it, add a block phrase under Spam filter in Settings.",
@@ -952,7 +1326,9 @@ describe('SpamSuggestions component', () => {
       } as unknown as SpamSuggestionsResponse)
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText("We don't have any suggestions for this email.")).toBeVisible()
+      expect(await screen.findByText(/^We don't have any suggestions for/)).toHaveTextContent(
+        `We don't have any suggestions for “${emailSubject}”.`,
+      )
     })
 
     it.each([
@@ -967,7 +1343,9 @@ describe('SpamSuggestions component', () => {
       } as unknown as SpamSuggestionsResponse)
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText("We don't have any suggestions for this email.")).toBeVisible()
+      expect(await screen.findByText(/^We don't have any suggestions for/)).toHaveTextContent(
+        `We don't have any suggestions for “${emailSubject}”.`,
+      )
     })
 
     it('keeps only the first suggestion with a given id', async () => {
@@ -987,7 +1365,9 @@ describe('SpamSuggestions component', () => {
         .postSpamSuggestions.mockResolvedValueOnce({ suggestions: 'nope' } as unknown as SpamSuggestionsResponse)
       render(<SpamSuggestions {...props} />)
 
-      expect(await screen.findByText("We don't have any suggestions for this email.")).toBeVisible()
+      expect(await screen.findByText(/^We don't have any suggestions for/)).toHaveTextContent(
+        `We don't have any suggestions for “${emailSubject}”.`,
+      )
     })
   })
 })

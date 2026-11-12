@@ -11,6 +11,7 @@ import {
   Check,
   ChevronDown,
   CloudOff,
+  CornerDownLeft,
   Download,
   EllipsisVertical,
   Eye,
@@ -31,6 +32,7 @@ import {
   Palette,
   Paperclip,
   Pencil,
+  Plus,
   RemoveFormatting,
   Reply,
   ReplyAll,
@@ -73,6 +75,7 @@ export type LucideIcon = LucideIconType
  * ChevronDown       ->  ChevronDownIcon
  * X                 ->  CloseIcon
  * CloudOff          ->  CloudOffIcon
+ * CornerDownLeft   ->  CornerDownLeftIcon
  * Download          ->  DownloadIcon
  * EllipsisVertical  ->  EllipsisVerticalIcon
  * Eye               ->  EyeIcon
@@ -93,6 +96,7 @@ export type LucideIcon = LucideIconType
  * Palette           ->  PaletteIcon
  * Paperclip         ->  PaperclipIcon
  * Pencil            ->  PencilIcon
+ * Plus              ->  PlusIcon
  * RemoveFormatting  ->  RemoveFormattingIcon
  * Reply             ->  ReplyIcon
  * ReplyAll          ->  ReplyAllIcon
@@ -165,6 +169,7 @@ export const CheckIcon = createIcon(Check)
 export const ChevronDownIcon = createIcon(ChevronDown)
 export const CloseIcon = createIcon(X)
 export const CloudOffIcon = createIcon(CloudOff)
+export const CornerDownLeftIcon = createIcon(CornerDownLeft)
 export const DownloadIcon = createIcon(Download)
 export const EllipsisVerticalIcon = createIcon(EllipsisVertical)
 export const EyeIcon = createIcon(Eye)
@@ -185,6 +190,7 @@ export const MenuIcon = createIcon(Menu)
 export const PaletteIcon = createIcon(Palette)
 export const PaperclipIcon = createIcon(Paperclip)
 export const PencilIcon = createIcon(Pencil)
+export const PlusIcon = createIcon(Plus)
 export const RemoveFormattingIcon = createIcon(RemoveFormatting)
 export const ReplyIcon = createIcon(Reply)
 export const ReplyAllIcon = createIcon(ReplyAll)

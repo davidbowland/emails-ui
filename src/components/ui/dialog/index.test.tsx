@@ -233,5 +233,30 @@ describe('Dialog component', () => {
 
       expect(screen.getByRole('button', { name: 'Open dialog' })).toHaveFocus()
     })
+
+    it('should move focus to returnFocusTo on close instead of the opener', async () => {
+      const Harness = ({ open }: { open: boolean }): React.ReactNode => (
+        <>
+          <button>Open dialog</button>
+          <button>Elsewhere</button>
+          <Dialog
+            onCancel={onCancel}
+            onConfirm={onConfirm}
+            open={open}
+            returnFocusTo={() => screen.getByRole('button', { name: 'Elsewhere' })}
+            title="Check"
+          >
+            Body
+          </Dialog>
+        </>
+      )
+      const { rerender } = render(<Harness open={false} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Open dialog' }))
+      rerender(<Harness open={true} />)
+
+      rerender(<Harness open={false} />)
+
+      expect(screen.getByRole('button', { name: 'Elsewhere' })).toHaveFocus()
+    })
   })
 })

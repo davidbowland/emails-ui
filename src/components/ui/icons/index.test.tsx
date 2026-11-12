@@ -10,7 +10,7 @@ const iconEntries = Object.entries(icons) as [string, (props: IconProps) => Reac
 
 describe('icons', () => {
   it('exports icons', () => {
-    expect(iconEntries).toHaveLength(52)
+    expect(iconEntries).toHaveLength(54)
   })
 
   it.each(iconEntries)('%s renders hidden from the accessibility tree without a label', (_name, Icon) => {

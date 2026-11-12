@@ -11,6 +11,8 @@ export interface SectionHeadingProps {
   // install offer, which inherits its line height rather than taking text-xs's.
   size?: 11 | 12
   surface?: SectionHeadingSurface
+  // Lets a script focus the heading (-1). The heading then also shows a keyboard focus ring.
+  tabIndex?: number
   // 'strong' uses the surface's body text color instead of its muted one. On the shell both are
   // --text-primary, because --text-muted fails AA there.
   tone?: SectionHeadingTone
@@ -27,10 +29,16 @@ const SectionHeading = ({
   id,
   size = 12,
   surface = 'paper',
+  tabIndex,
   tone = 'muted',
 }: SectionHeadingProps): React.ReactNode => (
   <Tag
-    className={size === 12 ? 'text-xs font-semibold uppercase' : 'font-semibold uppercase'}
+    className={[
+      size === 12 ? 'text-xs font-semibold uppercase' : 'font-semibold uppercase',
+      tabIndex === undefined ? '' : 'focus-target',
+    ]
+      .filter(Boolean)
+      .join(' ')}
     id={id}
     style={{
       color: COLORS[surface][tone],
@@ -38,6 +46,7 @@ const SectionHeading = ({
       letterSpacing: '0.1em',
       fontSize: size === 11 ? '11px' : undefined,
     }}
+    tabIndex={tabIndex}
   >
     {children}
   </Tag>

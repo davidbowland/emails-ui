@@ -3,6 +3,7 @@ import { deleteUser, signOut } from 'aws-amplify/auth'
 import { useRouter } from 'next/router'
 import React, { useEffect, useRef, useState } from 'react'
 
+import { useLeaveGuard } from '@components/leave-guard'
 import OfflineNotice from '@components/offline-notice'
 import Button from '@components/ui/button'
 import Dialog from '@components/ui/dialog'
@@ -60,6 +61,7 @@ const IconDrawer = ({
   openMenu,
   setLoggedInUser,
 }: IconDrawerProps): React.ReactNode => {
+  const { markLeaving, requestLeave } = useLeaveGuard()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDeleteErrorSnackbar, setShowDeleteErrorSnackbar] = useState(false)
   const router = useRouter()
@@ -131,6 +133,7 @@ const IconDrawer = ({
     }
     closeMenu()
     setLoggedInUser(undefined)
+    markLeaving()
     // No sign-out call here: v6's `deleteUser` ends by clearing the local tokens itself, and
     // deleting the Cognito user invalidates every other session anyway. A `signOut({ global: true })`
     // at this point finds no tokens to revoke and does nothing.
@@ -152,8 +155,8 @@ const IconDrawer = ({
           aria-current={active ? 'page' : undefined}
           className="group relative w-full"
           onClick={() => {
-            router.push(item.path)
             closeMenu()
+            if (!active) requestLeave(() => router.push(item.path))
           }}
           style={{
             display: 'flex',
@@ -453,12 +456,23 @@ const IconDrawer = ({
               'Sign out',
               () => {
                 closeMenu()
-                setLoggedInUser(undefined)
-                void signOutClick()
+                requestLeave(() => {
+                  markLeaving()
+                  setLoggedInUser(undefined)
+                  void signOutClick()
+                })
               },
               0,
             )}
-            {renderDangerItem(TrashIcon, 'Delete account', () => setShowDeleteDialog(true), 1)}
+            {renderDangerItem(
+              TrashIcon,
+              'Delete account',
+              () => {
+                closeMenu()
+                requestLeave(() => setShowDeleteDialog(true))
+              },
+              1,
+            )}
           </ul>
 
           {/* User avatar */}

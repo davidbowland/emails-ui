@@ -8,10 +8,12 @@ import {
   PhraseImpactFailed,
   PhraseImpactPending,
 } from '@components/phrase-impact'
+import { movedEmailName, subjectName } from '@components/spam-notice'
 import Button from '@components/ui/button'
 import Checkbox from '@components/ui/checkbox'
 import Dialog from '@components/ui/dialog'
 import { CheckIcon, TriangleAlertIcon } from '@components/ui/icons'
+import SectionHeading from '@components/ui/section-heading'
 import Spinner from '@components/ui/spinner'
 import { getAccount, postSpamImpact, postSpamSuggestions, putAccount } from '@services/emails'
 import { applySuggestions, SPAM_FILTER_LIST_LIMIT, wouldExceedLimits } from '@services/spam-impact'
@@ -22,11 +24,16 @@ import {
   SpamImpactResponse,
   SpamSuggestion,
   SpamSuggestionKind,
+  SpamSuggestionLevel,
 } from '@types'
 
 export interface SpamSuggestionsProps {
   accountId: string
+  // The moved email's From line and subject, so the dialog names the email it reads: the viewer
+  // already shows the next one.
+  emailFrom: string
   emailId: string
+  emailSubject: string
   onApplied: (count: number) => void
   onClose: () => void
   open: boolean
@@ -39,24 +46,65 @@ type ImpactState =
 
 const KINDS: ReadonlySet<SpamSuggestionKind> = new Set(['addBlockPhrase', 'removeTrustedSender', 'raiseSensitivity'])
 
-const STATE_MESSAGES: Readonly<Partial<Record<DialogState, { detail: string; lead: string }>>> = {
+// The groups, from the changes least likely to catch wanted mail to the most.
+const LEVELS: readonly { help: string; level: SpamSuggestionLevel; title: string }[] = [
+  { help: 'Closest to the email you moved. These rarely catch mail you want.', level: 'targeted', title: 'Targeted' },
+  {
+    help: 'These catch more mail like that one. They may catch some mail you want.',
+    level: 'broader',
+    title: 'Broader',
+  },
+  {
+    help: "These catch the most. They're the likeliest to catch mail you want, so we didn't pick them for you.",
+    level: 'aggressive',
+    title: 'Aggressive',
+  },
+]
+const LEVEL_NAMES: ReadonlySet<unknown> = new Set(LEVELS.map(({ level }) => level))
+
+// Aggressive suggestions start unticked; the rest start ticked.
+const pickedByDefault = ({ level }: SpamSuggestion): boolean => level !== 'aggressive'
+
+interface Selection {
+  // The rows we picked for the person, less any we unticked once the check found them in the Inbox.
+  defaults: ReadonlySet<string>
+  picked: ReadonlySet<string>
+  // Whether the person has ticked or unticked a row. Once they have, the check leaves their picks alone.
+  touched: boolean
+}
+
+const startSelection = (ids: string[]): Selection => ({ defaults: new Set(ids), picked: new Set(ids), touched: false })
+
+const without = (ids: ReadonlySet<string>, removed: ReadonlySet<string>): ReadonlySet<string> =>
+  new Set([...ids].filter((id) => !removed.has(id)))
+
+// Unticks our picks whose phrase matches Inbox mail, unless the person has already changed the picks.
+const untickInboxMatches = (selection: Selection, matching: ReadonlySet<string>): Selection =>
+  selection.touched
+    ? selection
+    : { ...selection, defaults: without(selection.defaults, matching), picked: without(selection.picked, matching) }
+
+// `name` is the moved email's subject in quotes, or "the email with no subject".
+const stateMessages = (
+  name: React.ReactNode,
+): Readonly<Partial<Record<DialogState, { detail: string; lead: React.ReactNode }>>> => ({
   forbidden: {
     detail: "It's still in Spam, and you can change your spam filter anytime in Settings.",
-    lead: "Rule suggestions aren't available for this email.",
+    lead: <>Rule suggestions aren&apos;t available for {name}.</>,
   },
   quota: {
-    detail: 'Try again tomorrow. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+    detail: 'Try again tomorrow. That email is still in Spam, and you can change your spam filter anytime in Settings.',
     lead: "You've reached today's limit for rule suggestions.",
   },
   unavailable: {
-    detail: 'Try again later. This email is still in Spam, and you can change your spam filter anytime in Settings.',
+    detail: 'Try again later. That email is still in Spam, and you can change your spam filter anytime in Settings.',
     lead: "Rule suggestions aren't available right now.",
   },
   zero: {
     detail: "It's still in Spam. To catch more mail like it, add a block phrase under Spam filter in Settings.",
-    lead: "We don't have any suggestions for this email.",
+    lead: <>We don&apos;t have any suggestions for {name}.</>,
   },
-}
+})
 
 // Why a footer button can't act yet, shown when it is pressed.
 const NOTHING_PICKED = 'Pick at least one change to apply.'
@@ -109,22 +157,35 @@ const errorState = (error: unknown): DialogState => {
       : 'unavailable'
 }
 
-const isSuggestion = (value: unknown): value is SpamSuggestion => {
+// The level the API gives a suggestion of each kind, for a response from before levels: a sensitivity
+// change is broader, or aggressive for High; anything else is targeted.
+const legacyLevel = ({ kind, value }: Pick<SpamSuggestion, 'kind' | 'value'>): SpamSuggestionLevel =>
+  kind === 'raiseSensitivity' ? (value === 'high' ? 'aggressive' : 'broader') : 'targeted'
+
+// A missing level passes: an API from before levels sends none, and legacyLevel fills it in.
+const isSuggestion = (value: unknown): value is Omit<SpamSuggestion, 'level'> & { level?: SpamSuggestionLevel } => {
   const candidate = value as Partial<Record<keyof SpamSuggestion, unknown>> | null | undefined
   return (
     typeof candidate?.id === 'string' &&
     typeof candidate.kind === 'string' &&
     typeof candidate.value === 'string' &&
     typeof candidate.reason === 'string' &&
-    KINDS.has(candidate.kind as SpamSuggestionKind)
+    KINDS.has(candidate.kind as SpamSuggestionKind) &&
+    (candidate.level === undefined || LEVEL_NAMES.has(candidate.level))
   )
 }
 
-// Well-formed suggestions of a known kind, first of each id only.
-const validSuggestions = (received: unknown): SpamSuggestion[] =>
-  (Array.isArray(received) ? received : [])
+// Well-formed suggestions of a known kind and level, first of each id only. `fromBeforeLevels` is true when none
+// of them has a level: their levels are only our guess, so we pick none of them for the person.
+const validSuggestions = (received: unknown): { fromBeforeLevels: boolean; valid: SpamSuggestion[] } => {
+  const wellFormed = (Array.isArray(received) ? received : [])
     .filter(isSuggestion)
     .filter((suggestion, index, all) => all.findIndex(({ id }) => id === suggestion.id) === index)
+  return {
+    fromBeforeLevels: wellFormed.every(({ level }) => level === undefined),
+    valid: wellFormed.map((suggestion) => ({ ...suggestion, level: suggestion.level ?? legacyLevel(suggestion) })),
+  }
+}
 
 // Add-only and remove-only lists, so a change of length or level is a change of filter.
 const filterChanged = (before: SpamFilter, after: SpamFilter): boolean =>
@@ -156,10 +217,18 @@ const ImpactLine = ({ id, suggestion }: { id: string; suggestion: SpamSuggestion
     </span>
   )
 
-const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamSuggestionsProps): React.ReactNode => {
+const SpamSuggestions = ({
+  accountId,
+  emailFrom,
+  emailId,
+  emailSubject,
+  onApplied,
+  onClose,
+  open,
+}: SpamSuggestionsProps): React.ReactNode => {
   const [state, setState] = useState<DialogState>('loading')
   const [suggestions, setSuggestions] = useState<SpamSuggestion[]>([])
-  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
+  const [selection, setSelection] = useState<Selection>(() => startSelection([]))
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
   const [impactState, setImpactState] = useState<ImpactState>({ status: 'idle' })
   const baseId = useId()
@@ -170,7 +239,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
       // never lands on a row from last time.
       setState('loading')
       setSuggestions([])
-      setPicked(new Set())
+      setSelection(startSelection([]))
       setErrorMessage(undefined)
       setImpactState({ status: 'idle' })
       return
@@ -182,10 +251,12 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
       .then(({ suggestions: received }) => {
         if (!current) return
         // The API validates these; anything malformed, of an unknown kind, or repeated is still dropped here.
-        const valid = validSuggestions(received)
+        const { fromBeforeLevels, valid } = validSuggestions(received)
         setSuggestions(valid)
+        setSelection(startSelection(fromBeforeLevels ? [] : valid.filter(pickedByDefault).map(({ id }) => id)))
         setState(valid.length > 0 ? 'results' : 'zero')
-        const phrases = valid.filter(({ kind }) => kind === 'addBlockPhrase').map(({ value }) => value)
+        const phraseRows = valid.filter(({ kind }) => kind === 'addBlockPhrase')
+        const phrases = phraseRows.map(({ value }) => value)
         if (phrases.length === 0) return
         setImpactState({ status: 'checking' })
         postSpamImpact(accountId, phrases, emailId)
@@ -193,6 +264,10 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
             if (!current) return
             if (isSpamImpactResponse(response, phrases.length)) {
               setImpactState({ response, status: 'done' })
+              const matching = new Set(
+                phraseRows.filter((_, index) => response.phrases[index].inbox.count > 0).map(({ id }) => id),
+              )
+              setSelection((previous) => untickInboxMatches(previous, matching))
             } else {
               console.error('Malformed spam impact response', response)
               setImpactState({ status: 'failed' })
@@ -220,7 +295,7 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
     impactState.status === 'done' &&
     (impactState.response.phrases[phraseSuggestions.indexOf(suggestion)]?.inbox.count ?? 0) > 0
 
-  const pickedSuggestions = suggestions.filter((suggestion) => picked.has(suggestion.id))
+  const pickedSuggestions = suggestions.filter((suggestion) => selection.picked.has(suggestion.id))
   const pickedCount = pickedSuggestions.length
   const matchingPicks = pickedSuggestions.filter(inboxMatches).length
   // A pick with no complete answer (still checking, failed, or Inbox only partly read) asks for "anyway" too.
@@ -242,16 +317,18 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
     return impactState.status === 'failed' ? <PhraseImpactFailed id={id} /> : <PhraseImpactPending id={id} />
   }
 
+  const defaultPickCount = selection.defaults.size
+
   const applying = state === 'applying'
   const showRows = state === 'results' || applying
 
   const togglePick = (id: string): void => {
     if (applying) return
-    setPicked((previous) => {
-      const next = new Set(previous)
-      if (!next.delete(id)) next.add(id)
-      return next
-    })
+    setSelection((previous) => ({
+      ...previous,
+      picked: previous.picked.has(id) ? without(previous.picked, new Set([id])) : new Set([...previous.picked, id]),
+      touched: true,
+    }))
   }
 
   const handleClose = (): void => {
@@ -323,7 +400,8 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
     </div>
   )
 
-  const message = STATE_MESSAGES[state]
+  const emailName = subjectName(emailSubject)
+  const message = stateMessages(emailName)[state]
 
   return (
     <Dialog footer={footer} onCancel={handleClose} open={open} scrollable title="Suggested rule changes">
@@ -332,18 +410,19 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
         {state === 'loading' && (
           <div className="flex flex-col items-center gap-3.5 pb-2 pt-5 text-center">
             <Spinner size={24} />
-            <p style={{ color: 'var(--text-paper)' }}>Reading this email…</p>
+            <p style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}>Reading {emailName}</p>
           </div>
         )}
         {message && (
           <>
-            <p style={{ color: 'var(--text-paper)' }}>{message.lead}</p>
+            <p style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}>{message.lead}</p>
             <p className="mt-2">{message.detail}</p>
           </>
         )}
         {showRows && (
           <span className="sr-only">
-            {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')}.
+            {suggestions.length} suggested {plural(suggestions.length, 'change', 'changes')},{' '}
+            {defaultPickCount === 0 ? 'none' : defaultPickCount} picked for you.
             {impactState.status === 'checking' && ' Checking your mail…'}
             {impactState.status === 'done' && impactDoneStatus(impactState.response)}
             {impactState.status === 'failed' && " We couldn't check your mail."}
@@ -369,7 +448,14 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
       </div>
       {showRows && (
         <>
-          <p className="mb-3">Pick the changes you want. We save nothing until you apply them.</p>
+          <p className="mb-1 text-xs" style={{ color: 'var(--text-paper-muted)', overflowWrap: 'anywhere' }}>
+            Based on {movedEmailName(emailSubject, emailFrom)}.
+          </p>
+          <p className="mb-3">
+            {defaultPickCount === 0
+              ? 'Pick the changes you want. We save nothing until you apply them.'
+              : 'We picked the safer changes for you. You can change them. We save nothing until you apply them.'}
+          </p>
           {matchingPicks > 0 && (
             <div
               className="mb-3 flex items-start gap-2 rounded-[10px] px-3 py-2.5 text-[13px] leading-[18px]"
@@ -383,67 +469,87 @@ const SpamSuggestions = ({ accountId, emailId, onApplied, onClose, open }: SpamS
               <TriangleAlertIcon className="mt-0.5 flex-shrink-0" size={14} style={{ color: 'var(--accent)' }} />
               <span>
                 {matchingPicks === 1
-                  ? 'A phrase you picked matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
-                  : 'Phrases you picked match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'}
+                  ? 'A picked phrase matches emails in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
+                  : 'Picked phrases match emails in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'}
               </span>
             </div>
           )}
-          <ul className="flex flex-col gap-2">
-            {suggestions.map((suggestion, index) => {
-              const reasonId = `${baseId}-${index}-reason`
-              const impactId = `${baseId}-${index}-impact`
-              const checked = picked.has(suggestion.id)
-              // Only the count lines describe the checkbox; the email lists stay readable in the label.
-              const describedBy =
-                suggestion.kind === 'addBlockPhrase' && impactState.status === 'done'
-                  ? `${reasonId} ${impactSummaryIds(impactId, impactState.response.checked)}`
-                  : `${reasonId} ${impactId}`
+          <div className="flex flex-col gap-4">
+            {LEVELS.map(({ help, level, title }) => {
+              // Rows keep their index in the response, which keeps their ids unique across groups.
+              const rows = suggestions
+                .map((suggestion, index) => ({ index, suggestion }))
+                .filter(({ suggestion }) => suggestion.level === level)
+              if (rows.length === 0) return null
+              const headingId = `${baseId}-${level}-heading`
               return (
-                <li key={suggestion.id}>
-                  {/* The card around the Checkbox. Its padding is the Checkbox's, so a click anywhere in
-                      the card toggles the pick. accent-color is inherited, so the tick stays violet. */}
-                  <div
-                    className="rounded-[10px]"
-                    style={{
-                      accentColor: 'var(--accent-deep)',
-                      background: checked
-                        ? 'linear-gradient(0deg, var(--accent-subtle), var(--accent-subtle)), var(--paper-surface)'
-                        : 'var(--paper-surface)',
-                      border: `1px solid ${checked ? 'var(--accent-border)' : 'var(--paper-border)'}`,
-                    }}
-                  >
-                    {/* Named by the change alone. The reason and impact lines are the Checkbox's
-                        details: in the same clickable row, out of the name, and described through
-                        describedBy (the counts only, so the email lists stay readable but unread). */}
-                    <Checkbox
-                      checked={checked}
-                      className="px-3 py-2.5"
-                      describedBy={describedBy}
-                      details={
-                        <span className="block" style={{ color: 'var(--text-paper-muted)' }}>
-                          <span className="mt-0.5 block text-xs" id={reasonId}>
-                            {suggestion.reason}
-                          </span>
-                          {suggestion.kind === 'addBlockPhrase' ? (
-                            phraseImpactLine(suggestion, impactId)
-                          ) : (
-                            <ImpactLine id={impactId} suggestion={suggestion} />
-                          )}
-                        </span>
-                      }
-                      label={
-                        <span className="block text-sm font-medium" style={{ overflowWrap: 'anywhere' }}>
-                          {changeLabel(suggestion)}
-                        </span>
-                      }
-                      onChange={() => togglePick(suggestion.id)}
-                      readOnly={applying}
-                    />
-                  </div>
-                </li>
+                <section key={level}>
+                  <SectionHeading as="h3" id={headingId} tone="strong">
+                    {title}
+                  </SectionHeading>
+                  <p className="mb-2 mt-0.5 text-xs" style={{ color: 'var(--text-paper-muted)' }}>
+                    {help}
+                  </p>
+                  <ul aria-labelledby={headingId} className="flex flex-col gap-2">
+                    {rows.map(({ index, suggestion }) => {
+                      const reasonId = `${baseId}-${index}-reason`
+                      const impactId = `${baseId}-${index}-impact`
+                      const checked = selection.picked.has(suggestion.id)
+                      // Only the count lines describe the checkbox; the email lists stay readable in the label.
+                      const describedBy =
+                        suggestion.kind === 'addBlockPhrase' && impactState.status === 'done'
+                          ? `${reasonId} ${impactSummaryIds(impactId, impactState.response.checked)}`
+                          : `${reasonId} ${impactId}`
+                      return (
+                        <li key={suggestion.id}>
+                          {/* The card around the Checkbox. Its padding is the Checkbox's, so a click anywhere in
+                              the card toggles the pick. accent-color is inherited, so the tick stays violet. */}
+                          <div
+                            className="rounded-[10px]"
+                            style={{
+                              accentColor: 'var(--accent-deep)',
+                              background: checked
+                                ? 'linear-gradient(0deg, var(--accent-subtle), var(--accent-subtle)), var(--paper-surface)'
+                                : 'var(--paper-surface)',
+                              border: `1px solid ${checked ? 'var(--accent-border)' : 'var(--paper-border)'}`,
+                            }}
+                          >
+                            {/* Named by the change alone. The reason and impact lines are the Checkbox's
+                                details: in the same clickable row, out of the name, and described through
+                                describedBy (the counts only, so the email lists stay readable but unread). */}
+                            <Checkbox
+                              checked={checked}
+                              className="px-3 py-2.5"
+                              describedBy={describedBy}
+                              details={
+                                <span className="block" style={{ color: 'var(--text-paper-muted)' }}>
+                                  <span className="mt-0.5 block text-xs" id={reasonId}>
+                                    {suggestion.reason}
+                                  </span>
+                                  {suggestion.kind === 'addBlockPhrase' ? (
+                                    phraseImpactLine(suggestion, impactId)
+                                  ) : (
+                                    <ImpactLine id={impactId} suggestion={suggestion} />
+                                  )}
+                                </span>
+                              }
+                              label={
+                                <span className="block text-sm font-medium" style={{ overflowWrap: 'anywhere' }}>
+                                  {changeLabel(suggestion)}
+                                </span>
+                              }
+                              onChange={() => togglePick(suggestion.id)}
+                              readOnly={applying}
+                            />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
               )
             })}
-          </ul>
+          </div>
           {impactState.status === 'done' &&
             (impactState.response.checked.inbox.total > 0 || impactState.response.checked.spam.total > 0) && (
               <div className="mt-3">

@@ -6,12 +6,22 @@ import ChipInput, { ChipInputProps } from '@components/ui/chip-input'
 type BounceRuleSetter = (value: string[]) => void
 
 export interface BounceSenderInputProps {
+  // Appended to the input's description while the draft has text. Pair with a rendered PendingHint.
+  pendingHintId?: string
+  // Turns the Add button on and names it. For controlled use, with addOnBlur={false}.
+  addLabel?: string
+  addOnBlur?: boolean
+  // With onDraftChange, makes the text in the box controlled.
+  draft?: string
+  onDraftChange?: (text: string) => void
+  // A chip whose value is not in this list shows as new ("not saved yet").
+  savedEntries?: string[]
   // Points at helper text or an inline error, so a screen reader hears it with the field.
   describedBy?: string
   enterKeyHint?: ChipInputProps['enterKeyHint']
   // When given, the label becomes a <label> for this id and names the input.
   inputId?: string
-  // Lets a caller read or clear what is still typed in the box (e.g. to commit it on Save).
+  // Lets a caller focus the box, as it does to point at an entry the box refused.
   inputRef?: ChipInputProps['ref']
   invalid?: boolean
   label: string
@@ -47,6 +57,16 @@ const validateBounceRule = (input: string): boolean => {
 const isDuplicate = (rules: string[], entry: string): boolean =>
   rules.some((rule) => rule.trim().toLowerCase() === entry.toLowerCase())
 
+export const alreadyListed = (entry: string): string => `\u201C${entry}\u201D is already on your list.`
+
+export const bounceRuleError = (rules: string[], entry: string): string | undefined => {
+  const trimmed = entry.trim()
+  if (!validateBounceRule(trimmed)) {
+    return 'Enter an address (user@domain.com), a domain (@domain.com), or * to block everyone.'
+  }
+  return isDuplicate(rules, trimmed) ? alreadyListed(trimmed) : undefined
+}
+
 const formatRuleDisplay = (rule: string): string => {
   const trimmed = rule.trim()
   if (trimmed === '*') {
@@ -56,17 +76,23 @@ const formatRuleDisplay = (rule: string): string => {
 }
 
 const BounceSenderInput = ({
+  addLabel,
+  addOnBlur,
   describedBy,
+  draft,
   enterKeyHint,
   inputId,
   inputRef,
   invalid,
   label,
+  onDraftChange,
   onInvalid,
+  pendingHintId,
   placeholder = 'Email, @domain.com, or * for all',
   readOnly = false,
   readOnlyReason,
   rules,
+  savedEntries,
   setRules,
   validate,
 }: BounceSenderInputProps): React.ReactNode => {
@@ -75,7 +101,10 @@ const BounceSenderInput = ({
     if (!setRules) return false
     const entry = value.trim()
     // A case-insensitive repeat adds nothing; leave it in the box rather than add a second chip.
-    if (isDuplicate(rules, entry)) return false
+    if (isDuplicate(rules, entry)) {
+      onInvalid?.(entry)
+      return false
+    }
     if (validate) {
       if (!validate(entry)) {
         onInvalid?.(entry)
@@ -84,14 +113,12 @@ const BounceSenderInput = ({
       setRules([...rules, entry])
       return true
     }
-    const accepted = validateBounceRule(entry)
-    if (!accepted) {
+    if (!validateBounceRule(entry)) {
       onInvalid?.(entry)
+      return false
     }
-    const allValues = [...rules, entry]
-    const validRules = allValues.filter(validateBounceRule)
-    setRules(validRules)
-    return accepted
+    setRules([...rules, entry])
+    return true
   }
 
   const handleDelete = (index: number): void => {
@@ -126,6 +153,7 @@ const BounceSenderInput = ({
       <div className="flex flex-1 flex-wrap items-center gap-1">
         {rules.map((rule, index) => (
           <Chip
+            isNew={savedEntries ? !savedEntries.includes(rule) : undefined}
             key={index}
             label={formatRuleDisplay(rule)}
             onRemove={setRules ? () => handleDelete(index) : undefined}
@@ -134,15 +162,22 @@ const BounceSenderInput = ({
         ))}
         {setRules && (
           <ChipInput
+            addLabel={addLabel}
+            addOnBlur={addOnBlur}
             ariaLabel={inputId ? undefined : 'Sender to block'}
-            describedBy={describedBy}
+            describedBy={
+              [describedBy, draft?.trim() ? pendingHintId : undefined].filter(Boolean).join(' ') || undefined
+            }
             enterKeyHint={enterKeyHint}
             inputId={inputId}
             invalid={invalid}
             onAdd={handleAdd}
+            onDraftChange={onDraftChange}
             placeholder={placeholder}
             readOnly={readOnly}
+            readOnlyReason={readOnlyReason}
             ref={inputRef}
+            value={draft}
           />
         )}
       </div>

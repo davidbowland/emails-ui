@@ -1,13 +1,16 @@
 import React from 'react'
 
-import SpamFilterSettings, { blockPhraseError, SpamFilterSettingsHandle, trustedSenderError } from './index'
+import SpamFilterSettings, { blockPhraseError, SpamDraftKey, trustedSenderError } from './index'
 import '@testing-library/jest-dom'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SpamFilter } from '@types'
 
 describe('SpamFilterSettings', () => {
   const onChange = jest.fn()
+  const onDraftChange = jest.fn()
+  const onErrorChange = jest.fn()
+  const inputRef = jest.fn()
 
   const spamFilter: SpamFilter = {
     blockPhrases: ['crypto'],
@@ -17,26 +20,35 @@ describe('SpamFilterSettings', () => {
 
   const fullList = (prefix: string): string[] => Array.from({ length: 100 }, (_, index) => `${prefix}${index}.com`)
 
-  // act() is not documented to hand back its callback's result, so the result is collected here.
-  const commit = (ref: React.RefObject<SpamFilterSettingsHandle | null>): SpamFilter | undefined => {
-    const results: (SpamFilter | undefined)[] = []
-    act(() => {
-      results.push(ref.current?.commitDrafts())
-    })
-    return results[0]
+  interface Options {
+    changed?: boolean
+    drafts?: Partial<Record<SpamDraftKey, string>>
+    errors?: Partial<Record<SpamDraftKey, string>>
+    readOnly?: boolean
+    savedValue?: SpamFilter
+    value?: SpamFilter
   }
 
-  const renderSettings = (
-    value: SpamFilter = spamFilter,
+  const renderSettings = ({
+    changed = false,
+    drafts = {},
+    errors = {},
     readOnly = false,
-    ref?: React.Ref<SpamFilterSettingsHandle>,
-  ): void => {
+    savedValue = spamFilter,
+    value = spamFilter,
+  }: Options = {}): void => {
     render(
       <SpamFilterSettings
+        changed={changed}
+        drafts={{ blockPhrases: '', trustedSenders: '', ...drafts }}
+        errors={errors}
+        inputRef={inputRef}
         onChange={onChange}
+        onDraftChange={onDraftChange}
+        onErrorChange={onErrorChange}
         readOnly={readOnly}
         readOnlyReason="Wait until Save finishes."
-        ref={ref}
+        savedValue={savedValue}
         value={value}
       />,
     )
@@ -46,12 +58,15 @@ describe('SpamFilterSettings', () => {
   const senderBox = (): HTMLInputElement =>
     screen.getByRole('textbox', { name: 'Trusted senders:' }) as HTMLInputElement
 
+  // The page owns the draft, so a box shows the text it is given and Enter submits that text.
   const addPhrase = async (text: string): Promise<void> => {
-    await userEvent.type(phraseBox(), `${text}{Enter}`)
+    renderSettings({ drafts: { blockPhrases: text } })
+    await userEvent.type(phraseBox(), '{Enter}')
   }
 
   const addSender = async (text: string): Promise<void> => {
-    await userEvent.type(senderBox(), `${text}{Enter}`)
+    renderSettings({ drafts: { trustedSenders: text } })
+    await userEvent.type(senderBox(), '{Enter}')
   }
 
   describe('the section', () => {
@@ -62,6 +77,20 @@ describe('SpamFilterSettings', () => {
       expect(
         screen.getByText("Spam goes to your Spam folder. We don't forward it or send a notification for it."),
       ).toBeVisible()
+    })
+  })
+
+  describe('unsaved changes', () => {
+    it('changed shows "Not saved yet"', () => {
+      renderSettings({ changed: true })
+
+      expect(screen.getByText('Not saved yet')).toBeVisible()
+    })
+
+    it('shows no mark when nothing changed', () => {
+      renderSettings()
+
+      expect(screen.queryByText('Not saved yet')).not.toBeInTheDocument()
     })
   })
 
@@ -101,7 +130,7 @@ describe('SpamFilterSettings', () => {
     })
 
     it('reports nothing while the page is saving', async () => {
-      renderSettings(spamFilter, true)
+      renderSettings({ readOnly: true })
 
       await userEvent.click(screen.getByRole('radio', { name: 'High' }))
 
@@ -125,12 +154,35 @@ describe('SpamFilterSettings', () => {
       )
     })
 
-    it('adds a phrase on Enter', async () => {
+    it('typing calls onDraftChange', async () => {
       renderSettings()
 
+      await userEvent.type(phraseBox(), 'a')
+
+      expect(onDraftChange).toHaveBeenCalledWith('blockPhrases', 'a')
+    })
+
+    it('hands its input to the page', () => {
+      renderSettings()
+
+      expect(inputRef).toHaveBeenCalledWith('blockPhrases', phraseBox())
+      expect(inputRef).toHaveBeenCalledWith('trustedSenders', senderBox())
+    })
+
+    it('Enter on a valid phrase adds it via onChange and clears the draft', async () => {
       await addPhrase('app development')
 
       expect(onChange).toHaveBeenCalledWith({ ...spamFilter, blockPhrases: ['crypto', 'app development'] })
+      expect(onErrorChange).toHaveBeenCalledWith('blockPhrases', undefined)
+      expect(onDraftChange).toHaveBeenCalledWith('blockPhrases', '')
+    })
+
+    it('Add button is named "Add block phrase" and adds the draft', async () => {
+      renderSettings({ drafts: { blockPhrases: 'invoice' } })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+      expect(onChange).toHaveBeenCalledWith({ ...spamFilter, blockPhrases: ['crypto', 'invoice'] })
     })
 
     it('counts the list, naming it for a screen reader', () => {
@@ -139,98 +191,84 @@ describe('SpamFilterSettings', () => {
       expect(screen.getByText((_, element) => element?.textContent === '1 of 100 block phrases')).toBeVisible()
     })
 
-    it('refuses a phrase of symbols alone, keeping it in the box with the reason linked to it', async () => {
-      renderSettings()
-
-      await addPhrase('!!!')
+    it('Enter on "$$$" calls onErrorChange with "Add at least one letter or number."', async () => {
+      await addPhrase('$$$')
 
       expect(onChange).not.toHaveBeenCalled()
-      expect(phraseBox()).toHaveValue('!!!')
+      expect(onErrorChange).toHaveBeenCalledWith('blockPhrases', 'Add at least one letter or number.')
+    })
+
+    it('refuses a phrase over 100 characters', async () => {
+      await addPhrase('a'.repeat(101))
+
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'blockPhrases',
+        'That phrase is 101 characters. Shorten it to 100 or fewer.',
+      )
+    })
+
+    it('refuses a phrase once the list holds 100', async () => {
+      const value = { ...spamFilter, blockPhrases: fullList('phrase') }
+      renderSettings({ drafts: { blockPhrases: 'invoice' }, savedValue: value, value })
+      await userEvent.type(phraseBox(), '{Enter}')
+
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'blockPhrases',
+        "You've reached the limit of 100 block phrases. Remove one to add another.",
+      )
+    })
+
+    it('a repeat calls onErrorChange with the already-listed message', async () => {
+      await addPhrase('CRYPTO')
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(onErrorChange).toHaveBeenCalledWith('blockPhrases', '“CRYPTO” is already on your list.')
+    })
+
+    it('refuses a repeat that differs only in punctuation', async () => {
+      await addPhrase('Crypto!')
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(onErrorChange).toHaveBeenCalledWith('blockPhrases', '“Crypto!” is already on your list.')
+    })
+
+    it('leaving the box neither adds nor shows a refusal', async () => {
+      renderSettings({ drafts: { blockPhrases: 'crypto' } })
+
+      await userEvent.click(phraseBox())
+      await userEvent.tab()
+
+      expect(onChange).not.toHaveBeenCalled()
+      expect(onErrorChange).not.toHaveBeenCalled()
+    })
+
+    it('errors prop renders in a FieldError status', () => {
+      renderSettings({ errors: { blockPhrases: 'Add at least one letter or number.' } })
+
+      expect(screen.getByText('Add at least one letter or number.').closest('[role="status"]')).toBeInTheDocument()
       expect(phraseBox()).toBeInvalid()
       expect(phraseBox()).toHaveAccessibleDescription(expect.stringContaining('Add at least one letter or number.'))
     })
 
-    it('announces the reason in a live region', async () => {
-      renderSettings()
+    it('pending hint shows "Not added yet. Press Enter or choose Add." while a draft is present', () => {
+      renderSettings({ drafts: { blockPhrases: 'invoice' } })
 
-      await addPhrase('!!!')
-
-      expect(screen.getByText('Add at least one letter or number.').closest('[role="status"]')).toBeInTheDocument()
+      expect(screen.getByText('Not added yet. Press Enter or choose Add.')).toBeVisible()
+      expect(phraseBox()).toHaveAccessibleDescription(expect.stringContaining('Not added yet.'))
     })
 
-    it('refuses a phrase over 100 characters', async () => {
-      renderSettings()
+    it('shows no pending hint when the draft is blank', () => {
+      renderSettings({ drafts: { blockPhrases: '  ' } })
 
-      await addPhrase('a'.repeat(101))
-
-      expect(screen.getByText('That phrase is 101 characters. Shorten it to 100 or fewer.')).toBeVisible()
+      expect(screen.queryByText('Not added yet. Press Enter or choose Add.')).not.toBeInTheDocument()
     })
 
-    it('refuses a phrase once the list holds 100', async () => {
-      renderSettings({ ...spamFilter, blockPhrases: fullList('phrase') })
+    it('marks a phrase not yet saved', () => {
+      renderSettings({
+        savedValue: { ...spamFilter, blockPhrases: [] },
+      })
 
-      await addPhrase('invoice')
-
-      expect(
-        screen.getByText("You've reached the limit of 100 block phrases. Remove one to add another."),
-      ).toBeVisible()
-    })
-
-    it('refuses an exact repeat in any case', async () => {
-      renderSettings()
-
-      await addPhrase('CRYPTO')
-
-      expect(screen.getByText('“CRYPTO” is already on your list.')).toBeVisible()
-    })
-
-    it('refuses a repeat that differs only in punctuation', async () => {
-      renderSettings()
-
-      await addPhrase('Crypto!')
-
-      expect(onChange).not.toHaveBeenCalled()
-      expect(screen.getByText('“Crypto!” is already on your list.')).toBeVisible()
-    })
-
-    it('clears the reason once a phrase is added', async () => {
-      renderSettings()
-
-      await addPhrase('!!!')
-      await userEvent.clear(phraseBox())
-      await addPhrase('invoice')
-
-      expect(screen.queryByText('Add at least one letter or number.')).not.toBeInTheDocument()
-      expect(phraseBox()).toBeValid()
-    })
-
-    it('explains a refused repeat once the box loses focus', async () => {
-      renderSettings()
-
-      await userEvent.type(phraseBox(), 'crypto')
-      await userEvent.tab()
-
-      expect(onChange).not.toHaveBeenCalled()
-      expect(screen.getByText('“crypto” is already on your list.')).toBeVisible()
-    })
-
-    it('clears the reason once the box is emptied', async () => {
-      renderSettings()
-
-      await addPhrase('!!!')
-      await userEvent.clear(phraseBox())
-
-      expect(screen.queryByText('Add at least one letter or number.')).not.toBeInTheDocument()
-      expect(phraseBox()).toBeValid()
-    })
-
-    it('clears the reason when an emptied box loses focus', async () => {
-      renderSettings()
-
-      await addPhrase('!!!')
-      fireEvent.blur(phraseBox(), { target: { value: '' } })
-
-      expect(screen.queryByText('Add at least one letter or number.')).not.toBeInTheDocument()
+      expect(screen.getByText('(not saved yet)', { exact: false })).toBeInTheDocument()
     })
 
     it('reports a removed phrase', async () => {
@@ -242,7 +280,7 @@ describe('SpamFilterSettings', () => {
     })
 
     it('removes nothing while the page is saving, and says why', async () => {
-      renderSettings(spamFilter, true)
+      renderSettings({ readOnly: true })
 
       await userEvent.click(screen.getByRole('button', { name: 'Remove crypto' }))
 
@@ -250,15 +288,12 @@ describe('SpamFilterSettings', () => {
       expect(screen.getAllByRole('status').map((region) => region.textContent)).toContain('Wait until Save finishes.')
     })
 
-    it('keeps a phrase typed before the save in its box, unadded, while the page is saving', async () => {
-      const { rerender } = render(<SpamFilterSettings onChange={onChange} readOnly={false} value={spamFilter} />)
+    it('adds nothing on Enter while the page is saving', async () => {
+      renderSettings({ drafts: { blockPhrases: 'invoice' }, readOnly: true })
 
-      await userEvent.type(phraseBox(), 'invoice')
-      rerender(<SpamFilterSettings onChange={onChange} readOnly={true} value={spamFilter} />)
       await userEvent.type(phraseBox(), '{Enter}')
 
       expect(onChange).not.toHaveBeenCalled()
-      expect(phraseBox()).toHaveValue('invoice')
     })
   })
 
@@ -278,29 +313,47 @@ describe('SpamFilterSettings', () => {
       )
     })
 
+    it('typing calls onDraftChange', async () => {
+      renderSettings()
+
+      await userEvent.type(senderBox(), 'a')
+
+      expect(onDraftChange).toHaveBeenCalledWith('trustedSenders', 'a')
+    })
+
+    it('Add button is named "Add trusted sender" and adds the draft', async () => {
+      renderSettings({ drafts: { trustedSenders: '@new.com' } })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add trusted sender' }))
+
+      expect(onChange).toHaveBeenCalledWith({ ...spamFilter, trustedSenders: ['@harbor.org', '@new.com'] })
+    })
+
     it('counts the list, naming it for a screen reader', () => {
       renderSettings()
 
       expect(screen.getByText((_, element) => element?.textContent === '1 of 100 trusted senders')).toBeVisible()
     })
 
-    it.each(['user@domain.com', '@domain.com', 'domain.com'])('adds %s', async (entry: string) => {
-      renderSettings()
+    it('shows the pending hint for a typed sender', () => {
+      renderSettings({ drafts: { trustedSenders: '@new.com' } })
 
+      expect(screen.getByText('Not added yet. Press Enter or choose Add.')).toBeVisible()
+    })
+
+    it.each(['user@domain.com', '@domain.com', 'domain.com'])('adds %s', async (entry: string) => {
       await addSender(entry)
 
       expect(onChange).toHaveBeenCalledWith({ ...spamFilter, trustedSenders: ['@harbor.org', entry] })
     })
 
     it('refuses to trust everyone', async () => {
-      renderSettings()
-
       await addSender('*')
 
       expect(onChange).not.toHaveBeenCalled()
-      expect(senderBox()).toBeInvalid()
-      expect(senderBox()).toHaveAccessibleDescription(
-        expect.stringContaining('Trusting everyone would turn the filter off. Enter an address or a domain.'),
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'trustedSenders',
+        'Trusting everyone would turn the filter off. Enter an address or a domain.',
       )
     })
 
@@ -321,150 +374,45 @@ describe('SpamFilterSettings', () => {
       "user@o'brien.com",
       'ex\u200bample.com',
     ])('refuses %s as neither an address nor a domain', async (entry: string) => {
-      renderSettings()
-
       await addSender(entry)
 
-      expect(screen.getByText('Enter an address (user@domain.com) or a domain (@domain.com).')).toBeVisible()
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'trustedSenders',
+        'Enter an address (user@domain.com) or a domain (@domain.com).',
+      )
     })
 
     it('refuses an entry over 100 characters', async () => {
-      renderSettings()
-
       await addSender(`${'a'.repeat(97)}.com`)
 
-      expect(screen.getByText('That entry is 101 characters. Shorten it to 100 or fewer.')).toBeVisible()
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'trustedSenders',
+        'That entry is 101 characters. Shorten it to 100 or fewer.',
+      )
     })
 
     it('refuses an entry once the list holds 100', async () => {
-      renderSettings({ ...spamFilter, trustedSenders: fullList('@sender') })
+      const value = { ...spamFilter, trustedSenders: fullList('@sender') }
+      renderSettings({ drafts: { trustedSenders: '@new.com' }, savedValue: value, value })
+      await userEvent.type(senderBox(), '{Enter}')
 
-      await addSender('@new.com')
-
-      expect(
-        screen.getByText("You've reached the limit of 100 trusted senders. Remove one to add another."),
-      ).toBeVisible()
+      expect(onErrorChange).toHaveBeenCalledWith(
+        'trustedSenders',
+        "You've reached the limit of 100 trusted senders. Remove one to add another.",
+      )
     })
 
     it('refuses a repeat in any case', async () => {
-      renderSettings()
-
       await addSender('@HARBOR.org')
 
-      expect(screen.getByText('“@HARBOR.org” is already on your list.')).toBeVisible()
-    })
-  })
-
-  describe('commitDrafts', () => {
-    it('adds a phrase still in its box, clears the box and returns the filter to save', async () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      await userEvent.type(phraseBox(), 'invoice')
-      const result = commit(ref)
-
-      expect(result).toEqual({ ...spamFilter, blockPhrases: ['crypto', 'invoice'] })
-      expect(onChange).toHaveBeenCalledWith({ ...spamFilter, blockPhrases: ['crypto', 'invoice'] })
-      expect(phraseBox()).toHaveValue('')
+      expect(onErrorChange).toHaveBeenCalledWith('trustedSenders', '“@HARBOR.org” is already on your list.')
     })
 
-    it('adds a trusted sender still in its box', async () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
+    it('renders its own error', () => {
+      renderSettings({ errors: { trustedSenders: 'Enter an address (user@domain.com) or a domain (@domain.com).' } })
 
-      await userEvent.type(senderBox(), '@new.com')
-      const result = commit(ref)
-
-      expect(result).toEqual({ ...spamFilter, trustedSenders: ['@harbor.org', '@new.com'] })
-      expect(senderBox()).toHaveValue('')
-    })
-
-    it('adds the entries still in both boxes and clears them both', () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      fireEvent.change(phraseBox(), { target: { value: 'invoice' } })
-      fireEvent.change(senderBox(), { target: { value: '@new.com' } })
-      const result = commit(ref)
-
-      const expected = {
-        ...spamFilter,
-        blockPhrases: ['crypto', 'invoice'],
-        trustedSenders: ['@harbor.org', '@new.com'],
-      }
-      expect(result).toEqual(expected)
-      expect(onChange).toHaveBeenCalledWith(expected)
-      expect(phraseBox()).toHaveValue('')
-      expect(senderBox()).toHaveValue('')
-    })
-
-    it('drops an exact repeat silently, clearing its box without blocking the save', () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      fireEvent.change(senderBox(), { target: { value: '@HARBOR.org' } })
-      const result = commit(ref)
-
-      expect(result).toEqual(spamFilter)
-      expect(onChange).not.toHaveBeenCalled()
-      expect(senderBox()).toHaveValue('')
-      expect(senderBox()).toBeValid()
-      expect(screen.queryByText('“@HARBOR.org” is already on your list.')).not.toBeInTheDocument()
-    })
-
-    it('drops a repeat and still adds the other box’s entry', () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      fireEvent.change(phraseBox(), { target: { value: 'crypto' } })
-      fireEvent.change(senderBox(), { target: { value: '@new.com' } })
-      const result = commit(ref)
-
-      expect(result).toEqual({ ...spamFilter, trustedSenders: ['@harbor.org', '@new.com'] })
-      expect(phraseBox()).toHaveValue('')
-    })
-
-    it('returns the filter unchanged and reports nothing when both boxes are empty', () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      const result = commit(ref)
-
-      expect(result).toEqual(spamFilter)
-      expect(onChange).not.toHaveBeenCalled()
-    })
-
-    it('returns nothing, shows the reason and focuses the box when a typed entry is refused', async () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      await userEvent.type(senderBox(), '*')
-      await userEvent.click(screen.getByRole('radio', { name: 'Medium' }))
-      const result = commit(ref)
-
-      expect(result).toBeUndefined()
-      expect(onChange).not.toHaveBeenCalled()
-      expect(senderBox()).toHaveFocus()
-      expect(senderBox()).toHaveValue('*')
-      expect(
-        screen.getByText('Trusting everyone would turn the filter off. Enter an address or a domain.'),
-      ).toBeVisible()
-    })
-
-    it('focuses the first refused box when both boxes hold refused entries', () => {
-      const ref = React.createRef<SpamFilterSettingsHandle>()
-      renderSettings(spamFilter, false, ref)
-
-      fireEvent.change(phraseBox(), { target: { value: '!!!' } })
-      fireEvent.change(senderBox(), { target: { value: '*' } })
-      const result = commit(ref)
-
-      expect(result).toBeUndefined()
-      expect(phraseBox()).toHaveFocus()
-      expect(screen.getByText('Add at least one letter or number.')).toBeVisible()
-      expect(
-        screen.getByText('Trusting everyone would turn the filter off. Enter an address or a domain.'),
-      ).toBeVisible()
+      expect(senderBox()).toBeInvalid()
+      expect(phraseBox()).toBeValid()
     })
   })
 

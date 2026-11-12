@@ -103,7 +103,10 @@ export const Line = ({ children, id }: { children: React.ReactNode; id?: string 
 )
 
 export const Info = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-  <p className="mt-0.5 text-xs" style={{ color: 'var(--text-paper-muted)', lineHeight: '16px' }}>
+  <p
+    className="mt-0.5 text-xs"
+    style={{ color: 'var(--text-paper-muted)', lineHeight: '16px', overflowWrap: 'anywhere' }}
+  >
     {children}
   </p>
 )

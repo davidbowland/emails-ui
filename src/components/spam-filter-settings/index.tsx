@@ -1,31 +1,32 @@
-import React, { useId, useImperativeHandle, useRef, useState } from 'react'
+import React, { useId } from 'react'
 
-import BounceSenderInput from '@components/bounce-sender-input'
-import { AlertCircleIcon } from '@components/ui/icons'
+import BounceSenderInput, { alreadyListed } from '@components/bounce-sender-input'
+import FieldError from '@components/ui/field-error'
+import FormSection from '@components/ui/form-section'
+import PendingHint from '@components/ui/pending-hint'
 import RadioGroup from '@components/ui/radio-group'
-import SectionHeading from '@components/ui/section-heading'
 import { isValidTrustedSender, SPAM_FILTER_LIST_LIMIT, toWords } from '@services/spam-impact'
 import { SpamFilter, SpamSensitivity } from '@types'
 
-export interface SpamFilterSettingsHandle {
-  // Adds whatever is still typed in either box, so Save never drops an entry the owner can see. An
-  // exact repeat of an entry already listed adds nothing, so it is cleared from its box silently.
-  // Returns the filter to save, or undefined when a typed entry is rejected: its error is shown and
-  // its box focused, and nothing should be saved until it is fixed or cleared.
-  commitDrafts: () => SpamFilter | undefined
-}
+export type SpamDraftKey = 'blockPhrases' | 'trustedSenders'
 
 export interface SpamFilterSettingsProps {
+  changed: boolean
+  drafts: Record<SpamDraftKey, string>
+  errors: Partial<Record<SpamDraftKey, string>>
+  inputRef: (key: SpamDraftKey, element: HTMLInputElement | null) => void
   onChange: (next: SpamFilter) => void
+  onDraftChange: (key: SpamDraftKey, text: string) => void
+  onErrorChange: (key: SpamDraftKey, message: string | undefined) => void
   // Never disabled (spec G7): while the page saves, every control here is read-only, and a press
   // on a chip's remove control shows readOnlyReason.
   readOnly: boolean
   readOnlyReason?: string
-  ref?: React.Ref<SpamFilterSettingsHandle>
+  savedValue: SpamFilter
   value: SpamFilter
 }
 
-type ListKey = 'blockPhrases' | 'trustedSenders'
+type ListKey = SpamDraftKey
 
 const LIST_KEYS: ListKey[] = ['blockPhrases', 'trustedSenders']
 
@@ -38,14 +39,8 @@ const SENSITIVITIES: { description: string; label: string; value: SpamSensitivit
   { description: 'Catches more spam, but may catch real mail', label: 'High', value: 'high' },
 ]
 
-const alreadyListed = (entry: string): string => `“${entry}” is already on your list.`
-
 // Compared as words, the way mail is matched, so "Crypto!" and "crypto" count as the same phrase.
 const samePhrase = (a: string, b: string): boolean => toWords(a).join(' ') === toWords(b).join(' ')
-
-// The same test the chip input uses to refuse a repeat without a word.
-const isExactRepeat = (entries: string[], entry: string): boolean =>
-  entries.some((existing) => existing.trim().toLowerCase() === entry.toLowerCase())
 
 export const blockPhraseError = (phrases: string[], entry: string): string | undefined => {
   if (phrases.length >= SPAM_FILTER_LIST_LIMIT) {
@@ -81,6 +76,7 @@ export const trustedSenderError = (senders: string[], entry: string): string | u
 const LISTS: Record<
   ListKey,
   {
+    addLabel: string
     errorFor: (entries: string[], entry: string) => string | undefined
     helper: string
     label: string
@@ -89,6 +85,7 @@ const LISTS: Record<
   }
 > = {
   blockPhrases: {
+    addLabel: 'Add block phrase',
     errorFor: blockPhraseError,
     helper:
       'Each entry is matched as a whole phrase, so "app development" won\'t match "app" on its own. Mail whose subject or body contains any of them goes to Spam.',
@@ -97,6 +94,7 @@ const LISTS: Record<
     placeholder: 'Add a word or phrase, then press Enter',
   },
   trustedSenders: {
+    addLabel: 'Add trusted sender',
     errorFor: trustedSenderError,
     helper:
       'Trust senders by address (user@domain.com) or domain (@domain.com, which covers its subdomains). Their mail skips your spam filter when we can verify it really came from them, but mail that fails our virus or spam scan on arrival still goes to Spam.',
@@ -109,81 +107,20 @@ const LISTS: Record<
 const textStyle: React.CSSProperties = { color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }
 
 const SpamFilterSettings = ({
+  changed,
+  drafts,
+  errors,
+  inputRef,
   onChange,
+  onDraftChange,
+  onErrorChange,
   readOnly,
   readOnlyReason,
-  ref,
+  savedValue,
   value,
 }: SpamFilterSettingsProps): React.ReactNode => {
-  const [errors, setErrors] = useState<Partial<Record<ListKey, string>>>({})
-  const inputRefs = useRef<Partial<Record<ListKey, HTMLInputElement | null>>>({})
   const idPrefix = useId()
   const headingId = `${idPrefix}-heading`
-
-  const setError = (key: ListKey, error: string | undefined): void =>
-    setErrors((current) => ({ ...current, [key]: error }))
-
-  const setEntries = (key: ListKey, entries: string[]): void => {
-    setError(key, undefined)
-    onChange({ ...value, [key]: entries })
-  }
-
-  // The chip input refuses an exact repeat without saying why. Whatever is still in the box after
-  // Enter or blur was refused, so the reason is shown here; an emptied box has nothing left to fix.
-  const explainRefusal = (key: ListKey, event: React.SyntheticEvent): void => {
-    const target = event.target
-    if (target instanceof HTMLInputElement) {
-      const entry = target.value.trim()
-      setError(key, entry ? LISTS[key].errorFor(value[key], entry) : undefined)
-    }
-  }
-
-  const clearErrorWhenEmptied = (key: ListKey, event: React.ChangeEvent): void => {
-    const target = event.target
-    if (target instanceof HTMLInputElement && !target.value.trim()) {
-      setError(key, undefined)
-    }
-  }
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      commitDrafts: (): SpamFilter | undefined => {
-        const drafts = LIST_KEYS.map((key) => ({ input: inputRefs.current[key], key }))
-          .filter(
-            (field): field is { input: HTMLInputElement; key: ListKey } => field.input instanceof HTMLInputElement,
-          )
-          .map(({ input, key }) => {
-            const draft = input.value.trim()
-            const repeat = draft !== '' && isExactRepeat(value[key], draft)
-            const error = draft && !repeat ? LISTS[key].errorFor(value[key], draft) : undefined
-            return { draft, error, input, key, repeat }
-          })
-        const rejected = drafts.filter((draft) => draft.error !== undefined)
-        if (rejected.length > 0) {
-          setErrors((current) => ({ ...current, ...Object.fromEntries(rejected.map((d) => [d.key, d.error])) }))
-          rejected[0].input.focus()
-          return undefined
-        }
-        const typed = drafts.filter((draft) => draft.draft)
-        typed.forEach(({ input }) => (input.value = ''))
-        if (typed.length > 0) {
-          setErrors({})
-        }
-        const pending = typed.filter((draft) => !draft.repeat)
-        if (pending.length === 0) {
-          return value
-        }
-        const next = pending.reduce<SpamFilter>(
-          (filter, { draft, key }) => ({ ...filter, [key]: [...filter[key], draft] }),
-          value,
-        )
-        onChange(next)
-        return next
-      },
-    }),
-    [onChange, value],
-  )
 
   const renderList = (key: ListKey): React.ReactNode => {
     const list = LISTS[key]
@@ -191,48 +128,38 @@ const SpamFilterSettings = ({
     const inputId = `${idPrefix}-${key}-input`
     const errorId = `${idPrefix}-${key}-error`
     const helperId = `${idPrefix}-${key}-helper`
+    const hintId = `${idPrefix}-${key}-hint`
     return (
-      <div
-        className="mt-5"
-        onBlur={(event: React.FocusEvent) => explainRefusal(key, event)}
-        onChange={(event: React.ChangeEvent) => clearErrorWhenEmptied(key, event)}
-        onKeyDown={(event: React.KeyboardEvent) => event.key === 'Enter' && explainRefusal(key, event)}
-      >
+      <div className="mt-5">
         {/* The error is also said in words beside an icon, so the accent border is never the only signal. */}
         <div className="rounded-md" style={{ border: `1px solid ${error ? 'var(--accent)' : 'var(--paper-border)'}` }}>
           <BounceSenderInput
+            addLabel={list.addLabel}
+            addOnBlur={false}
             describedBy={error ? `${errorId} ${helperId}` : helperId}
+            draft={drafts[key]}
             enterKeyHint="done"
             inputId={inputId}
-            inputRef={(element: HTMLInputElement | null) => {
-              inputRefs.current[key] = element
-            }}
+            inputRef={(element: HTMLInputElement | null) => inputRef(key, element)}
             invalid={error !== undefined}
             label={list.label}
-            onInvalid={(entry: string) => setError(key, list.errorFor(value[key], entry))}
+            onDraftChange={(text: string) => onDraftChange(key, text)}
+            onInvalid={(entry: string) => onErrorChange(key, list.errorFor(value[key], entry) ?? alreadyListed(entry))}
+            pendingHintId={hintId}
             placeholder={list.placeholder}
             readOnly={readOnly}
             readOnlyReason={readOnlyReason}
             rules={value[key]}
-            setRules={(entries: string[]) => setEntries(key, entries)}
+            savedEntries={savedValue[key]}
+            setRules={(entries: string[]) => {
+              onErrorChange(key, undefined)
+              onChange({ ...value, [key]: entries })
+            }}
             validate={(entry: string) => list.errorFor(value[key], entry) === undefined}
           />
         </div>
-        {/* Mounted whether or not there is an error: a live region created in the same commit as its
-            content is reliably not announced. */}
-        <p
-          className="flex items-start gap-1.5 text-sm"
-          id={errorId}
-          role="status"
-          style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif', marginTop: error ? '8px' : 0 }}
-        >
-          {error && (
-            <>
-              <AlertCircleIcon size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }} />
-              <span>{error}</span>
-            </>
-          )}
-        </p>
+        {drafts[key].trim() && <PendingHint id={hintId}>Not added yet. Press Enter or choose Add.</PendingHint>}
+        <FieldError id={errorId} message={error} />
         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p className="text-sm" id={helperId} style={{ ...textStyle, flex: '1 1 18rem', margin: 0 }}>
             {list.helper}
@@ -250,10 +177,7 @@ const SpamFilterSettings = ({
   }
 
   return (
-    <section aria-busy={readOnly || undefined} aria-labelledby={headingId}>
-      <div className="mb-1">
-        <SectionHeading id={headingId}>Spam filter</SectionHeading>
-      </div>
+    <FormSection heading="Spam filter" headingId={headingId} status={changed ? 'unsaved' : undefined}>
       <p className="mb-3 text-sm" style={textStyle}>
         Spam goes to your Spam folder. We don&apos;t forward it or send a notification for it.
       </p>
@@ -282,7 +206,7 @@ const SpamFilterSettings = ({
       {LIST_KEYS.map((key) => (
         <React.Fragment key={key}>{renderList(key)}</React.Fragment>
       ))}
-    </section>
+    </FormSection>
   )
 }
 

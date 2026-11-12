@@ -1,4 +1,4 @@
-import React, { createRef } from 'react'
+import React, { createRef, useState } from 'react'
 
 import ChipInput from './index'
 import '@testing-library/jest-dom'
@@ -175,5 +175,211 @@ describe('ChipInput component', () => {
 
     expect(input).toHaveValue('alice@example.com')
     expect(onAdd).not.toHaveBeenCalled()
+  })
+
+  it('controlled: shows value and reports typing via onDraftChange', async () => {
+    const onDraftChange = jest.fn()
+    const Harness = (): React.ReactNode => {
+      const [text, setText] = useState('')
+      return (
+        <ChipInput
+          ariaLabel="Phrase"
+          onAdd={onAdd}
+          onDraftChange={(next) => {
+            onDraftChange(next)
+            setText(next)
+          }}
+          placeholder="Phrase"
+          value={text}
+        />
+      )
+    }
+    render(<Harness />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phrase' }), 'ab')
+
+    expect(onDraftChange).toHaveBeenNthCalledWith(1, 'a')
+    expect(onDraftChange).toHaveBeenNthCalledWith(2, 'ab')
+  })
+
+  it('returns focus to the box after Add, even when the Add button goes away', async () => {
+    const Harness = (): React.ReactNode => {
+      const [text, setText] = useState('abc')
+      return (
+        <ChipInput
+          addLabel="Add block phrase"
+          addOnBlur={false}
+          ariaLabel="Phrase"
+          onAdd={onAdd}
+          onDraftChange={setText}
+          placeholder="Phrase"
+          value={text}
+        />
+      )
+    }
+    render(<Harness />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(screen.queryByRole('button', { name: 'Add block phrase' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Phrase' })).toHaveFocus()
+  })
+
+  it('returns focus to the box after a refused Add', async () => {
+    onAdd.mockReturnValueOnce(false)
+    render(
+      <ChipInput
+        addLabel="Add block phrase"
+        addOnBlur={false}
+        ariaLabel="Phrase"
+        onAdd={onAdd}
+        onDraftChange={jest.fn()}
+        placeholder="Phrase"
+        value="abc"
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(screen.getByRole('textbox', { name: 'Phrase' })).toHaveFocus()
+  })
+
+  it('controlled: shows the given value', () => {
+    render(<ChipInput ariaLabel="Phrase" onAdd={onAdd} onDraftChange={jest.fn()} placeholder="Phrase" value="abc" />)
+
+    expect(screen.getByRole('textbox', { name: 'Phrase' })).toHaveValue('abc')
+  })
+
+  it('addOnBlur false: leaving the box does not call onAdd', async () => {
+    render(<ChipInput addOnBlur={false} ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+    const input = screen.getByRole('textbox', { name: 'Phrase' })
+
+    await userEvent.type(input, 'abc')
+    await userEvent.tab()
+
+    expect(onAdd).not.toHaveBeenCalled()
+    expect(input).toHaveValue('abc')
+  })
+
+  it('addOnBlur false: Enter still adds', async () => {
+    render(<ChipInput addOnBlur={false} ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phrase' }), 'abc{Enter}')
+
+    expect(onAdd).toHaveBeenCalledWith('abc')
+  })
+
+  it('addOnBlur default: leaving the box calls onAdd', async () => {
+    render(<ChipInput ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phrase' }), 'abc')
+    await userEvent.tab()
+
+    expect(onAdd).toHaveBeenCalledWith('abc')
+  })
+
+  it.each(['boxed', 'underline'] as const)('shows pending text with addOnBlur false (%s)', async (variant) => {
+    render(<ChipInput addOnBlur={false} ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" variant={variant} />)
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phrase' }), 'abc')
+
+    expect(screen.getByRole('textbox', { name: 'Phrase' })).toHaveValue('abc')
+  })
+
+  it('addLabel: an Add button named by addLabel appears only while text is present', async () => {
+    render(<ChipInput addLabel="Add block phrase" ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+
+    expect(screen.queryByRole('button', { name: 'Add block phrase' })).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Phrase' }), 'abc')
+
+    expect(screen.getByRole('button', { name: 'Add block phrase' })).toBeInTheDocument()
+  })
+
+  it('Add button commits like Enter', async () => {
+    const onDraftChange = jest.fn()
+    render(
+      <ChipInput
+        addLabel="Add block phrase"
+        addOnBlur={false}
+        ariaLabel="Phrase"
+        onAdd={onAdd}
+        onDraftChange={onDraftChange}
+        placeholder="Phrase"
+        value="abc"
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(onAdd).toHaveBeenCalledWith('abc')
+    expect(onDraftChange).toHaveBeenCalledWith('')
+  })
+
+  it('clicking Add keeps focus in the box, so a phone keyboard stays open', async () => {
+    const onBlur = jest.fn()
+    render(<ChipInput addLabel="Add block phrase" ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+    const input = screen.getByRole('textbox', { name: 'Phrase' })
+    input.addEventListener('blur', onBlur)
+
+    await userEvent.type(input, 'free lunch')
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(onAdd).toHaveBeenCalledWith('free lunch')
+    expect(onBlur).not.toHaveBeenCalled()
+    expect(input).toHaveFocus()
+  })
+
+  it('refused commit keeps the text', async () => {
+    const onDraftChange = jest.fn()
+    onAdd.mockReturnValueOnce(false)
+    render(
+      <ChipInput
+        addLabel="Add block phrase"
+        addOnBlur={false}
+        ariaLabel="Phrase"
+        onAdd={onAdd}
+        onDraftChange={onDraftChange}
+        placeholder="Phrase"
+        value="abc"
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(onAdd).toHaveBeenCalledWith('abc')
+    expect(onDraftChange).not.toHaveBeenCalled()
+  })
+
+  it('read-only Add button explains why', async () => {
+    render(
+      <ChipInput
+        addLabel="Add block phrase"
+        ariaLabel="Phrase"
+        onAdd={onAdd}
+        placeholder="Phrase"
+        readOnly
+        readOnlyReason="Wait until Save finishes."
+        value="abc"
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add block phrase' }))
+
+    expect(screen.getAllByText('Wait until Save finishes.').length).toBeGreaterThan(0)
+    expect(onAdd).not.toHaveBeenCalled()
+  })
+
+  it('no addLabel renders the bare input', () => {
+    const { container } = render(<ChipInput ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" />)
+
+    expect(container.firstChild).toBe(screen.getByRole('textbox', { name: 'Phrase' }))
+  })
+
+  it('keeps ref on the input when addLabel wraps it', () => {
+    const ref = createRef<HTMLInputElement>()
+    render(<ChipInput addLabel="Add" ariaLabel="Phrase" onAdd={onAdd} placeholder="Phrase" ref={ref} />)
+
+    expect(ref.current).toBe(screen.getByRole('textbox', { name: 'Phrase' }))
   })
 })

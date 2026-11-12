@@ -583,3 +583,29 @@ body {
   color: var(--text-paper-muted);
   pointer-events: none;
 }
+
+/* ─── Programmatic focus targets ─────────────────────────────── */
+/* The global ring skips tabindex="-1", so headings and message blocks that scripts focus carry
+   .focus-target to show a ring for keyboard focus only. Inside the unsaved bar (dark shell) the
+   ring is --accent-hover, which reads 5.88:1 there. */
+.focus-target:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.unsaved-bar :focus-visible {
+  outline-color: var(--accent-hover);
+}
+
+/* ─── Unsaved bar entrance ───────────────────────────────────── */
+@keyframes unsavedBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .unsaved-bar {
+    animation: unsavedBarIn 0.2s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}

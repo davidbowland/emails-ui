@@ -64,11 +64,18 @@ describe('NotificationSettings', () => {
       expect(screen.getAllByRole('status').map((region) => region.textContent)).toEqual(['', ''])
     })
 
-    it('says this section does not wait for the Save button', async () => {
+    it('says this section saves on its own', async () => {
       setNavigator(DESKTOP)
       await renderSettings()
 
-      expect(await screen.findByText('Saved automatically')).toBeVisible()
+      expect(await screen.findByText('Saves automatically')).toBeVisible()
+    })
+
+    it('labels its section by its heading', async () => {
+      setNavigator(DESKTOP)
+      await renderSettings()
+
+      expect(await screen.findByRole('region', { name: 'Notifications' })).toBeVisible()
     })
 
     it('ties the reason to the button that caused it', async () => {

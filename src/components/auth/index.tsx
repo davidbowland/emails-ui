@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react'
 import EmailsAuthenticator from './emails-authenticator'
 import IconDrawer from './icon-drawer'
 import InstallOffer from '@components/install-offer'
+import { LeaveGuardProvider } from '@components/leave-guard'
 import { healPushSubscription } from '@services/push'
 import { AuthUser } from '@types'
 
@@ -43,15 +44,17 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
   if (loggedInUser) {
     return (
       <div className="flex h-full overflow-hidden">
-        <IconDrawer
-          closeMenu={closeMenu}
-          loggedInUser={loggedInUser}
-          navMenuOpen={navMenuOpen}
-          openMenu={openMenu}
-          setLoggedInUser={setLoggedInUser}
-        >
-          {children}
-        </IconDrawer>
+        <LeaveGuardProvider>
+          <IconDrawer
+            closeMenu={closeMenu}
+            loggedInUser={loggedInUser}
+            navMenuOpen={navMenuOpen}
+            openMenu={openMenu}
+            setLoggedInUser={setLoggedInUser}
+          >
+            {children}
+          </IconDrawer>
+        </LeaveGuardProvider>
       </div>
     )
   }
@@ -107,7 +110,7 @@ const Authenticated = ({ children, showContent = false }: AuthenticatedProps): R
         backgroundImage: 'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(124, 93, 244, 0.14) 0%, transparent 70%)',
       }}
     >
-      {/* Centres when it fits, scrolls when it doesn't: min-h-full lets the column grow past
+      {/* Centers when it fits, scrolls when it doesn't: min-h-full lets the column grow past
           the viewport (e.g. once the install offer is expanded) so the scroll container above
           can reach all of it, instead of clipping it under justify-center + overflow-hidden.
           No horizontal padding here — the card sets its own viewport-based side margin; adding

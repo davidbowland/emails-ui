@@ -7,6 +7,7 @@ import '@fontsource/outfit/500.css'
 import '@fontsource/outfit/600.css'
 import '@fontsource/source-serif-4'
 import type { AppProps } from 'next/app'
+import Head from 'next/head'
 import React, { useEffect } from 'react'
 
 import '@assets/css/index.css'
@@ -33,6 +34,15 @@ const App = ({ Component, pageProps }: AppProps): React.ReactNode => {
 
   return (
     <div className="h-screen overflow-hidden" style={{ background: 'var(--shell-bg)', color: 'var(--text-primary)' }}>
+      <Head>
+        {/* resizes-content: Android shrinks the page for the on-screen keyboard, so the Settings bar
+            stays above it. iOS ignores it; the bar measures the keyboard there (useKeyboardInset). */}
+        <meta
+          content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+          key="viewport"
+          name="viewport"
+        />
+      </Head>
       <Component {...pageProps} />
     </div>
   )

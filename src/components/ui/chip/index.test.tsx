@@ -79,4 +79,16 @@ describe('Chip component', () => {
 
     expect(screen.getByRole('button', { name: 'Remove alice@example.com' })).toHaveFocus()
   })
+
+  it('isNew adds "(not saved yet)" for screen readers', () => {
+    render(<Chip isNew label="alice@example.com" />)
+
+    expect(screen.getByText('(not saved yet)', { exact: false })).toBeInTheDocument()
+  })
+
+  it('has no "(not saved yet)" without isNew', () => {
+    render(<Chip label="alice@example.com" />)
+
+    expect(screen.queryByText('(not saved yet)', { exact: false })).not.toBeInTheDocument()
+  })
 })

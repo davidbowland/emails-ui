@@ -14,7 +14,16 @@ export type ButtonPassthrough = Omit<React.AriaAttributes, 'aria-busy' | 'aria-d
   DataAttributes &
   Pick<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
-    'id' | 'onBlur' | 'onFocus' | 'onKeyDown' | 'onMouseEnter' | 'onMouseLeave' | 'role' | 'tabIndex' | 'title'
+    | 'id'
+    | 'onBlur'
+    | 'onFocus'
+    | 'onKeyDown'
+    | 'onMouseDown'
+    | 'onMouseEnter'
+    | 'onMouseLeave'
+    | 'role'
+    | 'tabIndex'
+    | 'title'
   > & {
     ref?: React.Ref<HTMLButtonElement>
   }

@@ -7,6 +7,8 @@ export type SpamNoticeKind = 'not-spam' | 'moved-to-spam'
 export type SpamNoticeTrustState = 'offer' | 'saving' | 'accepted' | 'declined' | 'full'
 
 export interface SpamNoticeProps {
+  // The moved email's From line, as the list shows it.
+  from: string
   kind: SpamNoticeKind
   // Changes with every move, so a second move of the same kind and sender still takes focus.
   moveId: string
@@ -19,6 +21,8 @@ export interface SpamNoticeProps {
   // How many more emails from this sender are still in Spam (not-spam only).
   otherFromSender?: number
   sender?: string
+  // The moved email's subject; empty when it has none.
+  subject: string
   trustedValue?: string
   trustState: SpamNoticeTrustState
   // Set once suggestions were applied (moved-to-spam only); 0 when every pick was already a rule.
@@ -30,6 +34,52 @@ type TrustAction = 'address' | 'domain' | 'decline'
 
 const WAIT_FOR_SAVE = 'Wait until your changes finish saving.'
 
+// Subjects and From lines longer than this are cut short, with an ellipsis.
+export const NAME_LIMIT = 80
+
+// Bidi embeddings, overrides and isolates. Stripped so a cut can't leave one open to reorder the text
+// after it; the <bdi> around each name isolates its direction instead.
+const BIDI_CONTROLS = /[\u202A-\u202E\u2066-\u2069]/g
+
+// Trimmed, without bidi controls, and cut to NAME_LIMIT code points, so an emoji is never split.
+const cleanName = (value: string): string => {
+  const characters = [...value.replace(BIDI_CONTROLS, '').trim()]
+  return characters.length > NAME_LIMIT ? `${characters.slice(0, NAME_LIMIT).join('').trimEnd()}…` : characters.join('')
+}
+
+// The From line as people read it: no straight quotes around the display name. Undefined when there
+// is no sender (the inbound service stores "unknown" then).
+export const senderName = (from: string): string | undefined => {
+  const unquoted = from
+    .replace(BIDI_CONTROLS, '')
+    .trim()
+    .replace(/^"(.*)"\s*(<[^<>]*>)$/, '$1 $2')
+  return unquoted === '' || unquoted.toLowerCase() === 'unknown' ? undefined : cleanName(unquoted)
+}
+
+// The moved email by its subject, in quotes, or "the email with no subject". The viewer shows the
+// next email by then, so "this email" would point at it.
+export const subjectName = (subject: string, capitalized = false): React.ReactNode => {
+  const shown = cleanName(subject)
+  return shown ? (
+    <>
+      “<bdi>{shown}</bdi>”
+    </>
+  ) : (
+    `${capitalized ? 'The' : 'the'} email with no subject`
+  )
+}
+
+// The moved email by subject and sender, as in: “Meeting notes” from Ana <ana@example.com>.
+export const movedEmailName = (subject: string, from: string, capitalized = false): React.ReactNode => {
+  const sender = senderName(from)
+  return (
+    <>
+      {subjectName(subject, capitalized)} from {sender ? <bdi>{sender}</bdi> : 'an unknown sender'}
+    </>
+  )
+}
+
 const plural = (count: number, one: string, many: string): string => (count === 1 ? one : many)
 
 // The "@domain" rule for an address, or undefined when there is no usable domain.
@@ -40,6 +90,7 @@ const domainRule = (sender: string): string | undefined => {
 }
 
 const SpamNotice = ({
+  from,
   kind,
   moveId,
   onDecline,
@@ -48,6 +99,7 @@ const SpamNotice = ({
   onTrust,
   otherFromSender = 0,
   sender,
+  subject,
   trustedValue,
   trustState,
   updatedCount,
@@ -77,6 +129,14 @@ const SpamNotice = ({
     }
   }, [trustState])
 
+  // Names the moved email, since the viewer below already shows the next one.
+  const movedLead = (folder: 'Inbox' | 'Spam'): React.ReactNode => (
+    <>
+      <Lead>Moved to {folder}:</Lead>
+      <Line>{movedEmailName(subject, from, true)}</Line>
+    </>
+  )
+
   // Non-modal: Escape closes it, but Tab is never held.
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>): void => {
     if (event.key === 'Escape') {
@@ -93,7 +153,7 @@ const SpamNotice = ({
       return {
         body: (
           <>
-            <Lead>Moved to Inbox.</Lead>
+            {movedLead('Inbox')}
             {trustState === 'accepted' && trustedValue && (
               <Line>
                 <Mono>{trustedValue}</Mono> added to trusted senders.
@@ -102,7 +162,7 @@ const SpamNotice = ({
             {trustState === 'full' && (
               <Line>
                 Your trusted senders list is full — {SPAM_FILTER_LIST_LIMIT} is the limit. Remove one under Spam filter
-                in Settings, then add this sender there.
+                in Settings, then add {sender ? <Mono>{sender}</Mono> : 'this sender'} there.
               </Line>
             )}
           </>
@@ -133,7 +193,7 @@ const SpamNotice = ({
             onClick={press('address', () => onTrust(sender))}
             variant="accent"
           >
-            Trust this address
+            {`Trust ${sender}`}
           </NoticeButton>
           {domain && (
             <NoticeButton {...stateFor('domain')} onClick={press('domain', () => onTrust(domain))} variant="ghost">
@@ -147,14 +207,14 @@ const SpamNotice = ({
       ),
       body: (
         <>
-          <Lead>Moved to Inbox.</Lead>
+          {movedLead('Inbox')}
           <Line id={questionId}>
             Always trust <Mono>{sender}</Mono>?
           </Line>
           {otherFromSender > 0 && (
             <Info>
-              Spam has {otherFromSender} more {plural(otherFromSender, 'email', 'emails')} from this sender. Trusting a
-              sender only affects new mail, so move {plural(otherFromSender, 'it', 'them')} with Not spam.
+              Spam has {otherFromSender} more {plural(otherFromSender, 'email', 'emails')} from <Mono>{sender}</Mono>.
+              Trusting a sender only affects new mail, so move {plural(otherFromSender, 'it', 'them')} with Not spam.
             </Info>
           )}
           {saving && <Info>Saving…</Info>}
@@ -173,15 +233,15 @@ const SpamNotice = ({
           ),
           body: (
             <>
-              <Lead>Moved to Spam.</Lead>
-              <Info>Want fewer emails like this? We can read this one and suggest changes to your spam rules.</Info>
+              {movedLead('Spam')}
+              <Info>Want fewer emails like that one? We can read it and suggest changes to your spam rules.</Info>
             </>
           ),
         }
       : {
           body: (
             <>
-              <Lead>Moved to Spam.</Lead>
+              {movedLead('Spam')}
               {updatedCount === 0 ? (
                 <Line>Those changes were already in your rules.</Line>
               ) : (

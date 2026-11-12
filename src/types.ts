@@ -173,9 +173,14 @@ export interface SignedUrl {
 // the UI. For raiseSensitivity, `value` is the new SpamSensitivity.
 export type SpamSuggestionKind = 'addBlockPhrase' | 'removeTrustedSender' | 'raiseSensitivity'
 
+// How much mail a suggestion would catch, from least to most. The API sorts by it; the UI groups by
+// it and picks targeted and broader suggestions for the user.
+export type SpamSuggestionLevel = 'targeted' | 'broader' | 'aggressive'
+
 export interface SpamSuggestion {
   id: string
   kind: SpamSuggestionKind
+  level: SpamSuggestionLevel
   reason: string
   value: string
 }

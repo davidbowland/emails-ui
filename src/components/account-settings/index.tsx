@@ -1,191 +1,228 @@
 import { getCurrentUser } from 'aws-amplify/auth'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 
-import { SaveButton, SettingsCard, SettingsTitle, WAIT_FOR_SAVE_REASON } from './elements'
-import AddressLine from '@components/address-line'
-import BounceSenderInput from '@components/bounce-sender-input'
+import { SettingsCard, SettingsTitle, WAIT_FOR_SAVE_REASON } from './elements'
+import { ImpactCheck, ImpactDialog, needsReview } from './impact-dialog'
+import {
+  changedSections,
+  commitDrafts,
+  DraftKey,
+  Drafts,
+  draftLine,
+  DRAFT_ORDER,
+  EMPTY_DRAFTS,
+  ENTRY_NOUN,
+  Fields,
+  joinSections,
+  SECTION_LABEL,
+  SectionKey,
+} from './save-state'
+import AddressLine, { forwardAddressError } from '@components/address-line'
+import BounceSenderInput, { alreadyListed, bounceRuleError } from '@components/bounce-sender-input'
 import InstallOffer from '@components/install-offer'
+import { useLeaveGuardRegistration } from '@components/leave-guard'
 import NotificationSettings from '@components/notification-settings'
-import { ImpactFootnote, isSpamImpactResponse, PhraseImpact, PhraseImpactFailed } from '@components/phrase-impact'
-import SpamFilterSettings, { SpamFilterSettingsHandle } from '@components/spam-filter-settings'
-import Dialog from '@components/ui/dialog'
+import { isSpamImpactResponse } from '@components/phrase-impact'
+import SpamFilterSettings, { SpamDraftKey } from '@components/spam-filter-settings'
+import Button from '@components/ui/button'
 import Divider from '@components/ui/divider'
-import { CheckIcon } from '@components/ui/icons'
-import SectionHeading from '@components/ui/section-heading'
+import FieldError from '@components/ui/field-error'
+import FormSection from '@components/ui/form-section'
+import PendingHint from '@components/ui/pending-hint'
 import Snackbar from '@components/ui/snackbar'
 import Spinner from '@components/ui/spinner'
 import TextInput from '@components/ui/text-input'
+import UnsavedBar, { UnsavedBarProps } from '@components/ui/unsaved-bar'
 import { getAccount, postSpamImpact, putAccount } from '@services/emails'
-import {
-  Account,
-  AuthUser,
-  DEFAULT_NOTIFICATION_PREVIEW,
-  DEFAULT_SPAM_FILTER,
-  EmailAddress,
-  NotificationPreview,
-  SpamFilter,
-  SpamImpactResponse,
-} from '@types'
+import { Account, AuthUser, DEFAULT_NOTIFICATION_PREVIEW, DEFAULT_SPAM_FILTER, NotificationPreview } from '@types'
 
-const sameAddresses = (a: string[], b: string[]): boolean =>
-  a.length === b.length && a.every((value, index) => value === b[index])
+// 'waiting' is a Save held until an in-flight notification save lands; 'checking' runs the new
+// block phrases against the owner's mail; 'saving' is the PUT. Those three are the busy phases.
+type BarPhase = 'idle' | 'waiting' | 'checking' | 'saving' | 'saved' | 'failed' | 'discarded'
 
-// Every field the Save button owns, or a change to the one it forgets leaves Save saying there is
-// nothing to save while an edit sits unwritten on screen. notificationPreview is not among them: it saves the
-// moment it is chosen, so by the time Save is offered it already matches the server.
-type SaveableFields = Pick<Account, 'bounceSenders' | 'forwardTargets' | 'name'> & { spamFilter: SpamFilter }
+interface BarState {
+  // Why Save stopped: a typed entry it could not add.
+  note?: string
+  phase: BarPhase
+  savedSections?: SectionKey[]
+}
+
+interface UndoSnapshot {
+  drafts: Drafts
+  fields: Fields
+  sections: SectionKey[]
+}
+
+// The impact dialog's state: 'checking' until the result arrives, with the fields Save will write.
+interface ImpactState {
+  check: ImpactCheck | 'checking'
+  fields: Fields
+  phrases: string[]
+}
+
+const BUSY_PHASES: BarPhase[] = ['waiting', 'checking', 'saving']
+const SAVED_BAR_MS = 5000
+const UNDO_MS = 8000
+const PHONE_QUERY = '(max-width: 640px)'
+const PENDING_HINT = 'Not added yet. Press Enter or choose Add.'
+const NO_CHANGES = 'You have no changes to save.'
+// Room kept under a focused field or heading: the one-row bar and the phone strip fit in 96px, and
+// the full bar on a phone, stacked, in 180px.
+const BAR_ROOM = 96
+const STACKED_BAR_ROOM = 180
 
 // An account saved before the spam filter existed has none; it is filtered at the defaults.
-const savedSpamFilter = (account: Account): SpamFilter => account.spamFilter ?? DEFAULT_SPAM_FILTER
+const fieldsOf = (account: Account): Fields => ({
+  bounceSenders: account.bounceSenders,
+  forwardTargets: account.forwardTargets,
+  name: account.name,
+  spamFilter: account.spamFilter ?? DEFAULT_SPAM_FILTER,
+})
 
-const sameSpamFilter = (a: SpamFilter, b: SpamFilter): boolean =>
-  a.sensitivity === b.sensitivity &&
-  sameAddresses(a.blockPhrases, b.blockPhrases) &&
-  sameAddresses(a.trustedSenders, b.trustedSenders)
+const sameList = (a: string[] | undefined, b: string[]): boolean =>
+  a !== undefined && a.length === b.length && a.every((item, index) => item === b[index])
 
-const hasChanges = (account: Account, updated: SaveableFields): boolean =>
-  account.name !== updated.name ||
-  !sameAddresses(account.forwardTargets, updated.forwardTargets) ||
-  !sameAddresses(account.bounceSenders, updated.bounceSenders) ||
-  !sameSpamFilter(savedSpamFilter(account), updated.spamFilter)
-
-// New block phrases waiting on the owner's answer, with the filter to save. 'failed' is a check
-// that errored or came back malformed; the owner may still save.
-interface ImpactCheck {
-  phrases: string[]
-  result: SpamImpactResponse | 'failed'
-  spamFilter: SpamFilter
+// What changed in a chip list, in words, or nothing when the list is the same.
+const listAnnouncement = (before: string[], after: string[]): string | undefined => {
+  if (after.length > before.length) {
+    return `Added “${after[after.length - 1]}”. Not saved yet.`
+  }
+  const removed = before.find((item, index) => after[index] !== item)
+  return removed === undefined ? undefined : `Removed “${removed}”. Not saved yet.`
 }
 
-const hasMatch = (check: ImpactCheck, folder: 'inbox' | 'spam'): boolean =>
-  check.result !== 'failed' && check.result.phrases.some((impact) => impact[folder].count > 0)
+const NON_TEXT_INPUTS = ['button', 'checkbox', 'color', 'file', 'radio', 'range', 'reset', 'submit']
 
-// How many of the new phrases match at least one email in the folder.
-const countMatching = (check: ImpactCheck, folder: 'inbox' | 'spam'): number =>
-  check.result === 'failed' ? 0 : check.result.phrases.filter((impact) => impact[folder].count > 0).length
+const isTextField = (target: EventTarget | null): target is HTMLElement =>
+  target instanceof HTMLInputElement ? !NON_TEXT_INPUTS.includes(target.type) : target instanceof HTMLTextAreaElement
 
-// Whether the owner needs to see the result before the phrases save.
-const needsReview = (check: ImpactCheck): boolean =>
-  check.result === 'failed' || check.result.inboxIncomplete || hasMatch(check, 'inbox') || hasMatch(check, 'spam')
-
-// The dialog's description, so a screen reader reads the lead when focus lands on Go back.
-const IMPACT_LEAD_ID = 'settings-impact-lead'
-
-// Tried in order; the first row that applies sets the lead.
-const impactLead = (check: ImpactCheck): string => {
-  const several = check.phrases.length > 1
-  if (hasMatch(check, 'inbox')) {
-    // Plural only when more than one of the phrases is the one matching the Inbox.
-    return countMatching(check, 'inbox') > 1
-      ? 'These new phrases match emails already in your Inbox. Those emails stay put, but new mail containing them will go to Spam, unless it comes from a trusted sender.'
-      : 'This new phrase matches emails already in your Inbox. Those emails stay put, but new mail containing it will go to Spam, unless it comes from a trusted sender.'
-  }
-  if (check.result === 'failed') {
-    return several
-      ? "We couldn't check your new phrases against your mail. You can save them anyway."
-      : "We couldn't check your new phrase against your mail. You can save it anyway."
-  }
-  if (check.result.inboxIncomplete) {
-    return several
-      ? "We couldn't check all of your Inbox. Your new phrases may match emails we didn't check."
-      : "We couldn't check all of your Inbox. Your new phrase may match emails we didn't check."
-  }
-  // Plural only when more than one of the phrases is the one matching Spam.
-  return countMatching(check, 'spam') > 1
-    ? "Here's the mail in Spam that your new phrases match."
-    : "Here's the mail in Spam that your new phrase matches."
+// The words between section names: "A and B", "A, B, and C".
+const separatorBefore = (index: number, count: number): string => {
+  if (index === 0) return ''
+  if (count === 2) return ' and '
+  return index === count - 1 ? ', and ' : ', '
 }
 
-// Matches in Spam alone are information, not a warning, so the button does not say "anyway".
-const impactConfirmLabel = (check: ImpactCheck): string =>
-  check.result !== 'failed' && !check.result.inboxIncomplete && !hasMatch(check, 'inbox') ? 'Save' : 'Save anyway'
-
-const ImpactDialogBody = ({ check, leadId }: { check: ImpactCheck; leadId: string }): React.ReactNode => {
-  const { result } = check
-  return (
-    <>
-      <p id={leadId}>{impactLead(check)}</p>
-      <ul className="mt-3 flex flex-col gap-2.5" style={{ listStyle: 'none', padding: 0 }}>
-        {check.phrases.map((phrase, index) => (
-          <li
-            key={`${index}-${phrase}`}
-            style={{
-              background: 'var(--paper-surface)',
-              border: '1px solid var(--paper-border)',
-              borderRadius: '10px',
-              padding: '10px 12px',
-            }}
-          >
-            <span className="block" style={{ color: 'var(--text-paper)', overflowWrap: 'anywhere' }}>
-              {`“${phrase}”`}
-            </span>
-            {result === 'failed' ? (
-              <PhraseImpactFailed id={`settings-impact-${index}`} />
-            ) : (
-              <PhraseImpact
-                checked={result.checked}
-                id={`settings-impact-${index}`}
-                impact={result.phrases[index]}
-                inboxIncomplete={result.inboxIncomplete}
-              />
-            )}
-          </li>
-        ))}
-      </ul>
-      {result !== 'failed' && (
-        <div className="mt-3">
-          <ImpactFootnote checked={result.checked} mode="save" phraseCount={check.phrases.length} />
-        </div>
-      )}
-    </>
-  )
+const SECTION_BUTTON_STYLE: React.CSSProperties = {
+  color: '#fdfaf5',
+  font: 'inherit',
+  padding: '0 2px',
+  textDecoration: 'underline',
+  textUnderlineOffset: '3px',
+  verticalAlign: 'baseline',
 }
 
-const AccountSettings = (): React.ReactNode => {
+const EMPTY_FIELDS: Fields = { bounceSenders: [], forwardTargets: [], name: '', spamFilter: DEFAULT_SPAM_FILTER }
+
+const MUTED_TEXT: React.CSSProperties = { color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }
+
+const AccountSettings = ({ now = Date.now }: { now?: () => number } = {}): React.ReactNode => {
+  const idPrefix = useId()
+  const ids = {
+    bounceError: `${idPrefix}-bounce-error`,
+    bounceHelper: `${idPrefix}-bounce-helper`,
+    bounceHint: `${idPrefix}-bounce-hint`,
+    bounceInput: `${idPrefix}-bounce-input`,
+    forwardingError: `${idPrefix}-forwarding-error`,
+    forwardingHelper: `${idPrefix}-forwarding-helper`,
+    forwardingHint: `${idPrefix}-forwarding-hint`,
+    forwardingInput: `${idPrefix}-forwarding-input`,
+  }
+
   const [account, setAccount] = useState<Account | undefined>()
-  const [bounceSenders, setBounceSenders] = useState<string[]>([])
+  const [announcement, setAnnouncement] = useState('')
+  const [bar, setBar] = useState<BarState>({ phase: 'idle' })
+  const [drafts, setDrafts] = useState<Drafts>(EMPTY_DRAFTS)
   const [errorMessage, setErrorMessage] = useState<string | undefined>()
-  const [forwardAddresses, setForwardAddresses] = useState<EmailAddress[]>([])
-  // The check's answer for new block phrases, held while the owner decides whether to save them.
-  const [impactCheck, setImpactCheck] = useState<ImpactCheck | undefined>()
-  // True while the new phrases are checked against mail on Save.
-  const [isChecking, setIsChecking] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  // Both saves send the whole item, and neither re-reads first. The preference save carries the
-  // account as this page loaded it, so a Save started while one is in flight can land first and be
-  // overwritten by the older name, forward targets and bounce rules -- with the new ones still on
-  // screen. The form's Save is held until the preference save has landed.
-  const [isSavingPreview, setIsSavingPreview] = useState(false)
+  const [errors, setErrors] = useState<Partial<Record<DraftKey, string>>>({})
+  const [fieldFocused, setFieldFocused] = useState(false)
+  const [fields, setFields] = useState<Fields>(EMPTY_FIELDS)
+  // A new object per request, so the same target can be asked for twice in a row.
+  const [focusRequest, setFocusRequest] = useState<{ target: 'bar' | 'h1' | 'primary' } | undefined>()
+  const [impact, setImpact] = useState<ImpactState | undefined>()
+  const [isPhone, setIsPhone] = useState(false)
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | undefined>()
-  const [name, setName] = useState('')
   const [notificationPreview, setNotificationPreview] = useState<NotificationPreview>(DEFAULT_NOTIFICATION_PREVIEW)
-  // Said only after a save this page made. A successful save otherwise reported nothing at all,
-  // which is indistinguishable from a save that never ran.
-  const [saveStatus, setSaveStatus] = useState('')
-  const [spamFilter, setSpamFilter] = useState<SpamFilter>(DEFAULT_SPAM_FILTER)
-  const spamFilterRef = useRef<SpamFilterSettingsHandle>(null)
-  // The tier the server last acknowledged. A failed save reverts to what is actually in effect,
-  // which is not necessarily the tier this page loaded with -- an earlier choice may have saved.
-  // At most one save is in flight at a time, because the radio group is read-only while one is.
+  const [savedAt, setSavedAt] = useState<number | undefined>()
+  const [undo, setUndo] = useState<UndoSnapshot | undefined>()
+
+  const barRef = useRef<HTMLDivElement>(null)
+  const primaryRef = useRef<HTMLButtonElement>(null)
+  // Bumped by Keep editing, so a check result that arrives after it is ignored.
+  const checkRequest = useRef(0)
+  // The new block phrases the owner already chose to save anyway; a retry does not ask again.
+  const confirmedPhrases = useRef<string[] | undefined>(undefined)
+  const formRef = useRef<HTMLDivElement>(null)
+  const h1Ref = useRef<HTMLHeadingElement>(null)
+  const inputs = useRef<Partial<Record<DraftKey, HTMLInputElement | null>>>({})
+  // The notification save in flight, if any. Both saves send the whole item, so Save waits for it.
+  const previewSave = useRef<Promise<void> | undefined>(undefined)
+  // The tier the server last acknowledged; undefined until a notification save succeeds this visit.
   const savedPreview = useRef<NotificationPreview | undefined>(undefined)
+  const sectionEls = useRef<Partial<Record<SectionKey, HTMLDivElement | null>>>({})
+  const sectionCount = useRef(0)
 
-  const forwardTargets = forwardAddresses.map((address) => address.address)
-  // Never disabled (spec G7): while a save or the phrase check runs, the fields are read-only.
-  const isBusy = isSaving || isChecking
-  const hasUnsavedChanges =
-    account !== undefined && hasChanges(account, { bounceSenders, forwardTargets, name, spamFilter })
+  const sections = account ? changedSections(account, fields, drafts) : []
+  const isBusy = BUSY_PHASES.includes(bar.phase)
+  const barShown = sections.length > 0 || ['saved', 'failed', 'discarded'].includes(bar.phase)
+  const guardActive = sections.length > 0 && (bar.phase === 'idle' || bar.phase === 'failed' || isBusy)
+  const draftCount = DRAFT_ORDER.filter((key) => drafts[key].trim() !== '').length
+  // Only while editing or saving: the saved, failed and discarded bars need their detail and buttons.
+  const compact = isPhone && fieldFocused && (bar.phase === 'idle' || isBusy)
 
-  // Saved on change, not on Save: the on/off button in the same section applies instantly, the
-  // section says the choice follows the account, and the worked example redraws to match. A
+  const barRegion = (): HTMLElement | null => barRef.current?.closest<HTMLElement>('[role="region"]') ?? null
+  // The bar's primary button: Save, Try again or Undo.
+  const primaryButton = (): HTMLElement | null => primaryRef.current
+
+  useLeaveGuardRegistration(guardActive ? [joinSections(sections)] : undefined, primaryButton)
+
+  // Any edit ends the saved and discarded states and clears Save's refusal note; an edit after Discard
+  // drops the Undo snapshot.
+  const noteEdit = (): void => {
+    setBar(({ note: _cleared, ...current }) =>
+      current.phase === 'saved' || current.phase === 'discarded' ? { phase: 'idle' } : current,
+    )
+    setUndo(undefined)
+  }
+
+  // An edit with nothing to say clears the announcement, so the same words said again are announced
+  // again. Typing in a box leaves it alone: a chip add clears its box right after saying "Added".
+  const editFields = (update: (current: Fields) => Fields, message?: string): void => {
+    setFields(update)
+    noteEdit()
+    setAnnouncement(message ?? '')
+  }
+
+  const changeDraft = (key: DraftKey, text: string): void => {
+    setDrafts((current) => ({ ...current, [key]: text }))
+    setErrors(({ [key]: _cleared, ...rest }) => rest)
+    noteEdit()
+  }
+
+  // No message clears the key, so errors holds only boxes that are refused.
+  const refuseEntry = (key: DraftKey, message: string | undefined): void =>
+    setErrors(({ [key]: _cleared, ...rest }) => (message === undefined ? rest : { ...rest, [key]: message }))
+
+  const setInput = (key: DraftKey, element: HTMLInputElement | null): void => {
+    inputs.current = { ...inputs.current, [key]: element }
+  }
+
+  const setSectionEl =
+    (section: SectionKey) =>
+    (element: HTMLDivElement | null): void => {
+      sectionEls.current = { ...sectionEls.current, [section]: element }
+    }
+
+  const focusHeading = (section: SectionKey): void => {
+    const heading = sectionEls.current[section]?.querySelector<HTMLElement>('[tabindex="-1"]')
+    heading?.scrollIntoView?.({ block: 'nearest' })
+    heading?.focus()
+  }
+
+  // Saved on change, not on Save: the on/off button in the same section applies instantly, and a
   // reader who picks the quietest tier and leaves must not be left on the most revealing one.
-  const handlePreviewChange = async (
-    accountId: string,
-    account: Account,
-    preview: NotificationPreview,
-  ): Promise<void> => {
+  const savePreview = async (accountId: string, account: Account, preview: NotificationPreview): Promise<void> => {
     setNotificationPreview(preview)
-    setIsSavingPreview(true)
     try {
       await putAccount(accountId, { ...account, id: accountId, notificationPreview: preview })
       savedPreview.current = preview
@@ -194,272 +231,481 @@ const AccountSettings = (): React.ReactNode => {
       setNotificationPreview(savedPreview.current ?? account.notificationPreview)
       setErrorMessage("We couldn't save that. Your last saved choice is still in effect.")
     }
-    setIsSavingPreview(false)
   }
 
-  const saveSettings = async (accountId: string, account: Account, nextSpamFilter: SpamFilter): Promise<void> => {
-    setIsSaving(true)
+  const handlePreviewChange = (accountId: string, account: Account, preview: NotificationPreview): Promise<void> => {
+    const saving = savePreview(accountId, account, preview)
+    previewSave.current = saving
+    return saving.finally(() => {
+      if (previewSave.current === saving) previewSave.current = undefined
+    })
+  }
+
+  const put = async (accountId: string, account: Account, next: Fields): Promise<void> => {
+    setBar({ phase: 'saving' })
+    // The preview the server last acknowledged, so this PUT never undoes a notification save.
+    const updated: Account = {
+      ...next,
+      id: accountId,
+      notificationPreview: savedPreview.current ?? account.notificationPreview,
+    }
     try {
-      const updatedAccount: Account = {
-        bounceSenders,
-        forwardTargets,
-        id: accountId,
-        name,
-        notificationPreview,
-        spamFilter: nextSpamFilter,
-      }
-      // PUT sends every field this screen owns, so there is nothing to diff. The button is only
-      // offered when there is something to write, so there is nothing to skip either -- it used to
-      // skip silently here, which is how pressing Save could do and say nothing at all.
-      await putAccount(accountId, updatedAccount)
-      setAccount(updatedAccount)
-      setSaveStatus('Settings saved.')
+      await putAccount(accountId, updated)
+      const saved = changedSections(account, next, EMPTY_DRAFTS)
+      setAccount(updated)
+      setSavedAt(now())
+      confirmedPhrases.current = undefined
+      setBar({ phase: 'saved', savedSections: saved })
+      setAnnouncement(`Saved your changes to ${joinSections(saved)}.`)
     } catch (error: any) {
-      console.error('handleSaveClick', { account, accountId, bounceSenders, error, forwardAddresses })
-      // Put the screen back where the server is, every field of it: nothing was written, so
-      // leaving an edit on screen while saying the old value is in effect would be a lie the
-      // reader cannot see. notificationPreview is not among them -- it saves on change, so the
-      // value on screen is the one the server acknowledged.
-      setBounceSenders(account.bounceSenders)
-      setForwardAddresses(account.forwardTargets.map((address) => ({ address, name: '' })))
-      setName(account.name)
-      setSpamFilter(savedSpamFilter(account))
-      setSaveStatus('')
-      setErrorMessage("We couldn't save your settings. Nothing changed — your last saved settings are still in effect.")
+      console.error('putAccount', { accountId, error })
+      // Every edit stays on screen: the bar names them and offers Try again.
+      setBar({ phase: 'failed' })
+      setAnnouncement("We couldn't save your changes. They're still here, so you can try again.")
     }
-    setIsSaving(false)
+    setFocusRequest({ target: 'bar' })
   }
 
-  const handleSaveClick = async (accountId: string, account: Account): Promise<void> => {
-    // A phrase still sitting in its box is one the owner can see, so Save adds it first. One that
-    // cannot be added stops the save, with its reason shown and its box focused.
-    const nextSpamFilter = spamFilterRef.current ? spamFilterRef.current.commitDrafts() : spamFilter
-    if (nextSpamFilter === undefined) {
+  const save = async (accountId: string, account: Account): Promise<void> => {
+    const committed = commitDrafts(fields, drafts)
+    if (!committed.ok) {
+      const refused = Object.keys(committed.errors)
+      setErrors(committed.errors)
+      setBar({
+        note:
+          refused.length > 1
+            ? 'Fix or clear the entries you typed, then save.'
+            : `Fix or clear the ${ENTRY_NOUN[committed.first]} you typed, then save.`,
+        phase: 'idle',
+      })
+      const box = inputs.current[committed.first]
+      box?.scrollIntoView?.({ block: 'nearest' })
+      box?.focus()
       return
     }
-    const saved = savedSpamFilter(account).blockPhrases
-    const newPhrases = nextSpamFilter.blockPhrases.filter((phrase) => !saved.includes(phrase))
-    if (newPhrases.length === 0) {
-      void saveSettings(accountId, account, nextSpamFilter)
+    const next = committed.fields
+    setFields(next)
+    setDrafts(EMPTY_DRAFTS)
+    setErrors({})
+    // Cleared first, so a result worded the same as the last one (a second failure) is announced again.
+    setAnnouncement('')
+    // Every draft was a repeat of a listed entry: nothing is left to write.
+    if (changedSections(account, next, EMPTY_DRAFTS).length === 0) {
+      setBar({ phase: 'idle' })
       return
     }
+    // Tags this save. Keep editing and leaving the page move it on, and a save that has moved on
+    // never reaches the PUT.
+    checkRequest.current += 1
+    const request = checkRequest.current
+    if (previewSave.current) {
+      setBar({ phase: 'waiting' })
+      await previewSave.current
+      if (checkRequest.current !== request) return
+    }
+
+    const savedPhrases = account.spamFilter?.blockPhrases ?? DEFAULT_SPAM_FILTER.blockPhrases
+    const newPhrases = next.spamFilter.blockPhrases.filter((phrase) => !savedPhrases.includes(phrase))
+    if (newPhrases.length === 0 || sameList(confirmedPhrases.current, newPhrases)) {
+      await put(accountId, account, next)
+      return
+    }
+
     // Warn, then allow: what the new phrases catch is shown before they save. A check that cannot
     // be made is reported in the same dialog, because the owner may still save.
-    setIsChecking(true)
-    const check: ImpactCheck = await postSpamImpact(accountId, newPhrases)
-      .then((response: unknown) => ({
-        phrases: newPhrases,
-        result: isSpamImpactResponse(response, newPhrases.length) ? response : ('failed' as const),
-        spamFilter: nextSpamFilter,
-      }))
+    setBar({ phase: 'checking' })
+    setImpact({ check: 'checking', fields: next, phrases: newPhrases })
+    const result: ImpactCheck['result'] = await postSpamImpact(accountId, newPhrases)
+      .then((response: unknown) =>
+        isSpamImpactResponse(response, newPhrases.length) ? response : ('checkFailed' as const),
+      )
       .catch((error: any) => {
         console.error('postSpamImpact', { accountId, error })
-        return { phrases: newPhrases, result: 'failed' as const, spamFilter: nextSpamFilter }
+        return 'checkFailed' as const
       })
-    setIsChecking(false)
+    // Keep editing was pressed while the check ran.
+    if (checkRequest.current !== request) return
+    const check: ImpactCheck = { phrases: newPhrases, result, spamFilter: next.spamFilter }
     if (needsReview(check)) {
-      setImpactCheck(check)
+      setImpact({ check, fields: next, phrases: newPhrases })
       return
     }
-    void saveSettings(accountId, account, nextSpamFilter)
+    setImpact(undefined)
+    setAnnouncement('No matches in the emails we checked. Saving…')
+    await put(accountId, account, next)
   }
 
-  const handleSaveAnyway = (accountId: string, account: Account): void => {
-    const nextSpamFilter = impactCheck?.spamFilter ?? spamFilter
-    setImpactCheck(undefined)
-    void saveSettings(accountId, account, nextSpamFilter)
+  const requestSave = (): void => {
+    if (loggedInUser?.username && account) void save(loggedInUser.username, account)
   }
 
-  const renderSettings = (): React.ReactNode => (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <SettingsTitle />
-      <p className="mt-1 mb-8 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+  const keepEditing = (): void => {
+    checkRequest.current += 1
+    setImpact(undefined)
+    setBar({ phase: 'idle' })
+    setAnnouncement('Nothing saved. Your changes are still here.')
+  }
+
+  const saveAnyway = (): void => {
+    if (!impact || !loggedInUser?.username || !account) return
+    confirmedPhrases.current = impact.phrases
+    setImpact(undefined)
+    void put(loggedInUser.username, account, impact.fields)
+  }
+
+  const discard = (): void => {
+    if (!account) return
+    confirmedPhrases.current = undefined
+    setUndo({ drafts, fields, sections })
+    setFields(fieldsOf(account))
+    setDrafts(EMPTY_DRAFTS)
+    setErrors({})
+    setBar({ phase: 'discarded' })
+    setAnnouncement('Discarded your changes. You can undo this for 8 seconds.')
+    setFocusRequest({ target: 'primary' })
+  }
+
+  const restore = (): void => {
+    if (!undo) return
+    setFields(undo.fields)
+    setDrafts(undo.drafts)
+    setUndo(undefined)
+    setBar({ phase: 'idle' })
+    setAnnouncement('Your changes are back.')
+    setFocusRequest({ target: 'primary' })
+  }
+
+  // Read by the window keydown listener, which is added once.
+  const shortcut = useRef<(event: KeyboardEvent) => void>(() => undefined)
+  shortcut.current = (event: KeyboardEvent): void => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's' || !barShown) return
+    event.preventDefault()
+    // A dialog (the impact check or the leave guard) holds focus while open.
+    const inDialog = event.target instanceof Element && event.target.closest('[role="dialog"]') !== null
+    if (impact || inDialog) return
+    if ((bar.phase === 'idle' && sections.length > 0) || bar.phase === 'failed') requestSave()
+  }
+
+  const dirtyTitle = (
+    <>
+      Not saved yet:{' '}
+      {sections.map((section, index) => (
+        <React.Fragment key={section}>
+          {separatorBefore(index, sections.length)}
+          <Button onClick={() => focusHeading(section)} style={SECTION_BUTTON_STYLE} variant="shell">
+            {SECTION_LABEL[section]}
+          </Button>
+        </React.Fragment>
+      ))}
+    </>
+  )
+
+  // Shown only while a box is still refused.
+  const refusalNote = Object.values(errors).some(Boolean) ? bar.note : undefined
+
+  const barProps = (): Omit<UnsavedBarProps, 'regionLabel'> => {
+    const discardAction = { label: 'Discard', onPress: discard }
+    switch (bar.phase) {
+      case 'saved':
+        return { phase: 'saved', title: `Saved: ${joinSections(bar.savedSections ?? [])}` }
+      case 'discarded':
+        return {
+          phase: 'discarded',
+          primary: { label: 'Undo', onPress: restore },
+          title: `Discarded: ${joinSections(undo?.sections ?? [])}`,
+        }
+      case 'failed':
+        return {
+          detail: `Your changes to ${joinSections(sections)} are still here. Check your connection, then try again.`,
+          note: refusalNote,
+          phase: 'failed',
+          primary: { label: 'Try again', onPress: requestSave },
+          secondary: discardAction,
+          title: "We couldn't save your changes.",
+        }
+      case 'idle':
+        return {
+          detail: draftLine(draftCount),
+          note: refusalNote,
+          phase: 'dirty',
+          primary: { busyLabel: 'Saving…', label: 'Save', onPress: requestSave },
+          secondary: discardAction,
+          title: compact ? `Not saved yet: ${joinSections(sections)}` : dirtyTitle,
+        }
+      default:
+        return {
+          phase: 'busy',
+          primary: {
+            busyLabel: bar.phase === 'checking' ? 'Checking your mail…' : 'Saving…',
+            label: 'Save',
+            onPress: requestSave,
+          },
+          secondary: { ...discardAction, unavailableReason: WAIT_FOR_SAVE_REASON },
+          title: compact ? `Not saved yet: ${joinSections(sections)}` : dirtyTitle,
+        }
+    }
+  }
+
+  const handleFormFocus = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const focused = isTextField(event.target)
+    setFieldFocused(focused)
+    // After the strip appears, the field must not sit under it.
+    if (focused) event.target.scrollIntoView?.({ block: 'nearest' })
+  }
+
+  // Moving from a field to the bar keeps the strip as it is, so a tap on its Save is not lost to the
+  // bar changing shape under the finger.
+  const handleFormBlur = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget
+    if (next instanceof Node && barRegion()?.contains(next)) return
+    setFieldFocused(isTextField(next) && formRef.current?.contains(next) === true)
+  }
+
+  // Focus leaving the bar for somewhere outside the form and the bar ends the strip. Into the form,
+  // handleFormFocus decides.
+  const handleBarBlur = (event: React.FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget
+    if (next instanceof Node && (formRef.current?.contains(next) || barRegion()?.contains(next))) return
+    setFieldFocused(false)
+  }
+
+  const readOnlyProps = { readOnly: isBusy, readOnlyReason: WAIT_FOR_SAVE_REASON }
+
+  const renderSettings = (accountValue: Account): React.ReactNode => (
+    <div className="mx-auto max-w-2xl px-6 py-10" onBlur={handleFormBlur} onFocus={handleFormFocus} ref={formRef}>
+      <SettingsTitle ref={h1Ref} />
+      <p className="mt-1 text-sm" style={MUTED_TEXT}>
         Manage your email account preferences
       </p>
+      {savedAt !== undefined && (
+        <p className="mt-1 text-sm" style={{ color: 'var(--text-paper)', fontFamily: 'Outfit, sans-serif' }}>
+          Saved at {new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+        </p>
+      )}
 
-      <div className="flex flex-col gap-8">
-        {/* Display name */}
-        <section aria-busy={isBusy || undefined}>
-          <div className="mb-2">
-            <SectionHeading as="div">Display name</SectionHeading>
-          </div>
-          <TextInput
-            aria-label="From name"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-            placeholder="Your display name"
-            readOnly={account === undefined || isBusy}
-            value={name}
-          />
-        </section>
+      <div className="mt-8 flex flex-col gap-8">
+        <div ref={setSectionEl('name')}>
+          <FormSection
+            heading="Display name"
+            headingId={`${idPrefix}-name-heading`}
+            status={sections.includes('name') ? 'unsaved' : undefined}
+          >
+            <TextInput
+              aria-label="From name"
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                const name = event.target.value
+                editFields((current) => ({ ...current, name }))
+              }}
+              placeholder="Your display name"
+              readOnly={isBusy}
+              value={fields.name}
+            />
+          </FormSection>
+        </div>
 
         <Divider opacity={0.7} />
 
-        {/* Forward targets */}
-        {account !== undefined && (
-          <section aria-busy={isBusy || undefined}>
-            <div className="mb-1">
-              <SectionHeading as="div">Forward emails to</SectionHeading>
-            </div>
-            <p className="mb-2 text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+        <div ref={setSectionEl('forwarding')}>
+          <FormSection
+            heading="Forwarding"
+            headingId={`${idPrefix}-forwarding-heading`}
+            status={sections.includes('forwarding') ? 'unsaved' : undefined}
+          >
+            <p className="mb-2 text-xs" id={ids.forwardingHelper} style={MUTED_TEXT}>
               We&apos;ll forward incoming emails to these addresses.
             </p>
-            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+            <div
+              className="rounded-md"
+              style={{ border: `1px solid ${errors.forwarding ? 'var(--accent)' : 'var(--paper-border)'}` }}
+            >
               <AddressLine
-                addresses={forwardAddresses}
+                addLabel="Add forwarding address"
+                addOnBlur={false}
+                addresses={fields.forwardTargets.map((address) => ({ address, name: '' }))}
+                describedBy={
+                  errors.forwarding ? `${ids.forwardingError} ${ids.forwardingHelper}` : ids.forwardingHelper
+                }
+                draft={drafts.forwarding}
+                inputId={ids.forwardingInput}
+                inputRef={(element: HTMLInputElement | null) => setInput('forwarding', element)}
+                invalid={errors.forwarding !== undefined}
                 label="To:"
-                readOnly={isBusy}
-                readOnlyReason={WAIT_FOR_SAVE_REASON}
-                setAddresses={setForwardAddresses}
+                onDraftChange={(text: string) => changeDraft('forwarding', text)}
+                onInvalid={(entry: string) =>
+                  refuseEntry('forwarding', forwardAddressError(fields.forwardTargets, entry) ?? alreadyListed(entry))
+                }
+                pendingHintId={ids.forwardingHint}
+                savedEntries={accountValue.forwardTargets}
+                setAddresses={(addresses) => {
+                  const next = addresses.map((address) => address.address)
+                  editFields(
+                    (current) => ({ ...current, forwardTargets: next }),
+                    listAnnouncement(fields.forwardTargets, next),
+                  )
+                }}
+                validate={(entry: string) => forwardAddressError(fields.forwardTargets, entry) === undefined}
+                {...readOnlyProps}
               />
             </div>
-          </section>
-        )}
+            {drafts.forwarding.trim() && <PendingHint id={ids.forwardingHint}>{PENDING_HINT}</PendingHint>}
+            <FieldError id={ids.forwardingError} message={errors.forwarding} />
+          </FormSection>
+        </div>
 
-        {account !== undefined && <Divider opacity={0.7} />}
+        <Divider opacity={0.7} />
 
-        {/* Bounce rules */}
-        {account !== undefined && (
-          <section aria-busy={isBusy || undefined}>
-            <div className="mb-1">
-              <SectionHeading as="div">Bounce rules</SectionHeading>
-            </div>
-            <div className="rounded-md" style={{ border: '1px solid var(--paper-border)' }}>
+        <div ref={setSectionEl('bounce')}>
+          <FormSection
+            heading="Bounce rules"
+            headingId={`${idPrefix}-bounce-heading`}
+            status={sections.includes('bounce') ? 'unsaved' : undefined}
+          >
+            <div
+              className="rounded-md"
+              style={{ border: `1px solid ${errors.bounce ? 'var(--accent)' : 'var(--paper-border)'}` }}
+            >
               <BounceSenderInput
+                addLabel="Add bounce rule"
+                addOnBlur={false}
+                describedBy={errors.bounce ? `${ids.bounceError} ${ids.bounceHelper}` : ids.bounceHelper}
+                draft={drafts.bounce}
+                inputId={ids.bounceInput}
+                inputRef={(element: HTMLInputElement | null) => setInput('bounce', element)}
+                invalid={errors.bounce !== undefined}
                 label="Reject emails from:"
-                readOnly={isBusy}
-                readOnlyReason={WAIT_FOR_SAVE_REASON}
-                rules={bounceSenders}
-                setRules={setBounceSenders}
+                onDraftChange={(text: string) => changeDraft('bounce', text)}
+                onInvalid={(entry: string) =>
+                  refuseEntry('bounce', bounceRuleError(fields.bounceSenders, entry) ?? alreadyListed(entry))
+                }
+                pendingHintId={ids.bounceHint}
+                rules={fields.bounceSenders}
+                savedEntries={accountValue.bounceSenders}
+                setRules={(next: string[]) =>
+                  editFields(
+                    (current) => ({ ...current, bounceSenders: next }),
+                    listAnnouncement(fields.bounceSenders, next),
+                  )
+                }
+                {...readOnlyProps}
               />
             </div>
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
+            {drafts.bounce.trim() && <PendingHint id={ids.bounceHint}>{PENDING_HINT}</PendingHint>}
+            <FieldError id={ids.bounceError} message={errors.bounce} />
+            <p className="mt-2 text-sm" id={ids.bounceHelper} style={MUTED_TEXT}>
               Block senders by address (user@domain.com), domain (@domain.com), or enter * to block everyone. Blocked
               emails won&apos;t be forwarded.
             </p>
-          </section>
-        )}
+          </FormSection>
+        </div>
 
-        {account !== undefined && <Divider opacity={0.7} />}
+        <Divider opacity={0.7} />
 
-        {account !== undefined && (
+        <div ref={setSectionEl('spam')}>
           <SpamFilterSettings
-            onChange={setSpamFilter}
-            readOnly={isBusy}
-            readOnlyReason={WAIT_FOR_SAVE_REASON}
-            ref={spamFilterRef}
-            value={spamFilter}
+            changed={sections.includes('spam')}
+            drafts={{ blockPhrases: drafts.blockPhrases, trustedSenders: drafts.trustedSenders }}
+            errors={{ blockPhrases: errors.blockPhrases, trustedSenders: errors.trustedSenders }}
+            inputRef={setInput}
+            onChange={(next) =>
+              editFields(
+                (current) => ({ ...current, spamFilter: next }),
+                listAnnouncement(fields.spamFilter.blockPhrases, next.blockPhrases) ??
+                  listAnnouncement(fields.spamFilter.trustedSenders, next.trustedSenders),
+              )
+            }
+            onDraftChange={(key: SpamDraftKey, text: string) => changeDraft(key, text)}
+            onErrorChange={refuseEntry}
+            savedValue={accountValue.spamFilter ?? DEFAULT_SPAM_FILTER}
+            value={fields.spamFilter}
+            {...readOnlyProps}
           />
-        )}
+        </div>
 
-        {account !== undefined && <Divider opacity={0.7} />}
+        <Divider opacity={0.7} />
 
-        {account !== undefined && loggedInUser?.username && (
+        {loggedInUser?.username && (
           <NotificationSettings
             accountId={loggedInUser.username}
             onPreviewChange={(preview: NotificationPreview) =>
-              handlePreviewChange(loggedInUser.username, account, preview)
+              handlePreviewChange(loggedInUser.username, accountValue, preview)
             }
             preview={notificationPreview}
-            readOnly={isBusy}
-            readOnlyReason={WAIT_FOR_SAVE_REASON}
+            {...readOnlyProps}
           />
         )}
 
-        {account !== undefined && <Divider opacity={0.7} />}
+        <Divider opacity={0.7} />
 
         {/* The install offer's permanent home (not dismissible here, unlike the sign-in
             card). It renders its own heading and returns null when the browser can't install
             or the app is already installed — so it never leaves an empty labeled section. */}
         <InstallOffer surface="paper" />
-
-        {loggedInUser?.username && account && (
-          <div className="flex flex-col items-end gap-1 pt-2">
-            <div className="flex w-full flex-wrap items-center justify-between gap-3">
-              {/* The other half of the "Saved automatically" line on the Notifications section.
-                  A reader who changed only a notification setting arrives at a Save with nothing to
-                  save and needs to be told why, not left to press it and watch nothing happen. */}
-              <p
-                className="text-xs"
-                style={{
-                  color: 'var(--text-paper-muted)',
-                  fontFamily: 'Outfit, sans-serif',
-                  margin: 0,
-                  maxWidth: '26rem',
-                }}
-              >
-                Notifications save as soon as you change them. Everything else waits for Save.
-              </p>
-              <SaveButton
-                hasUnsavedChanges={hasUnsavedChanges}
-                // The notification tier's save sends the whole item, carrying the account as this
-                // page loaded it, so a Save racing it can land first and be overwritten by the
-                // older name. Save waits for it, and says so.
-                isChecking={isChecking}
-                isSaving={isSaving || isSavingPreview}
-                onClick={() =>
-                  loggedInUser?.username && account && void handleSaveClick(loggedInUser.username, account)
-                }
-              />
-            </div>
-            {/* Mounted whether or not there is anything to say: a live region created in the same
-                commit as its content is reliably not announced. The height is reserved so the
-                confirmation does not shove the page as it appears. */}
-            <p
-              className="text-sm"
-              role="status"
-              style={{
-                color: 'var(--text-paper)',
-                fontFamily: 'Outfit, sans-serif',
-                margin: 0,
-                minHeight: '1.25rem',
-              }}
-            >
-              {isChecking ? (
-                'Checking your mail…'
-              ) : hasUnsavedChanges || !saveStatus ? (
-                ''
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckIcon size={12} />
-                  {saveStatus}
-                </span>
-              )}
-            </p>
-            {/* Go back returns focus to Save (Dialog's trigger) and saves nothing. */}
-            <Dialog
-              cancelLabel="Go back"
-              confirmLabel={impactCheck ? impactConfirmLabel(impactCheck) : 'Save anyway'}
-              describedBy={IMPACT_LEAD_ID}
-              onCancel={() => setImpactCheck(undefined)}
-              onConfirm={() => handleSaveAnyway(loggedInUser.username, account)}
-              open={impactCheck !== undefined}
-              scrollable
-              title="Check your new block phrases"
-            >
-              {impactCheck && <ImpactDialogBody check={impactCheck} leadId={IMPACT_LEAD_ID} />}
-            </Dialog>
-          </div>
-        )}
       </div>
     </div>
   )
 
-  const snackbarErrorClose = (): void => {
-    setErrorMessage(undefined)
-  }
+  // Focus moves after the render that shows its target.
+  useEffect(() => {
+    if (!focusRequest) return
+    // A dialog opened meanwhile (the leave dialog during a slow save) keeps focus.
+    if (document.activeElement?.closest('[role="dialog"]')) return
+    const target = { bar: () => barRef.current, h1: () => h1Ref.current, primary: primaryButton }[focusRequest.target]()
+    target?.focus()
+  }, [focusRequest])
+
+  // The saved bar leaves after 5 s and the Undo offer after 8 s. Focus that was in the bar goes to
+  // the page title, so it is not lost with the bar.
+  useEffect(() => {
+    if (bar.phase !== 'saved' && bar.phase !== 'discarded') return undefined
+    const timer = setTimeout(
+      () => {
+        const focusInBar = barRegion()?.contains(document.activeElement) ?? false
+        setBar({ phase: 'idle' })
+        setUndo(undefined)
+        if (focusInBar) setFocusRequest({ target: 'h1' })
+      },
+      bar.phase === 'saved' ? SAVED_BAR_MS : UNDO_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [bar.phase])
+
+  // Undoing every edit by hand returns the page to clean, and says so. A failed save with nothing
+  // left to retry goes back to idle. A new edit clears that line, so a second undo is said again.
+  const sectionsKey = sections.join(' ')
+  useEffect(() => {
+    const before = sectionCount.current
+    sectionCount.current = sectionsKey === '' ? 0 : sectionsKey.split(' ').length
+    if (before > 0 && sectionsKey === '' && (bar.phase === 'idle' || bar.phase === 'failed')) {
+      setAnnouncement(NO_CHANGES)
+      setBar({ phase: 'idle' })
+    }
+    if (before === 0 && sectionsKey !== '') {
+      setAnnouncement((current) => (current === NO_CHANGES ? '' : current))
+    }
+  }, [sectionsKey, bar.phase])
+
+  // Leaving the page moves any save in progress on, so it never PUTs after the owner left.
+  useEffect(
+    () => () => {
+      checkRequest.current += 1
+    },
+    [],
+  )
 
   useEffect(() => {
-    if (account) {
-      setBounceSenders(account.bounceSenders)
-      const forwardTargets = account.forwardTargets.map((address) => ({ address, name: '' }))
-      setForwardAddresses(forwardTargets)
-      setName(account.name)
-      setNotificationPreview(account.notificationPreview)
-      setSpamFilter(savedSpamFilter(account))
+    const handleKeyDown = (event: KeyboardEvent): void => shortcut.current(event)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
-      setIsLoading(false)
-    }
-  }, [account])
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined
+    const query = window.matchMedia(PHONE_QUERY)
+    const handleChange = (event: MediaQueryListEvent): void => setIsPhone(event.matches)
+    setIsPhone(query.matches)
+    query.addEventListener?.('change', handleChange)
+    return () => query.removeEventListener?.('change', handleChange)
+  }, [])
 
   useEffect(() => {
     if (loggedInUser?.username) {
@@ -467,6 +713,8 @@ const AccountSettings = (): React.ReactNode => {
       getAccount(username)
         .then((loaded: Account) => {
           setAccount(loaded)
+          setFields(fieldsOf(loaded))
+          setNotificationPreview(loaded.notificationPreview)
         })
         .catch((error: any) => {
           console.error('getAccount', { error, username: loggedInUser?.username })
@@ -487,16 +735,50 @@ const AccountSettings = (): React.ReactNode => {
 
   return (
     <>
-      <SettingsCard>
-        {isLoading ? (
+      <SettingsCard scrollPaddingBottom={isPhone && !compact ? STACKED_BAR_ROOM : BAR_ROOM}>
+        {account === undefined ? (
           <div className="flex h-full min-h-[120px] items-center justify-center">
             <Spinner label="Loading…" size={40} />
           </div>
         ) : (
-          renderSettings()
+          renderSettings(account)
+        )}
+        {account !== undefined && barShown && (
+          // display: contents keeps the bar sticky to the scroll container. On the compact strip a
+          // press must not move focus out of the field (Safari never focuses a pressed button), or
+          // the strip would expand between mousedown and click.
+          <div
+            onBlur={handleBarBlur}
+            onMouseDown={(event) => {
+              if (compact) event.preventDefault()
+            }}
+            role="presentation"
+            style={{ display: 'contents' }}
+          >
+            <UnsavedBar
+              {...barProps()}
+              compact={compact}
+              primaryRef={primaryRef}
+              ref={barRef}
+              regionLabel="Your changes"
+            />
+          </div>
         )}
       </SettingsCard>
-      <Snackbar message={errorMessage} onClose={snackbarErrorClose} />
+      {/* Mounted once, whether or not there is anything to say: a live region created in the same
+          commit as its content is reliably not announced. */}
+      <p className="sr-only" role="status">
+        {announcement}
+      </p>
+      <ImpactDialog
+        check={impact?.check ?? 'checking'}
+        onConfirm={saveAnyway}
+        onKeepEditing={keepEditing}
+        open={impact !== undefined}
+        phrases={impact?.phrases ?? []}
+        returnFocusTo={primaryButton}
+      />
+      <Snackbar message={errorMessage} onClose={() => setErrorMessage(undefined)} />
     </>
   )
 }

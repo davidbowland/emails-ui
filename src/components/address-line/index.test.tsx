@@ -1,6 +1,6 @@
 import React from 'react'
 
-import AddressLine from './index'
+import AddressLine, { forwardAddressError } from './index'
 import { addresses } from '@test/__mocks__'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -147,5 +147,127 @@ describe('Address line component', () => {
 
     expect(setAddresses).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveValue('late@domain.com')
+  })
+
+  describe('forwardAddressError', () => {
+    it('explains a malformed address', () => {
+      expect(forwardAddressError([], 'bob')).toBe('Enter an email address, like name@example.com.')
+    })
+
+    it('explains a case-insensitive repeat', () => {
+      expect(forwardAddressError(['A@b.co'], 'a@B.co')).toBe('\u201Ca@B.co\u201D is already on your list.')
+    })
+
+    it('accepts a new valid address', () => {
+      expect(forwardAddressError(['x@y.co'], 'a@b.co')).toBeUndefined()
+    })
+  })
+
+  it('AddressLine without addLabel keeps adding on blur', async () => {
+    const setAddresses = jest.fn()
+    render(<AddressLine addresses={[]} label="To" setAddresses={setAddresses} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'a@b.co')
+    await userEvent.tab()
+
+    expect(setAddresses).toHaveBeenCalledWith([{ address: 'a@b.co', name: '' }])
+    expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
+  })
+
+  it('AddressLine validate refuses and calls onInvalid', async () => {
+    const setAddresses = jest.fn()
+    const onInvalid = jest.fn()
+    render(
+      <AddressLine
+        addresses={[]}
+        label="To"
+        onInvalid={onInvalid}
+        setAddresses={setAddresses}
+        validate={() => false}
+      />,
+    )
+
+    await userEvent.type(screen.getByRole('textbox'), 'bob{Enter}')
+
+    expect(onInvalid).toHaveBeenCalledWith('bob')
+    expect(setAddresses).not.toHaveBeenCalled()
+  })
+
+  it('savedEntries marks unsaved addresses as new', () => {
+    render(
+      <AddressLine
+        addresses={[{ address: 'a@b.co', name: '' }]}
+        label="To"
+        savedEntries={[]}
+        setAddresses={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/not saved yet/i)).toBeInTheDocument()
+  })
+
+  it('names the input by its label when inputId is given', () => {
+    render(<AddressLine addresses={[]} inputId="fwd" label="To" setAddresses={jest.fn()} />)
+
+    expect(screen.getByRole('textbox', { name: 'To' })).toHaveAttribute('id', 'fwd')
+  })
+
+  it('inputRef reaches the input', async () => {
+    const ref = React.createRef<HTMLInputElement>()
+    render(<AddressLine addresses={[]} inputRef={ref} label="To" setAddresses={jest.fn()} />)
+
+    ref.current?.focus()
+
+    expect(screen.getByRole('textbox')).toHaveFocus()
+  })
+
+  it('shows a controlled draft and reports typing', async () => {
+    const onDraftChange = jest.fn()
+    render(<AddressLine addresses={[]} draft="abc" label="To" onDraftChange={onDraftChange} setAddresses={jest.fn()} />)
+
+    expect(screen.getByRole('textbox')).toHaveValue('abc')
+    await userEvent.type(screen.getByRole('textbox'), 'd')
+
+    expect(onDraftChange).toHaveBeenCalledWith('abcd')
+  })
+
+  it('pendingHintId joins aria-describedby while a draft is present', () => {
+    const { rerender } = render(
+      <AddressLine
+        addresses={[]}
+        describedBy="err"
+        draft=""
+        label="To"
+        pendingHintId="hint"
+        setAddresses={jest.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby', 'err')
+
+    rerender(
+      <AddressLine
+        addresses={[]}
+        describedBy="err"
+        draft="a"
+        label="To"
+        pendingHintId="hint"
+        setAddresses={jest.fn()}
+      />,
+    )
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby', 'err hint')
+  })
+
+  it('addLabel shows the Add button once there is a draft', () => {
+    render(
+      <AddressLine
+        addLabel="Add forwarding address"
+        addresses={[]}
+        draft="a@b.co"
+        label="To"
+        setAddresses={jest.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Add forwarding address' })).toBeInTheDocument()
   })
 })

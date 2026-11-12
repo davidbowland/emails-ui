@@ -3,6 +3,7 @@ import { deleteUser, getCurrentUser, signOut } from 'aws-amplify/auth'
 import React from 'react'
 
 import Authenticated from './index'
+import { useLeaveGuardRegistration } from '@components/leave-guard'
 import * as push from '@services/push'
 import { user } from '@test/__mocks__'
 import '@testing-library/jest-dom'
@@ -34,6 +35,16 @@ const mockReplace = jest.fn()
 jest.mock('next/router', () => ({
   useRouter: () => ({ asPath: '/', push: mockPush, replace: mockReplace }),
 }))
+
+const Unsaved = (): React.ReactNode => {
+  useLeaveGuardRegistration(['Spam filter'], () => document.getElementById('unsaved-save'))
+  return (
+    <>
+      <p>Unsaved child</p>
+      <button id="unsaved-save">Save</button>
+    </>
+  )
+}
 
 describe('Authenticated component', () => {
   const mockLocationHref = jest.fn()
@@ -318,7 +329,7 @@ describe('Authenticated component', () => {
       [/settings/i, '/settings'],
       [/privacy policy/i, '/privacy-policy'],
     ])('should navigate to %s when menu item is clicked', async (label, path) => {
-      window.location.pathname = path
+      window.location.pathname = '/elsewhere'
       render(
         <Authenticated>
           <p>Testing children</p>
@@ -617,6 +628,92 @@ describe('Authenticated component', () => {
       await screen.findByText(/Testing children/i)
 
       expect(push.healPushSubscription).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('leave guard', () => {
+    beforeAll(() => {
+      jest.mocked(getCurrentUser).mockResolvedValue(user)
+      jest.mocked(deleteUser).mockResolvedValue()
+    })
+
+    const setup = async (label: RegExp): Promise<void> => {
+      render(
+        <Authenticated>
+          <Unsaved />
+        </Authenticated>,
+      )
+      await userEvent.click(await screen.findByLabelText(/Open navigation menu/i, { selector: 'button' }))
+      await userEvent.click((await screen.findAllByText(label))[0])
+    }
+
+    it('nav item asks before leaving', async () => {
+      await setup(/settings/i)
+
+      expect(mockPush).not.toHaveBeenCalled()
+      expect(screen.getByText("If you leave now, you'll lose your changes to Spam filter.")).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+      expect(mockPush).toHaveBeenCalledWith('/settings')
+    })
+
+    it('Sign out asks before signing out', async () => {
+      await setup(/Sign out/i)
+
+      expect(signOut).not.toHaveBeenCalled()
+      expect(screen.getByText('Unsaved child')).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+      await waitFor(() => expect(signOut).toHaveBeenCalledWith())
+    })
+
+    it('Delete account asks before opening its dialog', async () => {
+      await setup(/Delete account/i)
+
+      expect(screen.queryByText(/Go back/i, { selector: 'button' })).not.toBeVisible()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+      const goBack = await screen.findByRole('button', { name: /Go back/i })
+      expect(goBack).toHaveFocus()
+
+      await userEvent.click(goBack)
+
+      expect(screen.getAllByText(/Delete account/i)[0].closest('button')).toHaveFocus()
+    })
+
+    it('expect the tab-close warning kept after Leave and then Go back on Delete account', async () => {
+      await setup(/Delete account/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+      await userEvent.click(await screen.findByRole('button', { name: /Go back/i }))
+
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it('expect Keep editing on Delete account to close the menu and return focus to the page', async () => {
+      await setup(/Delete account/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+
+      expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus()
+      expect(screen.getByRole('button', { name: 'Open navigation menu' })).toBeInTheDocument()
+    })
+
+    it('clicking the current page just closes the menu', async () => {
+      render(
+        <Authenticated>
+          <Unsaved />
+        </Authenticated>,
+      )
+      await userEvent.click(await screen.findByLabelText(/Open navigation menu/i, { selector: 'button' }))
+      await userEvent.click(screen.getByText('Inbox'))
+
+      expect(mockPush).not.toHaveBeenCalled()
+      expect(screen.getByText('Leave without saving?', { selector: 'h2' })).not.toBeVisible()
     })
   })
 })

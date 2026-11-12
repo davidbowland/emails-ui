@@ -47,12 +47,16 @@ export interface MailboxProps {
 interface NoticeState {
   // The moved email, for suggestions.
   emailId: string
+  // The moved email's From line and subject. The viewer shows the next email by then, so the notice
+  // and the suggestions dialog name the moved one.
+  from: string
   // At the top of the viewer (md and up), or of the list (below md, where the view returns to it).
   inViewer: boolean
   kind: SpamNoticeKind
   moveId: string
   otherFromSender: number
   sender?: string
+  subject: string
   trustedValue?: string
   trustState: SpamNoticeTrustState
   updatedCount?: number
@@ -189,12 +193,14 @@ const Mailbox = ({
       setSuggestionsOpen(false)
       setNotice((current) => ({
         emailId,
+        from: moved?.data.from ?? '',
         inViewer: wide,
         kind: target === 'inbox' ? 'not-spam' : 'moved-to-spam',
         // A fresh id per move, so a repeat move of the same kind still takes focus.
         moveId: String(Number(current?.moveId ?? 0) + 1),
         otherFromSender: sender ? remaining.filter((e) => addressOf(e.data.from) === sender).length : 0,
         sender,
+        subject: moved?.data.subject ?? '',
         trustState: 'offer',
       }))
       if (!wide) {
@@ -493,6 +499,7 @@ const Mailbox = ({
   const renderNotice = (): React.ReactNode =>
     notice && (
       <SpamNotice
+        from={notice.from}
         kind={notice.kind}
         moveId={notice.moveId}
         onDecline={() => updateNotice({ trustState: 'declined' })}
@@ -501,6 +508,7 @@ const Mailbox = ({
         onTrust={trustSender}
         otherFromSender={notice.otherFromSender}
         sender={notice.sender}
+        subject={notice.subject}
         trustState={notice.trustState}
         trustedValue={notice.trustedValue}
         updatedCount={notice.updatedCount}
@@ -678,7 +686,9 @@ const Mailbox = ({
         // Stays mounted and is opened by toggling, so the dialog can return focus to its trigger.
         <SpamSuggestions
           accountId={loggedInUser.username}
+          emailFrom={notice?.from ?? ''}
           emailId={notice?.emailId ?? ''}
+          emailSubject={notice?.subject ?? ''}
           onApplied={suggestionsApplied}
           onClose={() => setSuggestionsOpen(false)}
           open={suggestionsOpen}

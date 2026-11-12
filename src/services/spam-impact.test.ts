@@ -24,6 +24,7 @@ interface PhraseVector {
 const suggestion = (kind: SpamSuggestion['kind'], value: string): SpamSuggestion => ({
   id: `${kind}-${value}`,
   kind,
+  level: 'targeted',
   reason: 'Because',
   value,
 })

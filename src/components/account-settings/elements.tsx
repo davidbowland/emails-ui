@@ -1,18 +1,23 @@
 import React from 'react'
 
-import Button from '@components/ui/button'
-import ButtonIconTile, { BUTTON_ICON_TILE_SIZE } from '@components/ui/button-icon-tile'
-import { SaveIcon } from '@components/ui/icons'
-
 // Why a control in a section Save owns can't run while Save is busy. AccountSettings passes it to
 // every such control as its readOnlyReason. Worded for the mail check too, when nothing is being
 // written yet.
 export const WAIT_FOR_SAVE_REASON = 'Wait until Save finishes.'
 
-export const SettingsCard = ({ children }: { children: React.ReactNode }): React.ReactNode => (
+// The scroll container. The unsaved bar sticks to its bottom, so the bottom scroll padding, at
+// least the bar's height, keeps a focused field or heading from scrolling in under the bar.
+export const SettingsCard = ({
+  children,
+  scrollPaddingBottom,
+}: {
+  children: React.ReactNode
+  scrollPaddingBottom: number
+}): React.ReactNode => (
   <div
     style={{
       height: '100%',
+      scrollPaddingBottom: `${scrollPaddingBottom}px`,
       width: '100%',
       overflowY: 'auto',
       background: 'var(--paper-bg)',
@@ -23,7 +28,8 @@ export const SettingsCard = ({ children }: { children: React.ReactNode }): React
   </div>
 )
 
-export const SettingsTitle = (): React.ReactNode => (
+// The h1 takes focus when the saved or discarded bar leaves while focus was in it.
+export const SettingsTitle = ({ ref }: { ref?: React.Ref<HTMLHeadingElement> }): React.ReactNode => (
   <div style={{ marginBottom: '4px' }}>
     {/* Eyebrow */}
     <div
@@ -51,7 +57,8 @@ export const SettingsTitle = (): React.ReactNode => (
       </span>
     </div>
     <h1
-      className="font-display"
+      className="font-display focus-target"
+      ref={ref}
       style={{
         color: 'var(--text-paper)',
         fontWeight: 400,
@@ -60,46 +67,9 @@ export const SettingsTitle = (): React.ReactNode => (
         margin: 0,
         lineHeight: 1.2,
       }}
+      tabIndex={-1}
     >
-      Account Settings
+      Account settings
     </h1>
   </div>
-)
-
-const SaveTileIcon = (): React.ReactNode => <ButtonIconTile icon={SaveIcon} />
-
-const SAVE_BUTTON_STYLE: React.CSSProperties = {
-  fontFamily: 'Outfit, sans-serif',
-  fontSize: '14px',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  padding: '9px 20px',
-}
-
-// Never disabled (spec G4): with nothing to save, a press says so instead of saving; while a save or
-// the phrase check runs, it is busy. Busy and unavailable both keep the button in the tab order, so
-// focus stays on it when the save lands instead of dropping to the top of the page.
-export const SaveButton = ({
-  hasUnsavedChanges,
-  isChecking,
-  isSaving,
-  onClick,
-}: {
-  hasUnsavedChanges: boolean
-  isChecking: boolean
-  isSaving: boolean
-  onClick: () => void
-}): React.ReactNode => (
-  <Button
-    busy={isChecking || isSaving}
-    busyLabel={isChecking ? 'Checking your mail…' : 'Saving…'}
-    icon={SaveTileIcon}
-    iconSize={BUTTON_ICON_TILE_SIZE}
-    onClick={onClick}
-    style={SAVE_BUTTON_STYLE}
-    unavailableReason={hasUnsavedChanges ? undefined : 'You have no changes to save.'}
-    variant="primary"
-  >
-    Save
-  </Button>
 )

@@ -38,4 +38,12 @@ describe('SectionHeading component', () => {
     expect(screen.getByText('New Message')).toBeVisible()
     expect(screen.queryByRole('heading')).toBeNull()
   })
+
+  it('should make the heading focusable by script when tabIndex is set', () => {
+    render(<SectionHeading tabIndex={-1}>Spam filter</SectionHeading>)
+
+    screen.getByRole('heading', { name: 'Spam filter' }).focus()
+
+    expect(screen.getByRole('heading', { name: 'Spam filter' })).toHaveFocus()
+  })
 })

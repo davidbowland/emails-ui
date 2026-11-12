@@ -1,6 +1,6 @@
 import React from 'react'
 
-import BounceSenderInput from './index'
+import BounceSenderInput, { bounceRuleError } from './index'
 import '@testing-library/jest-dom'
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -80,7 +80,7 @@ describe('BounceSenderInput component', () => {
     fireEvent.change(input, { target: { value: 'invalid-email' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(setRules).toHaveBeenCalledWith([])
+    expect(setRules).not.toHaveBeenCalled()
   })
 
   it('should reject invalid domain rules', async () => {
@@ -90,7 +90,15 @@ describe('BounceSenderInput component', () => {
     fireEvent.change(input, { target: { value: 'invalid' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(setRules).toHaveBeenCalledWith([])
+    expect(setRules).not.toHaveBeenCalled()
+  })
+
+  it('should keep a saved rule that fails validation when adding another', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={['legacy']} setRules={setRules} />)
+
+    await userEvent.type(screen.getByRole('textbox'), 'ok.com{Enter}')
+
+    expect(setRules).toHaveBeenCalledWith(['legacy', 'ok.com'])
   })
 
   it('should accept valid email with dot after at', async () => {
@@ -139,14 +147,14 @@ describe('BounceSenderInput component', () => {
     expect(screen.getByRole('textbox', { name: 'Sender to block' })).toBeInTheDocument()
   })
 
-  it('should report an invalid bounce rule and still drop it', async () => {
+  it('should report an invalid bounce rule and leave the list alone', async () => {
     const onInvalid = jest.fn()
     render(<BounceSenderInput label="Bounce:" onInvalid={onInvalid} rules={['a.com']} setRules={setRules} />)
 
     await userEvent.type(screen.getByRole('textbox'), 'invalid{Enter}')
 
     expect(onInvalid).toHaveBeenCalledWith('invalid')
-    expect(setRules).toHaveBeenCalledWith(['a.com'])
+    expect(setRules).not.toHaveBeenCalled()
   })
 
   it('should keep a rejected bounce rule in the box so it can be fixed', async () => {
@@ -165,11 +173,13 @@ describe('BounceSenderInput component', () => {
     expect(screen.getByRole('textbox')).toHaveValue('')
   })
 
-  it('should not add a bounce rule already on the list, ignoring case', async () => {
-    render(<BounceSenderInput label="Bounce:" rules={['spam@domain.com']} setRules={setRules} />)
+  it('duplicate calls onInvalid and adds nothing, ignoring case', async () => {
+    const onInvalid = jest.fn()
+    render(<BounceSenderInput label="Bounce:" onInvalid={onInvalid} rules={['spam@domain.com']} setRules={setRules} />)
 
     await userEvent.type(screen.getByRole('textbox'), 'SPAM@Domain.com{Enter}')
 
+    expect(onInvalid).toHaveBeenCalledWith('SPAM@Domain.com')
     expect(setRules).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox')).toHaveValue('SPAM@Domain.com')
   })
@@ -281,14 +291,14 @@ describe('BounceSenderInput component', () => {
       expect(setRules).toHaveBeenCalledWith(['crypto', 'usd 12/hour'])
     })
 
-    it('should not add an entry already on the list, ignoring case', async () => {
+    it('should refuse an entry already on the list, ignoring case, and say so', async () => {
       renderReused()
 
       const input = screen.getByRole('textbox', { name: 'Block phrases:' })
       await userEvent.type(input, ' CRYPTO {Enter}')
 
       expect(setRules).not.toHaveBeenCalled()
-      expect(onInvalid).not.toHaveBeenCalled()
+      expect(onInvalid).toHaveBeenCalledWith('CRYPTO')
       expect(input).toHaveValue(' CRYPTO ')
     })
   })
@@ -337,5 +347,54 @@ describe('BounceSenderInput component', () => {
 
     expect(setRules).not.toHaveBeenCalled()
     expect(screen.getByRole('textbox')).toHaveValue('ok.com')
+  })
+
+  describe('bounceRuleError', () => {
+    it('explains a malformed rule', () => {
+      expect(bounceRuleError([], 'nodot')).toBe(
+        'Enter an address (user@domain.com), a domain (@domain.com), or * to block everyone.',
+      )
+    })
+
+    it('explains a case-insensitive repeat', () => {
+      expect(bounceRuleError(['@a.com'], '@A.com')).toBe('\u201C@A.com\u201D is already on your list.')
+    })
+
+    it('accepts a new valid rule', () => {
+      expect(bounceRuleError(['@a.com'], '@b.com')).toBeUndefined()
+    })
+  })
+
+  it('savedEntries marks chips not in it as new', async () => {
+    render(<BounceSenderInput label="Bounce:" rules={['@a.com', '@b.com']} savedEntries={['@a.com']} />)
+
+    expect(await screen.findAllByText(/not saved yet/i)).toHaveLength(1)
+    expect(screen.getByText('@b.com').parentElement).toHaveTextContent('not saved yet')
+  })
+
+  it('pendingHintId joins aria-describedby while a draft is present', async () => {
+    const { rerender } = render(
+      <BounceSenderInput
+        describedBy="err"
+        draft=""
+        label="Bounce:"
+        pendingHintId="hint"
+        rules={[]}
+        setRules={setRules}
+      />,
+    )
+    expect(await screen.findByRole('textbox')).toHaveAttribute('aria-describedby', 'err')
+
+    rerender(
+      <BounceSenderInput
+        describedBy="err"
+        draft="abc"
+        label="Bounce:"
+        pendingHintId="hint"
+        rules={[]}
+        setRules={setRules}
+      />,
+    )
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby', 'err hint')
   })
 })

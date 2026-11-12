@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { isIosDevice } from '@components/install-offer/use-install-prompt'
 import NotificationPreviewFigure, { PREVIEW_LABELS } from '@components/notification-preview'
 import Button from '@components/ui/button'
+import FormSection from '@components/ui/form-section'
 import RadioGroup from '@components/ui/radio-group'
-import SectionHeading from '@components/ui/section-heading'
 import { isPushSupported, isSubscribedToPush, PushResult, subscribeToPush, unsubscribeFromPush } from '@services/push'
 import { NotificationPreview } from '@types'
 
@@ -19,8 +19,8 @@ export interface NotificationSettingsProps {
   // the reader just rejected.
   onPreviewChange: (preview: NotificationPreview) => Promise<void>
   preview: NotificationPreview
-  // True while the Save button at the foot of the page is writing. Nothing here is disabled (spec
-  // G4, G7): a press on the button shows readOnlyReason, and the radios are read-only.
+  // True while the Settings save bar is checking or saving. Nothing here is disabled (spec G4, G7):
+  // a press on the button shows readOnlyReason, and the radios are read-only.
   readOnly: boolean
   readOnlyReason?: string
 }
@@ -148,16 +148,8 @@ const NotificationSettings = ({
   const busy = isOn === undefined || state === 'pending'
 
   return (
-    <section>
-      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-        <SectionHeading as="div">Notifications</SectionHeading>
-        {/* Plain text, not a coloured pill: this is the one section on the page the Save button
-            does not own, and a reader who cannot tell the pill's colour from any other would be
-            left with no signal at all. */}
-        <span className="text-xs" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
-          Saved automatically
-        </span>
-      </div>
+    // The one section the Settings save bar does not cover, so it says it saves on its own, in words.
+    <FormSection heading="Notifications" headingId="notifications-heading" status="auto">
       <p className="mb-3 text-sm" style={{ color: 'var(--text-paper-muted)', fontFamily: 'Outfit, sans-serif' }}>
         Emails tells you when a message arrives. Turning notifications on applies to this browser. What they show
         follows your account to every device.
@@ -178,7 +170,7 @@ const NotificationSettings = ({
             minHeight: '44px',
             padding: '9px 20px',
           }}
-          // The Save at the foot of the page is writing the whole account; a press says so.
+          // The Settings save bar is writing the whole account; a press says so.
           unavailableReason={readOnly ? readOnlyReason : undefined}
           variant="primary"
         >
@@ -239,7 +231,7 @@ const NotificationSettings = ({
         </p>
         <NotificationPreviewFigure preview={preview} />
       </div>
-    </section>
+    </FormSection>
   )
 }
 
